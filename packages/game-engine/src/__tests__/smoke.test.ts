@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createRng } from '../rng/seeded-rng.js';
+import { createRng } from '../rng/seeded-rng';
 
 describe('engine smoke', () => {
   it('rng is deterministic across instances with the same seed', () => {
