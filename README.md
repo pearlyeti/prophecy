@@ -438,14 +438,18 @@ Living list of in-flight and planned work. Update this section when scope is add
 - _(none yet — populate as work begins)_
 
 ### Next up
-- First `pnpm install` + verify `pnpm typecheck`, `pnpm test`, and `pnpm dev` start cleanly across all three apps.
-- Flesh out `packages/db` schema beyond `users` — `cards`, `card_abilities` (JSONB AST), `card_dice`, `decks`, `deck_cards`. Generate the first migration.
+- Apply the first migration against a real Postgres (needs Docker Desktop installed locally — `docker compose -f infra/docker-compose.yml up -d && pnpm db:migrate`).
+- Hand-author 4–6 original Prophecy test characters/upgrades inside `packages/game-engine/__fixtures__/prophecy-test/` so the next engine actions (`activate`, `resolve-dice`) have realistic shapes to exercise.
+- Mechanical-only fixture importer at `packages/game-engine/__fixtures__/scripts/import-reference-set.ts` (gated by user approval before the first scrape).
 - Auth wiring with **better-auth** (sessions table in `packages/db`, OAuth providers, `apps/api` middleware, `apps/web` login screen).
-- Mechanical-only fixture importer at `packages/game-engine/__fixtures__/scripts/import-reference-set.ts`.
-- First slice of engine logic: `applyAction` for `pass` and the action/upkeep phase loop, with replay-determinism tests.
+- Wire `apps/game-server` to instantiate engine games per Socket.io room; broadcast engine events back to clients.
+- Implement `applyAction` for `activate` (next-simplest action; needs character + dice data on PlayerState).
+- Resolve the cross-package import limitation more cleanly (drizzle-kit + monorepo) — current workaround is duplicated enum value arrays guarded by a drift test.
 
 ### Backlog — engine
-- Dice resolution pipeline (modifiers, resource costs, multi-die actions).
+- `activate` action: exhaust + roll all character/upgrade dice into pool. Requires extending PlayerState with character + die data.
+- Dice resolution pipeline (`resolve-dice`, modifier-with-parent rule, resource costs, multi-die actions).
+- `play-card`, `use-card-action`, `reroll-dice` handlers.
 - Replacement-effect interceptor framework.
 - Queue + before/after triggers + additional-action handling.
 - Battlefield controller tiebreak across simultaneous abilities.
@@ -454,6 +458,7 @@ Living list of in-flight and planned work. Update this section when scope is add
 - Deck/team validators (faction, color, points, uniqueness).
 - Replay reconstruction from seed + event log.
 - Ability AST resolver dispatch with full coverage of the type tag space.
+- Hand-size draw + readying inside the upkeep transition (currently stubbed at the right place).
 
 ### Backlog — services
 - Auth flow (better-auth + Google/Discord OAuth).
@@ -507,6 +512,8 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 
 ### Done
 - **2026-05-10 — Monorepo skeleton bootstrapped.** pnpm workspaces + Turborepo + strict TS. Three apps (`web`, `api`, `game-server`) and three packages (`game-engine`, `protocol`, `db`) compile and run. Hono + tRPC v11 in `api`; Socket.io in `game-server`; React 19 + Vite 6 + Tailwind v4 + tRPC client in `web`. Drizzle + postgres.js in `db` with a starter `users` table. Seeded RNG and pure-reducer skeleton in `game-engine`. Docker Compose for Postgres / Redis / MinIO. Touch-first CSS defaults (44 × 44 hit targets, `touch-action: manipulation`, `prefers-reduced-motion` respected) and a Splash route that pings `/trpc` for liveness.
+- **2026-05-10 — Card catalog and deck schema, first migration.** Shared enum value lists in `@prophecy/protocol` (Zod schemas) and a duplicated copy in `@prophecy/db` (drizzle-kit can't follow cross-package imports cleanly) guarded by a drift test. Tables: `cards` (text PK, set/type/subtypes/faction/color/rarity/cost/health/points/is_unique/display_text), `card_abilities` (JSONB AST per row, ordinal-stable), `card_dice` (six rows per dice-bearing card, face-index check 0..5), `decks`, `deck_characters` (4 slots per team), `deck_cards` (count 1..2 check). Generated migration `0000_deep_stellaris.sql` — five Postgres enums plus seven tables with FK cascades and indexes. Migration validated by drizzle-kit's schema model; pending apply against a live Postgres until Docker is installed.
+- **2026-05-10 — Engine: first action slice.** `newGame` factory; pure-reducer `applyAction` dispatch. Three actions implemented: `pass` (consecutive-pass counting, rotation, upkeep transition with +2 resources and dice-pool clear), `claim-battlefield` (single-claim-per-round guard, control transfer, auto-pass cascade for the claimer's subsequent turns this round), and `concede` (1v1 opponent-wins). End-of-round loss check (hand=0 AND deck=0 → lose; battlefield controller wins ties). Typed `EngineEvent` discriminated union (player.passed, turn.advanced, battlefield.claimed, upkeep.begin/player/end, round.begin, game.ended). Shared `guardCanAct` and `rotateAndCascade` helpers. 28 tests passing across smoke, newGame, pass, claim, end-of-round, concede.
 
 ---
 
