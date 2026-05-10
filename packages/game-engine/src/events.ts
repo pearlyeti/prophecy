@@ -10,6 +10,7 @@
 export type EngineEvent =
   | { readonly type: 'player.passed'; readonly payload: PlayerPassedPayload }
   | { readonly type: 'turn.advanced'; readonly payload: TurnAdvancedPayload }
+  | { readonly type: 'battlefield.claimed'; readonly payload: BattlefieldClaimedPayload }
   | { readonly type: 'upkeep.begin'; readonly payload: Empty }
   | { readonly type: 'upkeep.player'; readonly payload: UpkeepPlayerPayload }
   | { readonly type: 'upkeep.end'; readonly payload: Empty }
@@ -23,6 +24,17 @@ export type Empty = Record<string, never>;
 export interface PlayerPassedPayload {
   readonly playerId: string;
   readonly consecutivePasses: number;
+  /**
+   * True when the engine auto-passed for this player (e.g., they had
+   * already claimed the battlefield this round). False or absent for
+   * an explicit player-chosen pass.
+   */
+  readonly automatic?: boolean;
+}
+
+export interface BattlefieldClaimedPayload {
+  readonly playerId: string;
+  readonly previousControllerId: string | null;
 }
 
 export interface TurnAdvancedPayload {

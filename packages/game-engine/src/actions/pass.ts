@@ -1,10 +1,11 @@
 import type { EngineEvent } from '../events';
+import { rotateAndCascade } from '../state/turn';
 import type { GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
 
 const UPKEEP_RESOURCES = 2;
 
-export interface PassResult {
+export interface ApplyResult {
   readonly state: GameState;
   readonly events: readonly EngineEvent[];
 }
@@ -12,65 +13,56 @@ export interface PassResult {
 /**
  * Pass action.
  *
- * - Validates phase, active player, and that the game is still in progress.
- * - Increments `consecutivePasses`.
- * - If everyone has passed in a row, runs upkeep and starts the next round.
- * - Otherwise rotates `activePlayerId` to the next player in seating order.
- *
- * The exact upkeep effects modeled here for v1: clear dice pools and grant
- * +2 resources to each player. Readying exhausted cards and the hand-size
- * draw are no-ops in this slice because we don't yet simulate card-level
- * state. They're stubbed at the right place so they're easy to fill in.
+ * Validates phase and active player, increments `consecutivePasses`,
+ * rotates to the next seat, and runs the auto-pass cascade if the new
+ * active player has already claimed this round. If the cascade brings
+ * the consecutive-pass count to one-per-player, runs upkeep and starts
+ * the next round.
  */
-export function applyPass(state: GameState, playerId: string): PassResult {
+export function applyPass(state: GameState, playerId: string): ApplyResult {
+  guardCanAct(state, playerId);
+
+  const prelude: EngineEvent[] = [
+    {
+      type: 'player.passed',
+      payload: { playerId, consecutivePasses: state.consecutivePasses + 1 },
+    },
+  ];
+  const stateAfterPass: GameState = {
+    ...state,
+    consecutivePasses: state.consecutivePasses + 1,
+  };
+
+  if (stateAfterPass.consecutivePasses >= state.playerOrder.length) {
+    // Edge case: 1-player game theoretically; engine still handles it.
+    return runUpkeepAndStartRound(stateAfterPass, prelude);
+  }
+
+  const rotated = rotateAndCascade(stateAfterPass, playerId, prelude);
+  if (rotated.allPlayersPassed) {
+    return runUpkeepAndStartRound(rotated.state, rotated.events);
+  }
+  return { state: rotated.state, events: rotated.events };
+}
+
+export function guardCanAct(state: GameState, playerId: string): void {
   if (state.winnerId !== null) {
     throw new IllegalActionError('game has already ended');
   }
   if (state.phase !== 'action') {
-    throw new IllegalActionError(`cannot pass during ${state.phase} phase`);
+    throw new IllegalActionError(`cannot act during ${state.phase} phase`);
   }
   if (state.activePlayerId !== playerId) {
     throw new IllegalActionError(
       `it is not ${playerId}'s turn (active: ${state.activePlayerId})`,
     );
   }
-
-  const consecutivePasses = state.consecutivePasses + 1;
-  const events: EngineEvent[] = [
-    { type: 'player.passed', payload: { playerId, consecutivePasses } },
-  ];
-
-  if (consecutivePasses < state.playerOrder.length) {
-    const idx = state.playerOrder.indexOf(playerId);
-    const nextIdx = (idx + 1) % state.playerOrder.length;
-    const nextPlayer = state.playerOrder[nextIdx];
-    if (nextPlayer === undefined) {
-      throw new Error(
-        `playerOrder is malformed; cannot resolve next player from index ${nextIdx}`,
-      );
-    }
-
-    events.push({ type: 'turn.advanced', payload: { from: playerId, to: nextPlayer } });
-
-    return {
-      state: {
-        ...state,
-        consecutivePasses,
-        activePlayerId: nextPlayer,
-        turnIndex: state.turnIndex + 1,
-      },
-      events,
-    };
-  }
-
-  // Everyone passed in a row → action phase ends. Run upkeep.
-  return runUpkeepAndStartRound(state, events);
 }
 
-function runUpkeepAndStartRound(
+export function runUpkeepAndStartRound(
   state: GameState,
-  prefixEvents: EngineEvent[],
-): PassResult {
+  prefixEvents: readonly EngineEvent[],
+): ApplyResult {
   const events: EngineEvent[] = [...prefixEvents, { type: 'upkeep.begin', payload: {} }];
 
   const players: Record<string, PlayerState> = {};
@@ -82,9 +74,7 @@ function runUpkeepAndStartRound(
     // 1. Ready exhausted cards — no-op until we model exhaustion.
     // 2. Return dice in pool to matching cards (clear pool).
     // 3. Gain 2 resources.
-    // 4. Discard any number of cards then draw up to hand size.
-    //    Hand draws are deferred until card-level state lands; this is the
-    //    right place for them.
+    // 4. Discard then draw to hand size — deferred until card-level state.
     players[id] = {
       ...p,
       diceInPool: [],
@@ -120,6 +110,7 @@ function runUpkeepAndStartRound(
       activePlayerId: nextActive,
       roundNumber: nextRound,
       consecutivePasses: 0,
+      playerWhoClaimedThisRound: null,
       turnIndex: state.turnIndex + 1,
       players,
     },

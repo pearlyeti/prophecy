@@ -1,3 +1,4 @@
+import { applyClaim } from '../actions/claim';
 import { applyPass } from '../actions/pass';
 import { IllegalActionError } from '../actions/illegal';
 import type { Action } from '../actions/types';
@@ -20,12 +21,13 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
   switch (action.type) {
     case 'pass':
       return applyPass(state, action.playerId);
+    case 'claim-battlefield':
+      return applyClaim(state, action.playerId);
     case 'activate':
     case 'resolve-dice':
     case 'reroll-dice':
     case 'play-card':
     case 'use-card-action':
-    case 'claim-battlefield':
       throw new IllegalActionError(`action type "${action.type}" not yet implemented`);
   }
 }

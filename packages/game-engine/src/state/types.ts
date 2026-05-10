@@ -79,5 +79,12 @@ export interface GameState {
   readonly activePlayerId: string | null;
   readonly players: Readonly<Record<string, PlayerState>>;
   readonly consecutivePasses: number;
+  /**
+   * The player who claimed the battlefield this round, or null if no one
+   * has claimed yet. Once set, that player's subsequent turns this round
+   * are auto-passed by the engine. Reset to null at the start of each
+   * new round (in the upkeep transition).
+   */
+  readonly playerWhoClaimedThisRound: string | null;
   readonly winnerId: string | null;
 }

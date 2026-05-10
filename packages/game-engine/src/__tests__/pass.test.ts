@@ -103,7 +103,7 @@ describe('applyAction({ type: "pass" })', () => {
     const initial = setup();
     const upkeeping = { ...initial, phase: 'upkeep' as const };
     expect(() => applyAction(upkeeping, { type: 'pass', playerId: 'alice' })).toThrow(
-      /cannot pass during upkeep phase/,
+      /cannot act during upkeep phase/,
     );
   });
 

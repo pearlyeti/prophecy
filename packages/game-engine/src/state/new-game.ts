@@ -58,6 +58,7 @@ export function newGame(input: NewGameInput): GameState {
     activePlayerId: battlefieldControllerId,
     players,
     consecutivePasses: 0,
+    playerWhoClaimedThisRound: null,
     winnerId: null,
   };
 }
