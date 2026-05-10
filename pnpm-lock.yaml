@@ -75,9 +75,6 @@ importers:
       '@prophecy/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
-      ioredis:
-        specifier: ^5.4.2
-        version: 5.10.1
       socket.io:
         specifier: ^4.8.1
         version: 4.8.3
@@ -204,6 +201,9 @@ importers:
 
   packages/protocol:
     dependencies:
+      '@prophecy/game-engine':
+        specifier: workspace:*
+        version: link:../game-engine
       '@trpc/server':
         specifier: ^11.0.0-rc.660
         version: 11.17.0(typescript@5.9.3)

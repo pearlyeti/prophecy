@@ -1,14 +1,107 @@
-// Event types broadcast by the game-server over WebSocket.
-// Clients subscribe to these and feed them into the animation pipeline.
+// Wire protocol between web client and game-server (Socket.io).
+//
+// Conventions:
+// - Client → server messages use the suffix .req when they expect a
+//   server response, and unsuffixed otherwise.
+// - Server → client messages are usually broadcast to the whole room,
+//   except `error` which is unicast to the sender.
 
-export type GameServerEvent =
-  | { type: 'room.joined'; roomId: string; playerId: string }
-  | { type: 'room.left'; roomId: string; playerId: string }
-  | { type: 'state.snapshot'; payload: unknown }
-  | { type: 'engine.event'; payload: unknown }
-  | { type: 'error'; message: string };
+import type { Action, EngineEvent, GameState } from '@prophecy/game-engine';
 
-export type ClientIntent =
-  | { type: 'room.join'; roomId: string }
-  | { type: 'room.leave'; roomId: string }
-  | { type: 'action'; payload: unknown };
+// ────────────────────────────────────────────────────────────────────
+// Client → server
+// ────────────────────────────────────────────────────────────────────
+
+export interface LobbyCreateReq {
+  /** Stable client-generated player id (UUID stored in localStorage). */
+  readonly playerId: string;
+  /** Display name shown to the opponent. */
+  readonly displayName: string;
+}
+
+export interface LobbyJoinReq {
+  readonly playerId: string;
+  readonly displayName: string;
+  /** 6-char invite code shared by the host. */
+  readonly code: string;
+}
+
+export interface LobbyStartReq {
+  readonly playerId: string;
+  readonly roomId: string;
+}
+
+export interface GameActionReq {
+  readonly playerId: string;
+  readonly roomId: string;
+  readonly action: Action;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Server → client
+// ────────────────────────────────────────────────────────────────────
+
+export interface LobbyMember {
+  readonly playerId: string;
+  readonly displayName: string;
+  readonly connected: boolean;
+}
+
+export type LobbyPhase = 'lobby' | 'in-game' | 'ended';
+
+export interface LobbyState {
+  readonly roomId: string;
+  readonly code: string;
+  readonly hostId: string;
+  readonly members: readonly LobbyMember[];
+  readonly phase: LobbyPhase;
+}
+
+export interface GameStatePayload {
+  readonly roomId: string;
+  readonly state: GameState;
+}
+
+export interface GameEventsPayload {
+  readonly roomId: string;
+  readonly events: readonly EngineEvent[];
+}
+
+export interface ErrorPayload {
+  readonly code:
+    | 'lobby-not-found'
+    | 'lobby-full'
+    | 'not-host'
+    | 'not-member'
+    | 'illegal-action'
+    | 'internal';
+  readonly message: string;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Socket.io named-event maps
+// ────────────────────────────────────────────────────────────────────
+
+export interface ClientToServerEvents {
+  'lobby.create': (req: LobbyCreateReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
+  'lobby.join': (req: LobbyJoinReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
+  'lobby.start': (req: LobbyStartReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
+  'game.action': (req: GameActionReq, ack: (resp: { ok: true } | ErrorPayload) => void) => void;
+}
+
+export interface ServerToClientEvents {
+  'lobby.state': (state: LobbyState) => void;
+  'game.state': (payload: GameStatePayload) => void;
+  'game.events': (payload: GameEventsPayload) => void;
+  'error': (payload: ErrorPayload) => void;
+}
+
+export function isError<T>(resp: T | ErrorPayload): resp is ErrorPayload {
+  return (
+    typeof resp === 'object' &&
+    resp !== null &&
+    'code' in resp &&
+    'message' in resp &&
+    typeof (resp as ErrorPayload).code === 'string'
+  );
+}
