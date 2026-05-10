@@ -15,7 +15,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { cardTypeEnum, colorEnum, dieSymbolEnum, factionEnum, rarityEnum } from './enums.js';
+import { cardTypeEnum, colorEnum, dieSymbolEnum, factionEnum, rarityEnum } from './enums';
 
 // `id` is a stable card code authored alongside the card data
 // (e.g., 'CHAR_TEST_001'). Card codes never change; they are how

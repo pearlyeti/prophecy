@@ -11,9 +11,9 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
-import { cards } from './cards.js';
-import { factionEnum } from './enums.js';
-import { users } from './users.js';
+import { cards } from './cards';
+import { factionEnum } from './enums';
+import { users } from './users';
 
 export const decks = pgTable(
   'decks',
