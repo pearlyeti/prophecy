@@ -1,12 +1,10 @@
 import { applyPass } from '../actions/pass';
 import { IllegalActionError } from '../actions/illegal';
 import type { Action } from '../actions/types';
+import type { EngineEvent } from '../events';
 import type { GameState } from '../state/types';
 
-export interface EngineEvent {
-  readonly type: string;
-  readonly payload: unknown;
-}
+export type { EngineEvent } from '../events';
 
 export interface ApplyResult {
   readonly state: GameState;

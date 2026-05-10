@@ -1,5 +1,5 @@
+import type { EngineEvent } from '../events';
 import type { GameState, PlayerState } from '../state/types';
-import type { EngineEvent } from '../reducers/apply-action';
 import { IllegalActionError } from './illegal';
 
 const UPKEEP_RESOURCES = 2;
