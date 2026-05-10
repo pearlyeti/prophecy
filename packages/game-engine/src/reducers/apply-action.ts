@@ -1,4 +1,5 @@
 import { applyClaim } from '../actions/claim';
+import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
 import { IllegalActionError } from '../actions/illegal';
 import type { Action } from '../actions/types';
@@ -23,6 +24,8 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
       return applyPass(state, action.playerId);
     case 'claim-battlefield':
       return applyClaim(state, action.playerId);
+    case 'concede':
+      return applyConcede(state, action.playerId);
     case 'activate':
     case 'resolve-dice':
     case 'reroll-dice':

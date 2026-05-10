@@ -8,4 +8,5 @@ export type Action =
   | { type: 'reroll-dice'; playerId: string; discardCardId: string; dieInstanceIds: readonly string[] }
   | { type: 'play-card'; playerId: string; cardId: string; targetId?: string }
   | { type: 'use-card-action'; playerId: string; cardId: string }
-  | { type: 'claim-battlefield'; playerId: string };
+  | { type: 'claim-battlefield'; playerId: string }
+  | { type: 'concede'; playerId: string };

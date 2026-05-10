@@ -92,6 +92,48 @@ export function runUpkeepAndStartRound(
 
   events.push({ type: 'upkeep.end', payload: {} });
 
+  // End-of-round loss check (rules: a player with no cards in hand and
+  // deck at the end of a round loses). All-lose tiebreak goes to the
+  // battlefield controller.
+  const losers = state.playerOrder.filter((id) => {
+    const p = players[id];
+    return p !== undefined && p.handCount === 0 && p.deckCount === 0;
+  });
+
+  if (losers.length > 0) {
+    let winnerId: string | null;
+    if (losers.length >= state.playerOrder.length) {
+      // Everyone empty — controller wins the tie.
+      winnerId = state.battlefieldControllerId ?? state.playerOrder[0] ?? null;
+    } else {
+      const survivors = state.playerOrder.filter((id) => !losers.includes(id));
+      // 1v1 (or any case with exactly one survivor) → that player wins.
+      // FFA with multiple survivors continues into the next round; that
+      // path is not exercised in v1.
+      winnerId = survivors.length === 1 ? (survivors[0] ?? null) : null;
+    }
+
+    if (winnerId !== null) {
+      events.push({
+        type: 'game.ended',
+        payload: { winnerId, reason: 'deck-and-hand-empty' },
+      });
+      return {
+        state: {
+          ...state,
+          phase: 'ended',
+          winnerId,
+          players,
+          consecutivePasses: 0,
+          playerWhoClaimedThisRound: null,
+          turnIndex: state.turnIndex + 1,
+        },
+        events,
+      };
+    }
+    // FFA: multi-survivor case falls through and starts the next round.
+  }
+
   const nextRound = state.roundNumber + 1;
   const nextActive = state.battlefieldControllerId ?? state.playerOrder[0];
   if (nextActive === undefined) {
