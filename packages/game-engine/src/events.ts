@@ -8,6 +8,9 @@
 // keeps consumers honest.
 
 export type EngineEvent =
+  | { readonly type: 'setup.battlefield-chosen'; readonly payload: SetupBattlefieldChosenPayload }
+  | { readonly type: 'setup.shield-placed'; readonly payload: SetupShieldPlacedPayload }
+  | { readonly type: 'setup.completed'; readonly payload: SetupCompletedPayload }
   | { readonly type: 'player.passed'; readonly payload: PlayerPassedPayload }
   | { readonly type: 'turn.advanced'; readonly payload: TurnAdvancedPayload }
   | { readonly type: 'battlefield.claimed'; readonly payload: BattlefieldClaimedPayload }
@@ -35,6 +38,23 @@ export interface PlayerPassedPayload {
 export interface BattlefieldClaimedPayload {
   readonly playerId: string;
   readonly previousControllerId: string | null;
+}
+
+export interface SetupBattlefieldChosenPayload {
+  readonly chosenByPlayerId: string;
+  readonly battlefieldOwnerId: string;
+  readonly shieldRecipientId: string;
+}
+
+export interface SetupShieldPlacedPayload {
+  readonly playerId: string;
+  readonly characterId: string;
+  readonly shieldsRemaining: number;
+}
+
+export interface SetupCompletedPayload {
+  readonly battlefieldControllerId: string;
+  readonly firstActivePlayerId: string;
 }
 
 export interface TurnAdvancedPayload {

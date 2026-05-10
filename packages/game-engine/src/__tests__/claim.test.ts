@@ -2,27 +2,27 @@ import { describe, expect, it } from 'vitest';
 
 import { IllegalActionError } from '../actions/illegal';
 import { applyAction } from '../reducers/apply-action';
-import { newGame } from '../state/new-game';
+import { newGameInActionPhase } from '../state/new-game';
+import { basicGameInput } from './fixtures';
 
 function setup() {
-  return newGame({
-    seed: 'claim-test',
-    playerIds: ['alice', 'bob'],
-    battlefieldControllerId: 'alice',
-  });
+  return newGameInActionPhase(basicGameInput({ seed: 'claim-test' }));
 }
 
 describe('applyAction({ type: "claim-battlefield" })', () => {
   it('records the claimer and rotates to the opponent', () => {
     const initial = setup();
+    const claimer = initial.activePlayerId!;
+    const opponent = initial.playerOrder.find((id) => id !== claimer)!;
+
     const { state, events } = applyAction(initial, {
       type: 'claim-battlefield',
-      playerId: 'alice',
+      playerId: claimer,
     });
 
-    expect(state.battlefieldControllerId).toBe('alice');
-    expect(state.playerWhoClaimedThisRound).toBe('alice');
-    expect(state.activePlayerId).toBe('bob');
+    expect(state.battlefieldControllerId).toBe(claimer);
+    expect(state.playerWhoClaimedThisRound).toBe(claimer);
+    expect(state.activePlayerId).toBe(opponent);
     expect(state.consecutivePasses).toBe(0); // claim is an action, not a pass
     expect(state.phase).toBe('action');
 
@@ -31,80 +31,76 @@ describe('applyAction({ type: "claim-battlefield" })', () => {
     expect(types).toContain('turn.advanced');
   });
 
-  it("transfers control when the non-controller claims", () => {
-    const initial = setup(); // alice is controller
-    const { state } = applyAction(initial, {
-      type: 'claim-battlefield',
-      playerId: 'alice',
-    });
-    // alice claims again — battlefield.claimed should record previous controller
-    expect(state.battlefieldControllerId).toBe('alice');
-
-    // Now simulate bob being able to claim instead. Wind to a fresh round
-    // and let bob be active and claim.
-    const r2 = applyAction(state, { type: 'pass', playerId: 'bob' }).state;
-    // alice's seat comes around but she has claimed → auto-passed inside the
-    // pass handler. r2 should be in upkeep already.
-    expect(r2.roundNumber).toBe(2);
-    expect(r2.playerWhoClaimedThisRound).toBeNull();
-    expect(r2.activePlayerId).toBe('alice'); // controller acts first
-  });
-
   it("after a claim, the claimer's next turn is auto-passed and an opponent pass ends the round", () => {
     const initial = setup();
+    const claimer = initial.activePlayerId!;
+    const opponent = initial.playerOrder.find((id) => id !== claimer)!;
+
     const claimed = applyAction(initial, {
       type: 'claim-battlefield',
-      playerId: 'alice',
+      playerId: claimer,
     }).state;
-    expect(claimed.activePlayerId).toBe('bob');
+    expect(claimed.activePlayerId).toBe(opponent);
     expect(claimed.consecutivePasses).toBe(0);
 
-    const { state: afterBobPass, events } = applyAction(claimed, {
+    const { state: afterOpponentPass, events } = applyAction(claimed, {
       type: 'pass',
-      playerId: 'bob',
+      playerId: opponent,
     });
 
-    // Bob's pass made it 1, alice auto-passed making it 2 → upkeep ran.
-    expect(afterBobPass.roundNumber).toBe(2);
-    expect(afterBobPass.consecutivePasses).toBe(0);
-    expect(afterBobPass.playerWhoClaimedThisRound).toBeNull();
+    // Opponent's pass made it 1, claimer auto-passed making it 2 → upkeep ran.
+    expect(afterOpponentPass.roundNumber).toBe(2);
+    expect(afterOpponentPass.consecutivePasses).toBe(0);
+    expect(afterOpponentPass.playerWhoClaimedThisRound).toBeNull();
 
-    // Verify the auto-pass appeared in events with `automatic: true`.
     const passes = events.filter((e) => e.type === 'player.passed');
     expect(passes).toHaveLength(2);
-    expect(passes[0]?.payload.playerId).toBe('bob');
+    expect(passes[0]?.payload.playerId).toBe(opponent);
     expect(passes[0]?.payload.automatic).toBeFalsy();
-    expect(passes[1]?.payload.playerId).toBe('alice');
+    expect(passes[1]?.payload.playerId).toBe(claimer);
     expect(passes[1]?.payload.automatic).toBe(true);
   });
 
   it('only one player can claim per round', () => {
     const initial = setup();
+    const claimer = initial.activePlayerId!;
+    const opponent = initial.playerOrder.find((id) => id !== claimer)!;
+
     const claimed = applyAction(initial, {
       type: 'claim-battlefield',
-      playerId: 'alice',
+      playerId: claimer,
     }).state;
-    // Now active is bob. Bob tries to claim.
     expect(() =>
-      applyAction(claimed, { type: 'claim-battlefield', playerId: 'bob' }),
+      applyAction(claimed, { type: 'claim-battlefield', playerId: opponent }),
     ).toThrow(/already claimed/);
   });
 
-  it('throws when it is not the player\'s turn', () => {
-    const initial = setup(); // alice active
+  it("throws when it is not the player's turn", () => {
+    const initial = setup();
+    const inactive = initial.playerOrder.find((id) => id !== initial.activePlayerId)!;
     expect(() =>
-      applyAction(initial, { type: 'claim-battlefield', playerId: 'bob' }),
+      applyAction(initial, { type: 'claim-battlefield', playerId: inactive }),
     ).toThrow(IllegalActionError);
   });
 
   it('claim flag resets at the start of the next round', () => {
     const initial = setup();
-    const c = applyAction(initial, { type: 'claim-battlefield', playerId: 'alice' }).state;
-    expect(c.playerWhoClaimedThisRound).toBe('alice');
-    const r2 = applyAction(c, { type: 'pass', playerId: 'bob' }).state;
+    const claimer = initial.activePlayerId!;
+    const opponent = initial.playerOrder.find((id) => id !== claimer)!;
+
+    const c = applyAction(initial, {
+      type: 'claim-battlefield',
+      playerId: claimer,
+    }).state;
+    expect(c.playerWhoClaimedThisRound).toBe(claimer);
+    const r2 = applyAction(c, { type: 'pass', playerId: opponent }).state;
     expect(r2.playerWhoClaimedThisRound).toBeNull();
-    // Alice can claim again in round 2.
-    const c2 = applyAction(r2, { type: 'claim-battlefield', playerId: 'alice' }).state;
-    expect(c2.playerWhoClaimedThisRound).toBe('alice');
+    expect(r2.activePlayerId).toBe(c.battlefieldControllerId);
+    // Claim again in round 2.
+    const c2 = applyAction(r2, {
+      type: 'claim-battlefield',
+      playerId: r2.activePlayerId!,
+    }).state;
+    expect(c2.playerWhoClaimedThisRound).toBe(r2.activePlayerId);
   });
 });

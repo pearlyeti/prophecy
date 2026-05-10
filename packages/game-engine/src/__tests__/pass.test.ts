@@ -2,22 +2,22 @@ import { describe, expect, it } from 'vitest';
 
 import { IllegalActionError } from '../actions/illegal';
 import { applyAction } from '../reducers/apply-action';
-import { newGame } from '../state/new-game';
+import { newGameInActionPhase } from '../state/new-game';
+import { basicGameInput } from './fixtures';
 
 function setup() {
-  return newGame({
-    seed: 'pass-test',
-    playerIds: ['alice', 'bob'],
-    battlefieldControllerId: 'alice',
-  });
+  return newGameInActionPhase(basicGameInput({ seed: 'pass-test' }));
 }
 
 describe('applyAction({ type: "pass" })', () => {
   it('rotates the active player on a single pass', () => {
     const initial = setup();
-    const { state, events } = applyAction(initial, { type: 'pass', playerId: 'alice' });
+    const activeAtStart = initial.activePlayerId!;
+    const opponent = initial.playerOrder.find((id) => id !== activeAtStart)!;
 
-    expect(state.activePlayerId).toBe('bob');
+    const { state, events } = applyAction(initial, { type: 'pass', playerId: activeAtStart });
+
+    expect(state.activePlayerId).toBe(opponent);
     expect(state.consecutivePasses).toBe(1);
     expect(state.phase).toBe('action');
     expect(state.roundNumber).toBe(1);
@@ -30,8 +30,11 @@ describe('applyAction({ type: "pass" })', () => {
 
   it('after both players pass, runs upkeep and starts the next round', () => {
     const a = setup();
-    const b = applyAction(a, { type: 'pass', playerId: 'alice' }).state;
-    const { state: c, events } = applyAction(b, { type: 'pass', playerId: 'bob' });
+    const first = a.activePlayerId!;
+    const second = a.playerOrder.find((id) => id !== first)!;
+
+    const b = applyAction(a, { type: 'pass', playerId: first }).state;
+    const { state: c, events } = applyAction(b, { type: 'pass', playerId: second });
 
     expect(c.roundNumber).toBe(2);
     expect(c.consecutivePasses).toBe(0);
@@ -55,22 +58,24 @@ describe('applyAction({ type: "pass" })', () => {
   });
 
   it('upkeep clears the dice pool and reports the count returned', () => {
-    const initial = newGame({
-      seed: 'pool-test',
-      playerIds: ['alice', 'bob'],
-      battlefieldControllerId: 'alice',
-      playerOverrides: {
-        alice: {
-          diceInPool: [
-            { instanceId: 'd1', cardId: 'CHAR_A', faceIndex: 0 },
-            { instanceId: 'd2', cardId: 'CHAR_A', faceIndex: 2 },
-          ],
+    const initial = newGameInActionPhase(
+      basicGameInput({
+        seed: 'pool-test',
+        playerOverrides: {
+          alice: {
+            diceInPool: [
+              { instanceId: 'd1', cardId: 'CHAR_A', faceIndex: 0 },
+              { instanceId: 'd2', cardId: 'CHAR_A', faceIndex: 2 },
+            ],
+          },
         },
-      },
-    });
+      }),
+    );
 
-    const after1 = applyAction(initial, { type: 'pass', playerId: 'alice' }).state;
-    const final = applyAction(after1, { type: 'pass', playerId: 'bob' });
+    const first = initial.activePlayerId!;
+    const second = initial.playerOrder.find((id) => id !== first)!;
+    const after1 = applyAction(initial, { type: 'pass', playerId: first }).state;
+    const final = applyAction(after1, { type: 'pass', playerId: second });
 
     expect(final.state.players.alice?.diceInPool).toEqual([]);
     expect(final.state.players.bob?.diceInPool).toEqual([]);
@@ -84,9 +89,10 @@ describe('applyAction({ type: "pass" })', () => {
     expect((upkeepAlice?.payload as { diceReturned: number }).diceReturned).toBe(2);
   });
 
-  it('throws IllegalActionError when it is not the player\'s turn', () => {
+  it("throws IllegalActionError when it is not the player's turn", () => {
     const initial = setup();
-    expect(() => applyAction(initial, { type: 'pass', playerId: 'bob' })).toThrow(
+    const inactive = initial.playerOrder.find((id) => id !== initial.activePlayerId)!;
+    expect(() => applyAction(initial, { type: 'pass', playerId: inactive })).toThrow(
       IllegalActionError,
     );
   });
@@ -94,7 +100,7 @@ describe('applyAction({ type: "pass" })', () => {
   it('throws IllegalActionError when the game has already ended', () => {
     const initial = setup();
     const ended = { ...initial, winnerId: 'alice' };
-    expect(() => applyAction(ended, { type: 'pass', playerId: 'alice' })).toThrow(
+    expect(() => applyAction(ended, { type: 'pass', playerId: initial.activePlayerId! })).toThrow(
       /game has already ended/,
     );
   });
@@ -102,19 +108,14 @@ describe('applyAction({ type: "pass" })', () => {
   it('throws IllegalActionError outside the action phase', () => {
     const initial = setup();
     const upkeeping = { ...initial, phase: 'upkeep' as const };
-    expect(() => applyAction(upkeeping, { type: 'pass', playerId: 'alice' })).toThrow(
-      /cannot act during upkeep phase/,
-    );
+    expect(() =>
+      applyAction(upkeeping, { type: 'pass', playerId: initial.activePlayerId! }),
+    ).toThrow(/cannot act during upkeep phase/);
   });
 
   it('is deterministic: same seed + same actions produces identical state', () => {
     const sequence = (): { round: number; resources: number } => {
-      let s = newGame({
-        seed: 'determinism',
-        playerIds: ['alice', 'bob'],
-        battlefieldControllerId: 'alice',
-      });
-      // Two full rounds of pass/pass.
+      let s = newGameInActionPhase(basicGameInput({ seed: 'determinism' }));
       for (let i = 0; i < 4; i++) {
         const playerId = s.activePlayerId;
         if (!playerId) throw new Error('no active player');
@@ -131,7 +132,7 @@ describe('applyAction({ type: "pass" })', () => {
   it('throws on actions that are not yet implemented (placeholder dispatch)', () => {
     const initial = setup();
     expect(() =>
-      applyAction(initial, { type: 'activate', playerId: 'alice', cardId: 'X' }),
+      applyAction(initial, { type: 'activate', playerId: initial.activePlayerId!, cardId: 'X' }),
     ).toThrow(/not yet implemented/);
   });
 });

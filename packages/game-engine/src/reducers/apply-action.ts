@@ -1,6 +1,7 @@
 import { applyClaim } from '../actions/claim';
 import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
+import { applyChooseBattlefield, applyPlaceShield } from '../actions/setup';
 import { IllegalActionError } from '../actions/illegal';
 import type { Action } from '../actions/types';
 import type { EngineEvent } from '../events';
@@ -20,6 +21,10 @@ export interface ApplyResult {
  */
 export function applyAction(state: GameState, action: Action): ApplyResult {
   switch (action.type) {
+    case 'setup.choose-battlefield':
+      return applyChooseBattlefield(state, action.playerId, action.battlefieldOwnerId);
+    case 'setup.place-shield':
+      return applyPlaceShield(state, action.playerId, action.characterId);
     case 'pass':
       return applyPass(state, action.playerId);
     case 'claim-battlefield':

@@ -45,14 +45,29 @@ export interface Damage {
   readonly unblockable?: boolean;
 }
 
-export interface Shield {
-  readonly count: number;
-}
-
 export interface DieInPool {
   readonly instanceId: string;
   readonly cardId: string;
   readonly faceIndex: 0 | 1 | 2 | 3 | 4 | 5;
+}
+
+/**
+ * A character on the table. Distinct from the catalog card it was
+ * minted from — multiple non-unique copies of the same card can be on
+ * a team and need separate damage / shield tracking.
+ */
+export interface CharacterState {
+  /** Stable instance id, unique per game. */
+  readonly id: string;
+  /** Reference to the catalog row in the cards table. */
+  readonly cardId: string;
+  readonly elite: boolean;
+  readonly damage: number;
+  /** 0..3 per the rules. */
+  readonly shields: number;
+  readonly exhausted: boolean;
+  /** Upgrade instance ids attached to this character. */
+  readonly upgradeIds: readonly string[];
 }
 
 export interface PlayerState {
@@ -62,18 +77,51 @@ export interface PlayerState {
   readonly discardIds: readonly string[];
   readonly resources: number;
   readonly handSize: number;
-  readonly characterIds: readonly string[];
-  readonly battlefieldId: string | null;
+  readonly characters: Readonly<Record<string, CharacterState>>;
+  /** The character instance ids in their seating/display order on the team. */
+  readonly characterOrder: readonly string[];
+  /** The battlefield card this player brought to the game. */
+  readonly battlefieldCardId: string | null;
   readonly diceInPool: readonly DieInPool[];
 }
 
 export type Phase = 'setup' | 'action' | 'upkeep' | 'ended';
+
+export type SetupStep = 'choose-battlefield' | 'place-shields' | 'done';
+
+/**
+ * Substate that exists only while phase === 'setup'. The roll-off has
+ * already happened (deterministically, at newGame time); the winner now
+ * needs to choose a battlefield, after which the player whose
+ * battlefield was not chosen distributes 2 shields among their
+ * characters. When `step` reaches 'done', the engine transitions to
+ * phase = 'action'.
+ */
+export interface SetupContext {
+  readonly step: SetupStep;
+  /** Each player's roll-off total. */
+  readonly rollOffValues: Readonly<Record<string, number>>;
+  /** Winner of the roll-off — the player who chooses the battlefield. */
+  readonly rollOffWinnerId: string;
+  /** How many shields are still to be distributed. Starts at 2. */
+  readonly shieldsRemaining: number;
+  /**
+   * The player whose battlefield was NOT chosen — they distribute
+   * shields. Null until the battlefield has been chosen.
+   */
+  readonly shieldRecipientId: string | null;
+}
 
 export interface GameState {
   readonly seed: string;
   readonly turnIndex: number;
   readonly roundNumber: number;
   readonly phase: Phase;
+  /**
+   * The player whose battlefield is in play (= the controller of the
+   * battlefield, who acts first each round). Null during setup until
+   * the roll-off winner chooses.
+   */
   readonly battlefieldControllerId: string | null;
   readonly playerOrder: readonly string[];
   readonly activePlayerId: string | null;
@@ -86,5 +134,7 @@ export interface GameState {
    * new round (in the upkeep transition).
    */
   readonly playerWhoClaimedThisRound: string | null;
+  /** Setup substate; null when phase !== 'setup'. */
+  readonly setup: SetupContext | null;
   readonly winnerId: string | null;
 }
