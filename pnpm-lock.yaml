@@ -170,6 +170,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@prophecy/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@types/react@19.2.14)(postgres@3.4.9)(react@19.2.6)
