@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: prophecy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: prophecy
+      POSTGRES_PASSWORD: prophecy
+      POSTGRES_DB: prophecy
+    ports:
+      - "5432:5432"
+    volumes:
+      - prophecy-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prophecy -d prophecy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: prophecy-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - prophecy-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: prophecy-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: prophecy
+      MINIO_ROOT_PASSWORD: prophecy-dev-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - prophecy-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  prophecy-postgres-data:
+  prophecy-redis-data:
+  prophecy-minio-data:

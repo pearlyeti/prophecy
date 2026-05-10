@@ -1,0 +1,30 @@
+{
+  "name": "@prophecy/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@prophecy/db": "workspace:*",
+    "@prophecy/protocol": "workspace:*",
+    "@trpc/server": "^11.0.0-rc.660",
+    "bullmq": "^5.34.5",
+    "hono": "^4.6.14",
+    "ioredis": "^5.4.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
