@@ -19,6 +19,8 @@ export interface Room {
   members: Map<string, RoomMember>;
   phase: LobbyPhase;
   game: GameState | null;
+  /** Set when all members are disconnected; cleared on next connect. */
+  emptySince: number | null;
 }
 
 export interface RoomMember {
@@ -52,6 +54,7 @@ export function createRoom(playerId: string, displayName: string): Room {
     members: new Map([[playerId, member]]),
     phase: 'lobby',
     game: null,
+    emptySince: Date.now(),
   };
   rooms.set(id, room);
   codeIndex.set(code, id);
@@ -78,6 +81,21 @@ export function joinRoom(code: string, playerId: string, displayName: string): R
   }
 
   room.members.set(playerId, { playerId, displayName, connections: 0 });
+  return room;
+}
+
+/**
+ * Re-attach a returning player to an existing room. Unlike joinRoom,
+ * this is keyed by roomId and works after the game has started — it's
+ * the path for "reload tab" / "network blip" recovery. Fails if the
+ * player wasn't a member of the room.
+ */
+export function rejoinRoom(roomId: string, playerId: string): Room {
+  const room = rooms.get(roomId);
+  if (!room) throw new LobbyError('lobby-not-found', `no lobby with id ${roomId}`);
+  if (!room.members.has(playerId)) {
+    throw new LobbyError('not-member', `${playerId} is not a member of this lobby`);
+  }
   return room;
 }
 
@@ -140,8 +158,35 @@ export function getRoomById(roomId: string): Room | undefined {
 }
 
 export function trackConnection(roomId: string, playerId: string, delta: 1 | -1): void {
-  const m = rooms.get(roomId)?.members.get(playerId);
-  if (m) m.connections = Math.max(0, m.connections + delta);
+  const room = rooms.get(roomId);
+  if (!room) return;
+  const m = room.members.get(playerId);
+  if (!m) return;
+  m.connections = Math.max(0, m.connections + delta);
+
+  // Track when the room becomes entirely unattended so the cleanup
+  // sweep can drop it later.
+  const anyConnected = [...room.members.values()].some((rm) => rm.connections > 0);
+  room.emptySince = anyConnected ? null : Date.now();
+}
+
+const IDLE_ROOM_TTL_MS = 5 * 60 * 1000; // 5 min unattended → drop the room
+
+/**
+ * Returns ids of rooms that were swept. Caller can broadcast a "lobby
+ * dissolved" event if desired (we currently rely on the next client
+ * rejoin attempt to fail clean).
+ */
+export function sweepIdleRooms(now: number = Date.now()): string[] {
+  const dropped: string[] = [];
+  for (const [id, room] of rooms) {
+    if (room.emptySince !== null && now - room.emptySince > IDLE_ROOM_TTL_MS) {
+      rooms.delete(id);
+      codeIndex.delete(room.code);
+      dropped.push(id);
+    }
+  }
+  return dropped;
 }
 
 export function lobbyStateOf(room: Room): LobbyState {

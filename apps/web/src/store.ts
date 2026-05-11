@@ -1,9 +1,10 @@
 import type { EngineEvent, GameState, LobbyState } from '@prophecy/protocol';
 import { create } from 'zustand';
 
+import { clearCachedLobby } from './lib/lobbyCache';
 import { getOrCreatePlayerId } from './lib/playerId';
 
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
+export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
 interface AppStore {
   readonly playerId: string;
@@ -54,11 +55,13 @@ export const useApp = create<AppStore>((set) => ({
   lastError: null,
   setError: (e) => set({ lastError: e }),
 
-  reset: () =>
+  reset: () => {
+    clearCachedLobby();
     set({
       lobby: null,
       game: null,
       recentEvents: [],
       lastError: null,
-    }),
+    });
+  },
 }));

@@ -31,6 +31,13 @@ export interface LobbyStartReq {
   readonly roomId: string;
 }
 
+export interface LobbyRejoinReq {
+  /** The same playerId the client used originally. */
+  readonly playerId: string;
+  /** The room id stashed in localStorage after the initial join. */
+  readonly roomId: string;
+}
+
 export interface GameActionReq {
   readonly playerId: string;
   readonly roomId: string;
@@ -82,9 +89,16 @@ export interface ErrorPayload {
 // Socket.io named-event maps
 // ────────────────────────────────────────────────────────────────────
 
+export interface RejoinResp {
+  readonly lobby: LobbyState;
+  /** Present when the room is in-game so the client can rehydrate immediately. */
+  readonly game: GameState | null;
+}
+
 export interface ClientToServerEvents {
   'lobby.create': (req: LobbyCreateReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'lobby.join': (req: LobbyJoinReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
+  'lobby.rejoin': (req: LobbyRejoinReq, ack: (resp: RejoinResp | ErrorPayload) => void) => void;
   'lobby.start': (req: LobbyStartReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'game.action': (req: GameActionReq, ack: (resp: { ok: true } | ErrorPayload) => void) => void;
 }

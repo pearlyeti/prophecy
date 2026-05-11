@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { isError } from '@prophecy/protocol';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { ErrorBoundary } from './lib/ErrorBoundary.js';
+import { clearCachedLobby, loadCachedLobby, saveCachedLobby } from './lib/lobbyCache.js';
 import { Game } from './routes/Game.js';
 import { Lobby } from './routes/Lobby.js';
 import { Splash } from './routes/Splash.js';
@@ -37,17 +38,55 @@ function Router() {
 }
 
 function SocketBridge() {
+  const playerId = useApp((s) => s.playerId);
   const setLobby = useApp((s) => s.setLobby);
   const setGame = useApp((s) => s.setGame);
   const appendEvents = useApp((s) => s.appendEvents);
   const setStatus = useApp((s) => s.setConnectionStatus);
   const setError = useApp((s) => s.setError);
 
+  // Avoid issuing duplicate rejoin attempts when the connect handler
+  // fires multiple times for the same logical session (e.g., socket.io
+  // upgrades or fast disconnect/reconnect cycles).
+  const rejoinInFlightFor = useRef<string | null>(null);
+
   useEffect(() => {
     const socket = getSocket();
-    const onConnect = () => setStatus('connected');
+
+    const attemptRejoin = () => {
+      const cached = loadCachedLobby();
+      if (!cached) return;
+      // If we already have this lobby in the store, no need to rejoin.
+      if (useApp.getState().lobby?.roomId === cached.roomId) return;
+      if (rejoinInFlightFor.current === cached.roomId) return;
+
+      rejoinInFlightFor.current = cached.roomId;
+      socket.emit('lobby.rejoin', { playerId, roomId: cached.roomId }, (resp) => {
+        rejoinInFlightFor.current = null;
+        if (isError(resp)) {
+          // Lobby is gone (server restart, idle-swept, or never existed
+          // under this id). Clear the cache and bounce to splash.
+          clearCachedLobby();
+          useApp.getState().reset();
+          if (resp.code !== 'lobby-not-found') {
+            setError(resp.message);
+          }
+          return;
+        }
+        saveCachedLobby({ roomId: resp.lobby.roomId, code: resp.lobby.code });
+        setLobby(resp.lobby);
+        if (resp.game) setGame(resp.game);
+      });
+    };
+
+    const onConnect = () => {
+      setStatus('connected');
+      attemptRejoin();
+    };
     const onDisconnect = () => setStatus('disconnected');
-    const onLobby = (state: Parameters<Parameters<typeof socket.on<'lobby.state'>>[1]>[0]) => {
+    const onReconnectAttempt = () => setStatus('reconnecting');
+
+    const onLobby: Parameters<typeof socket.on<'lobby.state'>>[1] = (state) => {
       setLobby(state);
       if (state.phase === 'ended') setGame(null);
     };
@@ -63,6 +102,7 @@ function SocketBridge() {
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.io.on('reconnect_attempt', onReconnectAttempt);
     socket.on('lobby.state', onLobby);
     socket.on('game.state', onGameState);
     socket.on('game.events', onGameEvents);
@@ -72,12 +112,13 @@ function SocketBridge() {
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.io.off('reconnect_attempt', onReconnectAttempt);
       socket.off('lobby.state', onLobby);
       socket.off('game.state', onGameState);
       socket.off('game.events', onGameEvents);
       socket.off('error', onError);
     };
-  }, [setLobby, setGame, appendEvents, setStatus, setError]);
+  }, [playerId, setLobby, setGame, appendEvents, setStatus, setError]);
 
   return null;
 }
@@ -105,7 +146,7 @@ function ConnectionPill() {
   const color =
     status === 'connected'
       ? 'border-green-700 text-green-300'
-      : status === 'connecting'
+      : status === 'connecting' || status === 'reconnecting'
         ? 'border-amber-700 text-amber-300'
         : 'border-red-700 text-red-300';
   return (

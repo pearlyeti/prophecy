@@ -1,6 +1,7 @@
 import { isError } from '@prophecy/protocol';
 import { useState } from 'react';
 
+import { saveCachedLobby } from '../lib/lobbyCache.js';
 import { getSocket } from '../lib/socket.js';
 import { useApp } from '../store.js';
 
@@ -26,6 +27,7 @@ export function Splash() {
         setError(resp.message);
         return;
       }
+      saveCachedLobby({ roomId: resp.roomId, code: resp.code });
       setLobby(resp);
     });
   };
@@ -42,6 +44,7 @@ export function Splash() {
           setError(resp.message);
           return;
         }
+        saveCachedLobby({ roomId: resp.roomId, code: resp.code });
         setLobby(resp);
       },
     );

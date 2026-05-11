@@ -15,7 +15,9 @@ import {
   joinRoom,
   LobbyError,
   lobbyStateOf,
+  rejoinRoom,
   startRoom,
+  sweepIdleRooms,
   trackConnection,
   type Room,
 } from './rooms.js';
@@ -89,6 +91,24 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('lobby.rejoin', (req, ack) => {
+    console.log(`[game-server] lobby.rejoin room=${req.roomId} from ${req.playerId}`);
+    try {
+      const room = rejoinRoom(req.roomId, req.playerId);
+      enterSocketRoom(socket, room, req.playerId);
+      state.playerId = req.playerId;
+      state.roomId = room.id;
+      ack({ lobby: lobbyStateOf(room), game: room.game });
+      io.to(room.id).emit('lobby.state', lobbyStateOf(room));
+      if (room.game) {
+        // Unicast the current game state to the returning client only.
+        socket.emit('game.state', { roomId: room.id, state: room.game });
+      }
+    } catch (e) {
+      ack(toError(e));
+    }
+  });
+
   socket.on('lobby.start', (req, ack) => {
     try {
       const seed = randomUUID();
@@ -154,3 +174,13 @@ const port = Number(process.env.GAME_SERVER_PORT ?? 3001);
 httpServer.listen(port, () => {
   console.log(`game-server listening on http://localhost:${port}`);
 });
+
+// Periodic sweep so abandoned rooms don't accumulate in the in-memory
+// store. Replace with Redis-backed expiry when the room store moves
+// out-of-process.
+setInterval(() => {
+  const dropped = sweepIdleRooms();
+  if (dropped.length > 0) {
+    console.log(`[game-server] swept ${dropped.length} idle rooms: ${dropped.join(', ')}`);
+  }
+}, 60_000).unref();
