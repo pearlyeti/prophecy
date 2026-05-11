@@ -1,0 +1,7668 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-05-10T00:00:00.000Z",
+  "seed": "prophecy.synthetic-set.v1",
+  "cards": [
+    {
+      "id": "CHAR_001",
+      "title": "Atalanta",
+      "type": "character",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": null,
+      "health": 6,
+      "pointValue": 6,
+      "elitePointValue": 14,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        }
+      ]
+    },
+    {
+      "id": "CHAR_002",
+      "title": "Mnemosyne",
+      "type": "character",
+      "faction": "light",
+      "color": "red",
+      "rarity": "legendary",
+      "cost": null,
+      "health": 9,
+      "pointValue": 8,
+      "elitePointValue": 15,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        },
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "spend-resources",
+              "amount": 1
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "exhaust-character",
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_003",
+      "title": "Hephaestus",
+      "type": "character",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 16,
+      "pointValue": 12,
+      "elitePointValue": 20,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "disrupt",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "opponent.pool"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_004",
+      "title": "Oceanus",
+      "type": "character",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": null,
+      "health": 16,
+      "pointValue": 13,
+      "elitePointValue": 18,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "spend-resources",
+              "amount": 1
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_005",
+      "title": "Apollo",
+      "type": "character",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": 7,
+      "pointValue": 6,
+      "elitePointValue": 10,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 1,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_006",
+      "title": "Freyr",
+      "type": "character",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": 15,
+      "pointValue": 13,
+      "elitePointValue": 19,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan",
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_007",
+      "title": "Cassandra",
+      "type": "character",
+      "faction": "light",
+      "color": "gray",
+      "rarity": "common",
+      "cost": null,
+      "health": 8,
+      "pointValue": 10,
+      "elitePointValue": 15,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "CHAR_008",
+      "title": "Hel",
+      "type": "character",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": 11,
+      "pointValue": 12,
+      "elitePointValue": 19,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_009",
+      "title": "Jason",
+      "type": "character",
+      "faction": "light",
+      "color": "gray",
+      "rarity": "legendary",
+      "cost": null,
+      "health": 6,
+      "pointValue": 9,
+      "elitePointValue": 13,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "disrupt",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 3,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_010",
+      "title": "Aegir",
+      "type": "character",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": null,
+      "health": 14,
+      "pointValue": 12,
+      "elitePointValue": 20,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_011",
+      "title": "Persephone",
+      "type": "character",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": 18,
+      "pointValue": 13,
+      "elitePointValue": 19,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "inherent.die",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_012",
+      "title": "Urd",
+      "type": "character",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 19,
+      "pointValue": 14,
+      "elitePointValue": 19,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_013",
+      "title": "Hyperion",
+      "type": "character",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": 10,
+      "pointValue": 10,
+      "elitePointValue": 18,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "redeploy"
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_014",
+      "title": "Baldr",
+      "type": "character",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 11,
+      "pointValue": 10,
+      "elitePointValue": 17,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant",
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": true
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_015",
+      "title": "Achilles",
+      "type": "character",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": null,
+      "health": 15,
+      "pointValue": 11,
+      "elitePointValue": 15,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.character"
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 1,
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 1,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_016",
+      "title": "Njord",
+      "type": "character",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": null,
+      "health": 9,
+      "pointValue": 14,
+      "elitePointValue": 19,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 3,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_017",
+      "title": "Heracles",
+      "type": "character",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": null,
+      "health": 12,
+      "pointValue": 14,
+      "elitePointValue": 18,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "disrupt",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_018",
+      "title": "Freya",
+      "type": "character",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 12,
+      "pointValue": 10,
+      "elitePointValue": 17,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_019",
+      "title": "Thor",
+      "type": "character",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "common",
+      "cost": null,
+      "health": 10,
+      "pointValue": 9,
+      "elitePointValue": 14,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_020",
+      "title": "Bragi",
+      "type": "character",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 7,
+      "pointValue": 11,
+      "elitePointValue": 17,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_021",
+      "title": "Heimdallr",
+      "type": "character",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": null,
+      "health": 12,
+      "pointValue": 14,
+      "elitePointValue": 20,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "CHAR_022",
+      "title": "Bellerophon",
+      "type": "character",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": null,
+      "health": 7,
+      "pointValue": 11,
+      "elitePointValue": 15,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "disrupt",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "opponent.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_023",
+      "title": "Ares",
+      "type": "character",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 7,
+      "pointValue": 7,
+      "elitePointValue": 15,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "exhaust-character",
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_024",
+      "title": "Thrym",
+      "type": "character",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 7,
+      "pointValue": 6,
+      "elitePointValue": 13,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir",
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 2,
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_025",
+      "title": "Perseus",
+      "type": "character",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "rare",
+      "cost": null,
+      "health": 11,
+      "pointValue": 10,
+      "elitePointValue": 14,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant",
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_026",
+      "title": "Tyr",
+      "type": "character",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": 14,
+      "pointValue": 10,
+      "elitePointValue": 14,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_027",
+      "title": "Nott",
+      "type": "character",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": null,
+      "health": 12,
+      "pointValue": 11,
+      "elitePointValue": 18,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "spend-resources",
+              "amount": 1
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHAR_028",
+      "title": "Ymir",
+      "type": "character",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": 13,
+      "pointValue": 12,
+      "elitePointValue": 19,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian",
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "opponent.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_001",
+      "title": "Caduceus",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian",
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_002",
+      "title": "Lyre of Apollo",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan",
+        "Olympian"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "UPG_003",
+      "title": "Olive Crown",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "red",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir",
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_004",
+      "title": "Gungnir",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "legendary",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 1,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_005",
+      "title": "Gleipnir",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "rare",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Giant",
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 2,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_006",
+      "title": "Skofnung",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "rare",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        },
+        {
+          "kind": "inherent.die",
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_007",
+      "title": "Tanngnjostr",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "opponent.character"
+            }
+          ]
+        },
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_008",
+      "title": "Pandora's Jar",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "exhaust-character",
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_009",
+      "title": "Ariadne's Thread",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir",
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        }
+      ]
+    },
+    {
+      "id": "UPG_010",
+      "title": "Freki",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": true
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_011",
+      "title": "Shield of Achilles",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "legendary",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_012",
+      "title": "Sleipnir",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "opponent.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_013",
+      "title": "Naglfar",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_014",
+      "title": "Spear of Athena",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_015",
+      "title": "Sandals of Hermes",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Giant",
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_016",
+      "title": "Golden Hind",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_017",
+      "title": "Mirror Shield",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "red",
+      "rarity": "common",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Giant",
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_018",
+      "title": "Hofund",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "UPG_019",
+      "title": "Adamantine Sickle",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Vanir",
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_020",
+      "title": "Megingjord",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": null,
+      "abilities": []
+    },
+    {
+      "id": "UPG_021",
+      "title": "Lion Pelt",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_022",
+      "title": "Skidbladnir",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_023",
+      "title": "Muninn",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_024",
+      "title": "Trident of Poseidon",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "indirect",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_025",
+      "title": "Argos",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_026",
+      "title": "Huginn",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 3,
+              "target": "self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_027",
+      "title": "Aegis",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir",
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_028",
+      "title": "Bow of Apollo",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir",
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "indirect",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_029",
+      "title": "Loki's Net",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir",
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_030",
+      "title": "Tanngrisnir",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_031",
+      "title": "Pegasus",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_032",
+      "title": "Andvaranaut",
+      "type": "upgrade",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Olympian",
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "inherent.die",
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 1,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_033",
+      "title": "Geri",
+      "type": "upgrade",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Titan",
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_034",
+      "title": "Helm of Darkness",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_035",
+      "title": "Sword of Peleus",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir",
+        "Olympian"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_036",
+      "title": "Gjallarhorn",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_037",
+      "title": "Brisingamen",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir",
+        "Vanir"
+      ],
+      "dieFaces": null,
+      "abilities": []
+    },
+    {
+      "id": "UPG_038",
+      "title": "Surt's Sword",
+      "type": "upgrade",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "legendary",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "any-character"
+            }
+          ]
+        },
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_001",
+      "title": "Sibyl of Cumae",
+      "type": "support",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            },
+            {
+              "op": "spend-resources",
+              "amount": 1
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "exhaust-character",
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_002",
+      "title": "Well of Mimir",
+      "type": "support",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": [
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_003",
+      "title": "Oracle at Delphi",
+      "type": "support",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 1,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_004",
+      "title": "Norns",
+      "type": "support",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant",
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            },
+            {
+              "op": "spend-resources",
+              "amount": 1
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_005",
+      "title": "Hesperides Grove",
+      "type": "support",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan",
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "indirect",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "discard",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_006",
+      "title": "Heidrun",
+      "type": "support",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_007",
+      "title": "Festival of Lights",
+      "type": "support",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "legendary",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_008",
+      "title": "Sacred Hearth",
+      "type": "support",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "rare",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 1,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_009",
+      "title": "Chorus of Muses",
+      "type": "support",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir",
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": []
+    },
+    {
+      "id": "SUP_010",
+      "title": "Auspices of the Crow",
+      "type": "support",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_011",
+      "title": "Well of Urd",
+      "type": "support",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_012",
+      "title": "Sacrificial Pyre",
+      "type": "support",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 1,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "SUP_013",
+      "title": "Valkyrie",
+      "type": "support",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_014",
+      "title": "Einherjar",
+      "type": "support",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": null,
+      "abilities": []
+    },
+    {
+      "id": "SUP_015",
+      "title": "Hekatomb",
+      "type": "support",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan",
+        "Vanir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUP_016",
+      "title": "Argo",
+      "type": "support",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir",
+        "Vanir"
+      ],
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": true
+        },
+        {
+          "symbol": "discard",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": "any"
+            }
+          ]
+        },
+        {
+          "kind": "special",
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_001",
+      "title": "Twelve Labors",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 3,
+              "target": "self"
+            }
+          ]
+        },
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_002",
+      "title": "Fall of Asgard",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_003",
+      "title": "Underworld Bargain",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "EVT_004",
+      "title": "Wrath of Achilles",
+      "type": "event",
+      "faction": "light",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_005",
+      "title": "Eclipse of the Wolves",
+      "type": "event",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "redeploy"
+        }
+      ]
+    },
+    {
+      "id": "EVT_006",
+      "title": "Lethe’s Draught",
+      "type": "event",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        }
+      ]
+    },
+    {
+      "id": "EVT_007",
+      "title": "Mead of Poetry",
+      "type": "event",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        }
+      ]
+    },
+    {
+      "id": "EVT_008",
+      "title": "Decree of the Moirai",
+      "type": "event",
+      "faction": "neutral",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        }
+      ]
+    },
+    {
+      "id": "EVT_009",
+      "title": "Lyre of Orpheus",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        }
+      ]
+    },
+    {
+      "id": "EVT_010",
+      "title": "Ragnarok Foretold",
+      "type": "event",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "opponent.pool"
+            }
+          ]
+        },
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_011",
+      "title": "Charon’s Toll",
+      "type": "event",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "EVT_012",
+      "title": "Judgment of Paris",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        }
+      ]
+    },
+    {
+      "id": "EVT_013",
+      "title": "Odysseus' Return",
+      "type": "event",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_014",
+      "title": "Forging of Brisingamen",
+      "type": "event",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        },
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_015",
+      "title": "Crossing of Acheron",
+      "type": "event",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "opponent.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_016",
+      "title": "Odin's Sacrifice",
+      "type": "event",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        }
+      ]
+    },
+    {
+      "id": "EVT_017",
+      "title": "Hubris",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "fixed",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "EVT_018",
+      "title": "Theft of Mjolnir",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        },
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        }
+      ]
+    },
+    {
+      "id": "EVT_019",
+      "title": "Binding of Fenrir",
+      "type": "event",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        },
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "spend-resources",
+              "amount": 1
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_020",
+      "title": "Crossing of Bifrost",
+      "type": "event",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_021",
+      "title": "Argonauts’ Voyage",
+      "type": "event",
+      "faction": "light",
+      "color": "red",
+      "rarity": "rare",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            },
+            {
+              "op": "spend-resources",
+              "amount": 2
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "EVT_022",
+      "title": "Threads of the Norns",
+      "type": "event",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_023",
+      "title": "Geirrod’s Trap",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 1,
+              "target": "any-character"
+            }
+          ]
+        },
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_024",
+      "title": "Erinyes Pursue",
+      "type": "event",
+      "faction": "light",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "redeploy"
+        }
+      ]
+    },
+    {
+      "id": "EVT_025",
+      "title": "Fall of Troy",
+      "type": "event",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Vanir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        },
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_026",
+      "title": "Apotheosis",
+      "type": "event",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "exhaust-character",
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_027",
+      "title": "Theogony",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "activate",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "EVT_028",
+      "title": "Catabasis",
+      "type": "event",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "opponent.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_029",
+      "title": "Loki Bound",
+      "type": "event",
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        }
+      ]
+    },
+    {
+      "id": "EVT_030",
+      "title": "Birth of Athena",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_031",
+      "title": "Walk Among Mortals",
+      "type": "event",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "any-character"
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "opponent.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_032",
+      "title": "Sirens’ Song",
+      "type": "event",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "legendary",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "discard-cards-opponent",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_033",
+      "title": "Promethean Bargain",
+      "type": "event",
+      "faction": "light",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "opponent.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_034",
+      "title": "Trojan Horse",
+      "type": "event",
+      "faction": "neutral",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        }
+      ]
+    },
+    {
+      "id": "EVT_035",
+      "title": "Dance of the Maenads",
+      "type": "event",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "exhaust-self"
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_036",
+      "title": "Theft of the Cattle of Apollo",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_037",
+      "title": "Andvari’s Curse",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-resources",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "spend-resources",
+              "amount": 2
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_038",
+      "title": "Oracle’s Warning",
+      "type": "event",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "fixed",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 1,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_039",
+      "title": "Death of Baldr",
+      "type": "event",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "rare",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_040",
+      "title": "Heimdallr’s Watch",
+      "type": "event",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_041",
+      "title": "Pandora's Curse",
+      "type": "event",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        }
+      ]
+    },
+    {
+      "id": "EVT_042",
+      "title": "Cosmogony",
+      "type": "event",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "modify"
+        }
+      ]
+    },
+    {
+      "id": "EVT_043",
+      "title": "Apple of Discord",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "kind": "keyword",
+          "keyword": "redeploy"
+        }
+      ]
+    },
+    {
+      "id": "EVT_044",
+      "title": "Galar and Fjalar",
+      "type": "event",
+      "faction": "light",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [
+            {
+              "op": "spend-resources",
+              "amount": 1
+            }
+          ],
+          "may": false,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 1,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_045",
+      "title": "Hammer Recovered",
+      "type": "event",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "uncommon",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "character-defeated",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        },
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_046",
+      "title": "Sif’s Shorn Hair",
+      "type": "event",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "keyword",
+          "keyword": "ambush"
+        },
+        {
+          "kind": "keyword",
+          "keyword": "guardian"
+        }
+      ]
+    },
+    {
+      "id": "EVT_047",
+      "title": "Theft of Fire",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "resolve-die",
+              "from": "self.upgrade-dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_048",
+      "title": "Calydonian Hunt",
+      "type": "event",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 2,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_049",
+      "title": "Daedalus’ Wings",
+      "type": "event",
+      "faction": "light",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_050",
+      "title": "Olympic Truce",
+      "type": "event",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "legendary",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PLT_001",
+      "title": "Foresight of Mimir",
+      "type": "plot",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "fixed",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": 0,
+      "isUnique": true,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PLT_002",
+      "title": "Strength of Heracles",
+      "type": "plot",
+      "faction": "shadow",
+      "color": "blue",
+      "rarity": "fixed",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": 1,
+      "isUnique": true,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PLT_003",
+      "title": "Wrath of Hera",
+      "type": "plot",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "fixed",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": -2,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 3,
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PLT_004",
+      "title": "Wisdom of Odin",
+      "type": "plot",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "fixed",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": 1,
+      "isUnique": true,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "action",
+          "cost": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 1,
+              "target": "self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PLT_005",
+      "title": "Beauty of Aphrodite",
+      "type": "plot",
+      "faction": "light",
+      "color": "red",
+      "rarity": "fixed",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": 0,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "ongoing",
+          "conditions": [],
+          "effect": [
+            {
+              "op": "lose-resources-opponent",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PLT_006",
+      "title": "Cunning of Loki",
+      "type": "plot",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "fixed",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": 2,
+      "isUnique": true,
+      "subtypes": [
+        "Giant"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.before",
+          "trigger": {
+            "event": "gain-shields",
+            "subject": "self"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "reroll-dice",
+              "count": "any"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_001",
+      "title": "Jotunheim",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "common",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 1,
+              "target": "self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_002",
+      "title": "Mount Ida",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "turn-die",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_003",
+      "title": "Plain of Vigrid",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "common",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Titan"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "ready-character",
+              "target": "self.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_004",
+      "title": "Helheim",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Aesir"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "damage-dealt",
+            "subject": "any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "draw-cards",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_005",
+      "title": "Field of Asphodel",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "remove-die",
+              "from": "self.pool"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_006",
+      "title": "Midgard",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "common",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [
+        "Olympian"
+      ],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 1,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_007",
+      "title": "Oracle of Delphi",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "heal",
+              "amount": 2,
+              "target": "self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_008",
+      "title": "Bifrost",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "common",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "deal-damage",
+              "amount": 2,
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_009",
+      "title": "Tartarus",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "triggered.after",
+          "trigger": {
+            "event": "play-card",
+            "subject": "opponent.any"
+          },
+          "conditions": [],
+          "may": false,
+          "effect": [
+            {
+              "op": "exhaust-character",
+              "target": "opponent.character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BFD_010",
+      "title": "Garden of the Hesperides",
+      "type": "battlefield",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "common",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "subtypes": [],
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "may": true,
+          "effect": [
+            {
+              "op": "gain-shields",
+              "amount": 1,
+              "target": "self.any-character"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
