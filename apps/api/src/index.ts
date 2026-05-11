@@ -1,5 +1,5 @@
 import { serve } from '@hono/node-server';
-import { appRouter } from '@prophecy/protocol';
+import { appRouter } from '@prophecy/protocol/server';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -11,10 +11,13 @@ import { startWorkers } from './workers/index.js';
 const app = new Hono();
 
 app.use('*', logger());
+// Dev-friendly CORS: reflect any origin. Server-authoritative engine
+// means CORS isn't a security boundary for us. Lock down via
+// WEB_PUBLIC_URL in prod.
 app.use(
   '*',
   cors({
-    origin: process.env.WEB_PUBLIC_URL ?? 'http://localhost:5173',
+    origin: process.env.WEB_PUBLIC_URL ?? ((origin) => origin ?? '*'),
     credentials: true,
   }),
 );

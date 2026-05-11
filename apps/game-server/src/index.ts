@@ -32,9 +32,21 @@ const httpServer = createServer((req, res) => {
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: process.env.WEB_PUBLIC_URL ?? 'http://localhost:5173',
+    // Dev-friendly: reflect any origin. Lock down via WEB_PUBLIC_URL
+    // in prod (engine is server-authoritative; CORS isn't a security
+    // boundary for game state).
+    origin: process.env.WEB_PUBLIC_URL ?? true,
     credentials: true,
   },
+});
+
+// Engine.io-level diagnostics: tells us when and why the underlying
+// transport fails (CORS, upgrade probe, ping timeout, etc.).
+io.engine.on('connection_error', (err: { code: number; message: string; context: unknown }) => {
+  console.error('[engine] connection_error', err.code, err.message, err.context);
+});
+io.engine.on('initial_headers', (_headers, req) => {
+  console.log('[engine] initial', req.method, req.url, 'origin=', req.headers.origin);
 });
 
 // Per-socket state. Keyed by socket.id.
@@ -50,6 +62,7 @@ io.on('connection', (socket) => {
   console.log(`[game-server] connected: ${socket.id}`);
 
   socket.on('lobby.create', (req, ack) => {
+    console.log(`[game-server] lobby.create from ${req.playerId} (${req.displayName})`);
     try {
       const room = createRoom(req.playerId, req.displayName);
       enterSocketRoom(socket, room, req.playerId);
@@ -63,6 +76,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('lobby.join', (req, ack) => {
+    console.log(`[game-server] lobby.join code=${req.code} from ${req.playerId}`);
     try {
       const room = joinRoom(req.code, req.playerId, req.displayName);
       enterSocketRoom(socket, room, req.playerId);
