@@ -1,6 +1,13 @@
 import { applyAction } from '../reducers/apply-action';
 import { createRng } from '../rng/seeded-rng';
-import type { CharacterState, GameState, PlayerState, SetupContext } from './types';
+import type {
+  CardDie,
+  CharacterState,
+  DieFace,
+  GameState,
+  PlayerState,
+  SetupContext,
+} from './types';
 
 export interface CharacterInput {
   /** Stable instance id; unique per game. */
@@ -8,8 +15,12 @@ export interface CharacterInput {
   /** Catalog card id this character was minted from. */
   readonly cardId: string;
   readonly elite: boolean;
-  /** Number of starting dice (1 for non-elite, 2 for elite). */
-  readonly diceCount?: 1 | 2;
+  /**
+   * The six die faces this character's die shows. Optional — if absent,
+   * the engine uses DEFAULT_TEST_FACES so callers can spin up games
+   * without authoring full card data yet.
+   */
+  readonly dieFaces?: readonly DieFace[];
 }
 
 export interface NewGameInput {
@@ -29,6 +40,21 @@ const DEFAULT_DECK_SIZE = 30;
 const STARTING_HAND = 5;
 const STARTING_RESOURCES = 2;
 const SHIELDS_TO_DISTRIBUTE = 2;
+
+/**
+ * Stand-in die profile used when a character is created without an
+ * explicit `dieFaces`. Real card data replaces this when the deckbuilder
+ * + card catalog land. Roughly balanced: damage, shields, resource,
+ * blank — enough surface area to exercise the dice-resolution actions.
+ */
+export const DEFAULT_TEST_FACES: readonly [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace] = [
+  { symbol: 'melee', value: 1, cost: 0, modifier: false },
+  { symbol: 'melee', value: 2, cost: 0, modifier: false },
+  { symbol: 'ranged', value: 1, cost: 0, modifier: false },
+  { symbol: 'shield', value: 1, cost: 0, modifier: false },
+  { symbol: 'resource', value: 1, cost: 0, modifier: false },
+  { symbol: 'blank', value: 0, cost: 0, modifier: false },
+];
 
 /**
  * Build the initial GameState. The roll-off runs here deterministically
@@ -59,6 +85,21 @@ export function newGame(input: NewGameInput): GameState {
     const characters: Record<string, CharacterState> = {};
     const order: string[] = [];
     for (const c of team) {
+      const diceCount: 1 | 2 = c.elite ? 2 : 1;
+      const faces = (c.dieFaces ?? DEFAULT_TEST_FACES) as CardDie['faces'];
+      if (faces.length !== 6) {
+        throw new Error(
+          `character ${c.id} has ${faces.length} die faces; expected exactly 6`,
+        );
+      }
+      const dice: CardDie[] = [];
+      for (let i = 0; i < diceCount; i++) {
+        dice.push({
+          instanceId: `${c.id}.die.${i}`,
+          cardId: c.cardId,
+          faces,
+        });
+      }
       characters[c.id] = {
         id: c.id,
         cardId: c.cardId,
@@ -66,6 +107,7 @@ export function newGame(input: NewGameInput): GameState {
         damage: 0,
         shields: 0,
         exhausted: false,
+        dice,
         upgradeIds: [],
       };
       order.push(c.id);
@@ -109,15 +151,13 @@ function runRollOff(
   playerIds: readonly string[],
   playerCharacters: Readonly<Record<string, readonly CharacterInput[]>>,
 ): SetupContext {
-  // Deterministic roll-off. Re-roll on tie until broken; the seeded
-  // RNG is forked per attempt so re-rolls are stable across runs.
   let attempt = 0;
   while (true) {
     const rng = createRng(seed).fork(`roll-off:${attempt}`);
     const values: Record<string, number> = {};
     for (const id of playerIds) {
       const team = playerCharacters[id]!;
-      const diceCount = team.reduce((n, c) => n + (c.diceCount ?? (c.elite ? 2 : 1)), 0);
+      const diceCount = team.reduce((n, c) => n + (c.elite ? 2 : 1), 0);
       let total = 0;
       for (let i = 0; i < diceCount; i++) total += rng.rollDie(6) + 1;
       values[id] = total;
@@ -136,7 +176,6 @@ function runRollOff(
     }
     attempt++;
     if (attempt > 100) {
-      // Shouldn't happen with a real RNG; guards against pathological seeds.
       throw new Error(`roll-off failed to break after ${attempt} attempts`);
     }
   }
@@ -155,14 +194,12 @@ export function newGameInActionPhase(input: NewGameInput): GameState {
   let state = newGame(input);
   const winnerId = state.setup!.rollOffWinnerId;
 
-  // Winner picks their own battlefield.
   state = applyAction(state, {
     type: 'setup.choose-battlefield',
     playerId: winnerId,
     battlefieldOwnerId: winnerId,
   }).state;
 
-  // Loser distributes both shields onto their first character.
   const recipientId = state.setup!.shieldRecipientId!;
   const recipient = state.players[recipientId]!;
   const firstCharacterId = recipient.characterOrder[0]!;

@@ -64,8 +64,18 @@ describe('applyAction({ type: "pass" })', () => {
         playerOverrides: {
           alice: {
             diceInPool: [
-              { instanceId: 'd1', cardId: 'CHAR_A', faceIndex: 0 },
-              { instanceId: 'd2', cardId: 'CHAR_A', faceIndex: 2 },
+              {
+                instanceId: 'd1',
+                cardId: 'CHAR_A',
+                faceIndex: 0,
+                face: { symbol: 'blank', value: 0, cost: 0, modifier: false },
+              },
+              {
+                instanceId: 'd2',
+                cardId: 'CHAR_A',
+                faceIndex: 2,
+                face: { symbol: 'melee', value: 1, cost: 0, modifier: false },
+              },
             ],
           },
         },
@@ -132,7 +142,11 @@ describe('applyAction({ type: "pass" })', () => {
   it('throws on actions that are not yet implemented (placeholder dispatch)', () => {
     const initial = setup();
     expect(() =>
-      applyAction(initial, { type: 'activate', playerId: initial.activePlayerId!, cardId: 'X' }),
+      applyAction(initial, {
+        type: 'play-card',
+        playerId: initial.activePlayerId!,
+        cardId: 'X',
+      }),
     ).toThrow(/not yet implemented/);
   });
 });

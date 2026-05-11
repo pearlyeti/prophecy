@@ -1,3 +1,4 @@
+import { applyActivate } from '../actions/activate';
 import { applyClaim } from '../actions/claim';
 import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
@@ -32,6 +33,7 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
     case 'concede':
       return applyConcede(state, action.playerId);
     case 'activate':
+      return applyActivate(state, action.playerId, action.cardId);
     case 'resolve-dice':
     case 'reroll-dice':
     case 'play-card':

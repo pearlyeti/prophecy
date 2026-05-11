@@ -58,6 +58,10 @@ export function Game() {
         <ActionPanel game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
       )}
 
+      {(game.phase === 'action' || game.phase === 'upkeep' || ended) && (
+        <DicePoolStrip game={game} playerId={playerId} />
+      )}
+
       <PlayerSummaries game={game} playerId={playerId} />
 
       <EventLog events={events} />
@@ -258,7 +262,12 @@ function PlayerSummaries({ game, playerId }: { game: GameState; playerId: string
                 const c = p.characters[cid]!;
                 return (
                   <div key={cid} className="flex items-center justify-between text-xs text-neutral-400">
-                    <span>{cid.replace(/^.*\./, '')}</span>
+                    <span>
+                      {cid.replace(/^.*\./, '')}
+                      <span className="ml-2 text-[10px] text-neutral-600">
+                        {c.dice.length}d{c.elite ? ' · elite' : ''}
+                      </span>
+                    </span>
                     <span className="font-mono">
                       ♥ {c.damage} / shields {c.shields} {c.exhausted ? '· exhausted' : ''}
                     </span>
@@ -322,4 +331,76 @@ function EventLog({ events }: { events: readonly EngineEvent[] }) {
       </ol>
     </section>
   );
+}
+
+function DicePoolStrip({ game, playerId }: { game: GameState; playerId: string }) {
+  const lobby = useApp.getState().lobby!;
+  return (
+    <section className="mb-4 grid gap-3 sm:grid-cols-2">
+      {game.playerOrder.map((id) => {
+        const p = game.players[id]!;
+        const name = lobby.members.find((m) => m.playerId === id)?.displayName ?? id;
+        const isMe = id === playerId;
+        return (
+          <div key={id} className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-3">
+            <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wider text-neutral-500">
+              <span>{name}'s dice pool</span>
+              <span>{p.diceInPool.length}</span>
+            </div>
+            {p.diceInPool.length === 0 ? (
+              <div className="text-xs text-neutral-600">(empty)</div>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {p.diceInPool.map((d) => (
+                  <li
+                    key={d.instanceId}
+                    className="flex h-12 w-12 flex-col items-center justify-center rounded-md border border-neutral-700 bg-neutral-900 text-[10px] uppercase text-neutral-300"
+                    title={`${d.face.symbol} ${d.face.value} (cost ${d.face.cost})${d.face.modifier ? ' +mod' : ''}`}
+                  >
+                    <span className="text-base font-mono text-neutral-100">
+                      {d.face.modifier ? '+' : ''}
+                      {d.face.value || ''}
+                    </span>
+                    <span className="text-[9px]">{symbolGlyph(d.face.symbol)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {isMe && p.diceInPool.length > 0 && (
+              <div className="mt-2 text-[10px] text-neutral-600">
+                Resolve / reroll actions coming soon.
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function symbolGlyph(symbol: string): string {
+  switch (symbol) {
+    case 'melee':
+      return 'MD';
+    case 'ranged':
+      return 'RD';
+    case 'indirect':
+      return 'ID';
+    case 'shield':
+      return 'SH';
+    case 'resource':
+      return 'R';
+    case 'disrupt':
+      return 'DR';
+    case 'discard':
+      return 'DC';
+    case 'focus':
+      return 'F';
+    case 'special':
+      return 'S';
+    case 'blank':
+      return '—';
+    default:
+      return symbol.slice(0, 2).toUpperCase();
+  }
 }

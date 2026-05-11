@@ -7,6 +7,8 @@
 // it — TypeScript's exhaustiveness check on a `switch (event.type)`
 // keeps consumers honest.
 
+import type { DieFace } from './state/types';
+
 export type EngineEvent =
   | { readonly type: 'setup.battlefield-chosen'; readonly payload: SetupBattlefieldChosenPayload }
   | { readonly type: 'setup.shield-placed'; readonly payload: SetupShieldPlacedPayload }
@@ -14,6 +16,7 @@ export type EngineEvent =
   | { readonly type: 'player.passed'; readonly payload: PlayerPassedPayload }
   | { readonly type: 'turn.advanced'; readonly payload: TurnAdvancedPayload }
   | { readonly type: 'battlefield.claimed'; readonly payload: BattlefieldClaimedPayload }
+  | { readonly type: 'character.activated'; readonly payload: CharacterActivatedPayload }
   | { readonly type: 'upkeep.begin'; readonly payload: Empty }
   | { readonly type: 'upkeep.player'; readonly payload: UpkeepPlayerPayload }
   | { readonly type: 'upkeep.end'; readonly payload: Empty }
@@ -55,6 +58,12 @@ export interface SetupShieldPlacedPayload {
 export interface SetupCompletedPayload {
   readonly battlefieldControllerId: string;
   readonly firstActivePlayerId: string;
+}
+
+export interface CharacterActivatedPayload {
+  readonly playerId: string;
+  readonly characterId: string;
+  readonly rolledDice: readonly { instanceId: string; faceIndex: number; face: DieFace }[];
 }
 
 export interface TurnAdvancedPayload {

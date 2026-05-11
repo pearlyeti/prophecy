@@ -35,6 +35,16 @@ export interface DieDefinition {
   readonly faces: readonly [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
 }
 
+/** A die attached to a card (character / upgrade / support). */
+export interface CardDie {
+  /** Stable instance id, unique per game. */
+  readonly instanceId: string;
+  /** Catalog card this die belongs to. */
+  readonly cardId: string;
+  /** Six faces, indexed 0..5. */
+  readonly faces: readonly [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
+}
+
 export interface CardId {
   readonly id: string;
 }
@@ -45,10 +55,17 @@ export interface Damage {
   readonly unblockable?: boolean;
 }
 
+/**
+ * A die currently in a player's dice pool. The face is snapshotted at
+ * roll time (and may be mutated by focus / turn / reroll actions); the
+ * faceIndex points back into the parent CardDie's faces array so the
+ * engine can replay deterministic rolls.
+ */
 export interface DieInPool {
   readonly instanceId: string;
   readonly cardId: string;
-  readonly faceIndex: 0 | 1 | 2 | 3 | 4 | 5;
+  readonly faceIndex: number;
+  readonly face: DieFace;
 }
 
 /**
@@ -66,6 +83,8 @@ export interface CharacterState {
   /** 0..3 per the rules. */
   readonly shields: number;
   readonly exhausted: boolean;
+  /** 1 die for non-elite, 2 for elite. */
+  readonly dice: readonly CardDie[];
   /** Upgrade instance ids attached to this character. */
   readonly upgradeIds: readonly string[];
 }
