@@ -177,11 +177,15 @@ export const AbilityAstSchema = z.discriminatedUnion('kind', [
 // ────────────────────────────────────────────────────────────────────
 
 /**
- * Subtypes are mythological groupings drawn from public-domain Greek
- * and Norse sources. Same five for the v1 corpus; expand to other
- * pantheons (Egyptian, Hindu, Mesopotamian, ...) later.
+ * Subtypes are short opaque labels. Permissive on purpose: the fixture
+ * input may use any labelling scheme (mythological pantheon groupings,
+ * numbered "Subtype N" placeholders, etc.) and the engine doesn't
+ * attach behaviour to specific subtype names — it only cares about
+ * grouping equality. Real subtype-specific rules (Modify <subtype>
+ * upgrades, for instance) are matched on the value at ability-resolution
+ * time, not at the schema layer.
  */
-export const SubtypeSchema = z.enum(['Olympian', 'Aesir', 'Vanir', 'Titan', 'Giant']);
+export const SubtypeSchema = z.string().min(1).max(40);
 
 export const CardFixtureSchema = z
   .object({
@@ -209,6 +213,14 @@ export const CardFixtureSchema = z
     plotPointValue: z.number().int().min(-3).max(3).nullable(),
     isUnique: z.boolean(),
     subtypes: z.array(SubtypeSchema).max(3),
+    /**
+     * Printed ability prose as carried over from the input fixture
+     * file. The engine doesn't dispatch off this — gameplay resolution
+     * keys off the structured `abilities` AST. `displayText` is for
+     * the deckbuilder / card viewer UI and as a reference while we
+     * hand-author the AST for each card.
+     */
+    displayText: z.string().default(''),
     /** Six die faces (characters / dice-bearing upgrades / supports). null otherwise. */
     dieFaces: z
       .tuple([DieFaceSchema, DieFaceSchema, DieFaceSchema, DieFaceSchema, DieFaceSchema, DieFaceSchema])

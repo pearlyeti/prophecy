@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm test)",
+      "Bash(pnpm --filter @prophecy/api typecheck)",
+      "Bash(pnpm --filter @prophecy/api test)",
+      "Bash(pnpm --filter @prophecy/web typecheck)",
+      "Bash(pnpm --filter @prophecy/web test)",
+      "Bash(pnpm --filter @prophecy/protocol typecheck)",
+      "Bash(pnpm --filter @prophecy/protocol test)",
+      "Bash(pnpm --filter @prophecy/db typecheck)",
+      "Bash(pnpm --filter @prophecy/db test)",
+      "Bash(pnpm --filter @prophecy/game-server typecheck)",
+      "Bash(pnpm --filter @prophecy/game-server test)",
+      "Bash(pnpm --filter @prophecy/game-engine typecheck)",
+      "Bash(pnpm --filter @prophecy/game-engine test)",
+      "Bash(pnpm --filter @prophecy/game-engine fixtures:generate)"
+    ]
+  }
+}

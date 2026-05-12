@@ -18,3 +18,9 @@ coverage
 playwright-report
 test-results
 .cache
+
+# Local reference-data dumps used to drive __fixtures__ generation.
+# Never committed; each contributor manages their own.
+prometheus.json
+testing-cards.json
+*.local.json
