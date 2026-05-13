@@ -11,12 +11,28 @@ Before doing anything substantive in this repo, read [README.md](README.md). It 
 - Game features (matches, deckbuilder, storefront, ladder, tournaments)
 - Game engine design principles **and** [Engine implementation notes](README.md#engine-implementation-notes)
 - Reference data & test fixtures policy
-- Roadmap (in-progress, next up, backlog, done)
+- Roadmap (in-progress, up next as task cards, backlog, done)
 - Working agreements
 
 If a question can be answered from the README, prefer that over guessing or grepping the web.
 
 The binding spec for game mechanics is [docs/rules-reference.md](docs/rules-reference.md). Read it before writing engine code.
+
+## Picking up a task card
+
+Most work in this repo is handed off as a **task card** — a self-contained entry in [README.md → Roadmap → Up next](README.md#up-next--task-cards). Each card lists what to build, which files to load, what's out of scope, and how to verify the work is done. The point is that a fresh agent context can start cheaply: you don't need to spelunk the whole codebase to be useful; the card has already pre-selected what matters.
+
+When the user hands you a task code (e.g. `ENGINE-2`, `WEB-1`), follow this protocol:
+
+1. **Find the card.** Read its full entry under "Up next — task cards" in the README. If a `Depends on:` line points to an unfinished card, stop and ask the user before proceeding.
+2. **Claim it.** Move the card line into the README's "In progress" subsection with today's date.
+3. **Load only the listed files.** The card's "Context to load" section is the contract for context — load those, plus what they transitively reveal. Don't grep the codebase for general "understanding" outside the card's scope.
+4. **Stay strictly in scope.** If you find related work that doesn't fit, surface it to the user and propose a new card — don't bundle it in. Scope creep is the #1 way a fresh context burns tokens for no value.
+5. **Run the listed checks.** "Done when" gates completion. Don't claim done if anything's red. For UI cards, "manual smoke" means actually run the dev server and verify in a browser — typecheck does not prove a feature works.
+6. **Close out in the README.** Move the card from "In progress" to "Done" with today's date, a one-line summary, and the commit hash if you committed. Don't leave stale "In progress" entries behind.
+7. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
+
+Cards are sized for one focused session — roughly 200–500 lines of changes including tests. If a card feels much bigger than that once you've loaded the files, that's a signal: flag it and propose splitting before you start writing code.
 
 ## The README is the source of truth — keep it that way
 

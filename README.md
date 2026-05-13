@@ -432,40 +432,245 @@ This separation is enforced by [Working agreement #5](#working-agreements). If y
 
 ## Roadmap
 
-Living list of in-flight and planned work. Update this section when scope is added, picked up, or finished. One-line entries; details belong in the linked issue/PR.
+System of record for what's built, what's in flight, and what's next. Updated in the same change that adds or finishes scope.
+
+### How to pick up a task card
+
+Each entry under **Up next** is a self-contained card sized for a **single agent handoff** (~200–500 lines of changes including tests, one focused session). The structure lets a fresh agent context start cheaply: the card lists exactly what to build, which files to load, what's out of scope, and how to verify it's done.
+
+Process:
+
+1. Pick one unclaimed card from **Up next**. Move it to **In progress** with the date and your handle.
+2. Read only the files under **Context to load** — the card has already pre-selected what matters. Don't grep the codebase for general "understanding"; the card is the contract.
+3. Stay strictly inside **Scope**. If you find work that doesn't fit, surface it and propose a new card — don't bundle it in.
+4. Run **Done when** checks before claiming completion: typecheck, tests, lint as listed.
+5. Move the card from **In progress** to **Done** with today's date, a one-line summary, and the commit hash if you committed.
+6. If a card's premise is wrong (missing dependency, design needs revisiting), stop and flag it. Don't push through and silently redefine scope.
+
+Dependencies between cards are noted under **Depends on**. If a card lists one, finish the dependency first or pick a different card.
+
+Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- _(none yet — populate as work begins)_
+- _(none — claim a card from Up next.)_
 
-### Next up
-- Apply the first migration against a real Postgres (needs Docker Desktop installed locally — `docker compose -f infra/docker-compose.yml up -d && pnpm db:migrate`).
-- Hand-author 4–6 original Prophecy test characters/upgrades inside `packages/game-engine/__fixtures__/prophecy-test/` so the next engine actions (`activate`, `resolve-dice`) have realistic shapes to exercise.
-- Mechanical-only fixture importer at `packages/game-engine/__fixtures__/scripts/import-reference-set.ts` (gated by user approval before the first scrape).
-- Auth wiring with **better-auth** (sessions table in `packages/db`, OAuth providers, `apps/api` middleware, `apps/web` login screen).
-- Wire `apps/game-server` to instantiate engine games per Socket.io room; broadcast engine events back to clients.
-- Implement `applyAction` for `activate` (next-simplest action; needs character + dice data on PlayerState).
-- Resolve the cross-package import limitation more cleanly (drizzle-kit + monorepo) — current workaround is duplicated enum value arrays guarded by a drift test.
+### Up next — task cards
 
-### Backlog — engine
-- `activate` action: exhaust + roll all character/upgrade dice into pool. Requires extending PlayerState with character + die data.
-- Dice resolution pipeline (`resolve-dice`, modifier-with-parent rule, resource costs, multi-die actions).
-- `play-card`, `use-card-action`, `reroll-dice` handlers.
+#### ENGINE-1 — Per-card hand & deck tracking
+**Why now.** Blocks every card-touching action (play-card, reroll-dice, upkeep draw). `PlayerState` currently tracks hand and deck as integer counts — we need actual instance ids to play or discard them.
+
+**Scope.**
+- Replace `handCount: number` and `deckCount: number` on `PlayerState` with `hand: readonly string[]` and `deck: readonly string[]` (card instance ids). Keep `handSize` as the per-game max and `discardIds` as is (or rename to `discard` for symmetry — your call, but be consistent).
+- Seeded shuffle + initial deal of 5 in `newGame`. Deck instance ids should be deterministic (e.g. `${playerId}.deck.${index}`).
+- Add a `drawCards(state, playerId, n)` helper. Wire it into the upkeep transition so each player draws up to `handSize` (currently the transition doesn't draw — verify and fix as part of this card).
+- Update `legal-actions.canReroll` / `canPlayCard` to use `hand.length`.
+- Update `reroll-dice` precheck (currently reads `handCount`).
+
+**Context to load.**
+- `packages/game-engine/src/state/types.ts` (PlayerState)
+- `packages/game-engine/src/state/new-game.ts`
+- `packages/game-engine/src/state/legal-actions.ts`
+- `packages/game-engine/src/actions/pass.ts` (upkeep transition lives here)
+- `packages/game-engine/src/__tests__/new-game.test.ts`, `pass.test.ts`
+
+**Out of scope.** Mulligan UX. Ability effects. `applyPlayCard` itself. Just the data model + initial deal + draw helper + tests.
+
+**Done when.** `pnpm typecheck` clean. `pnpm --filter @prophecy/game-engine test` green (existing tests adapted + new tests for deterministic deal, draw-on-upkeep, and that two games with the same seed deal the same hand). README Done section updated.
+
+---
+
+#### ENGINE-2 — `applyPlayCard` (vanilla cost-only)
+**Why now.** First real card-from-hand action. Lands cost payment and hand→discard plumbing without yet entangling with the ability AST.
+
+**Scope.**
+- Implement `applyPlayCard(state, playerId, cardId)` and dispatch from `applyAction`.
+- Validate: active player, in `action` phase, card is in that player's hand, player can pay the cost (resources only for v1 — defer dice-cost payment).
+- Pay cost (decrement `resources`), move card hand → discard, emit `card.played` event.
+- Reset `consecutivePasses` and rotate the turn (use the existing `rotateAndCascade` helper).
+- Card abilities **do not fire** in this card. Cards that play with no ongoing effect are fine for now; the AST resolver is a separate, later card.
+- Update `legal-actions.canPlayCard` to also check the player has at least one card whose cost ≤ resources.
+
+**Context to load.**
+- `packages/game-engine/src/actions/types.ts` (Action union — add the new action shape if missing)
+- `packages/game-engine/src/reducers/apply-action.ts`
+- `packages/game-engine/src/actions/activate.ts` (good reference for turn rotation + events)
+- `packages/game-engine/src/events.ts`
+- `packages/game-engine/src/__tests__/fixtures.ts` (basicGameInput helper)
+
+**Out of scope.** Ability resolution (ongoing effects, triggered abilities, special-die abilities). Dice-cost payment. Targeting. Just play-for-cost → discard.
+
+**Depends on.** ENGINE-1.
+
+**Done when.** Typecheck clean. New `play-card.test.ts` covering: legal play, illegal when not your turn, illegal when not in hand, illegal when can't afford, hand→discard, resources decremented, turn rotates, `card.played` event emitted.
+
+---
+
+#### ENGINE-3 — `applyRerollDice`
+**Why now.** Players need a way to fix bad rolls. Already in the Action union; needs a handler.
+
+**Scope.**
+- Implement `applyRerollDice(state, playerId, discardCardId, dieInstanceIds)` and dispatch.
+- Validate: active player, action phase, discard card in hand, every die id in the player's pool.
+- Move the discard card hand → discard. Reroll the listed dice using the deterministic seeded RNG (use the same per-action fork pattern as `applyActivate`).
+- Emit `dice.rerolled` event with the new face indexes.
+- Counts as a turn action: reset `consecutivePasses`, rotate.
+
+**Context to load.**
+- `packages/game-engine/src/actions/activate.ts` (RNG fork pattern, die roll helper)
+- `packages/game-engine/src/state/rng.ts` (or wherever Mulberry32 + FNV lives)
+- `packages/game-engine/src/__tests__/activate.test.ts` (deterministic-roll pattern to mirror)
+
+**Out of scope.** Card effects that grant free rerolls. Multiple dice rerolled from different sources. Just the canonical "discard 1 card, reroll N dice" action.
+
+**Depends on.** ENGINE-1.
+
+**Done when.** Typecheck clean. New `reroll.test.ts` for determinism (same seed → same new faces), illegal-when-card-not-in-hand, illegal-when-die-not-in-pool, turn rotation.
+
+---
+
+#### ENGINE-4 — Ambush + extra-turn plumbing
+**Why now.** Ambush is a core keyword; the rules say "after this character activates, they may take an additional action this turn" — and other effects grant extra turns too. Without this, the turn loop is structurally wrong even if no card uses it yet.
+
+**Scope.**
+- Add `extraTurnsPending: Readonly<Record<string, number>>` to `GameState`. Increments via a helper; the turn-rotation path checks the current player's count before rotating and decrements instead of rotating if > 0.
+- Add `ambushGrantedThisTurn: boolean` (per the rule: Ambush only grants one extra action *per* turn, doesn't stack within a turn but chains across).
+- Extract a single `endTurn(state)` helper used by `pass`, `activate`, `play-card`, `reroll-dice` — so all four paths share the extra-turn logic.
+- Add a `grantExtraTurn(state, playerId)` helper for ability code to call (no callers yet; that's fine — wire the seam).
+- Reset `ambushGrantedThisTurn` to false on each turn rotation.
+
+**Context to load.**
+- `packages/game-engine/src/reducers/rotate-and-cascade.ts` (or wherever the turn rotation helper lives)
+- `packages/game-engine/src/state/types.ts`
+- `packages/game-engine/src/actions/pass.ts`, `activate.ts`
+- `packages/game-engine/src/__tests__/pass.test.ts`
+
+**Out of scope.** Ambush keyword wiring on actual card abilities (the ability AST doesn't resolve abilities yet). Just the state shape + helpers + tests that verify the *mechanism* via synthesized state.
+
+**Done when.** Typecheck clean. New tests assert: synthesized `extraTurnsPending` keeps the same player on next rotation; flag is consumed once; `ambushGrantedThisTurn` resets on rotation; chained extra turns across two turns work.
+
+---
+
+#### ENGINE-5 — Modifier-with-parent enforcement in `resolve-dice`
+**Why now.** Rules require: a `+N` modifier die can only resolve alongside a non-modifier die of the same symbol. Currently `resolve-dice` accepts modifier-only selections silently. Small, contained fix.
+
+**Scope.**
+- In `applyResolveDice`, after collecting the selected dice, reject the action (throw `IllegalActionError`) if the selection contains a modifier die whose symbol has no non-modifier counterpart also in the selection.
+- This is per the rules: "A modifier die only contributes to a resolution that already includes a non-modifier of its symbol."
+- Card-routed resolution (e.g. an ability that pulls in any die showing X) should not change here — leave that door open for a future ability-AST card.
+
+**Context to load.**
+- `packages/game-engine/src/actions/resolve-dice.ts`
+- `packages/game-engine/src/__tests__/resolve-dice.test.ts`
+- `docs/rules-reference.md` (Part 4: Modifiers)
+
+**Out of scope.** New resolution paths. Card-routed resolution overrides. Just enforce the rule on the canonical action.
+
+**Done when.** Typecheck clean. New tests: melee+1 modifier alone throws; melee+1 modifier alongside a melee non-modifier resolves combined value; pure non-modifier resolutions unchanged.
+
+---
+
+#### WEB-1 — ActionPanel: action → target two-step
+**Why now.** Touch-first input rule. Current ActionPanel renders flat buttons; a target-requiring action (activate, resolve, play) should open a target overlay rather than expecting a long-press or right-click.
+
+**Scope.**
+- Refactor `apps/web/src/routes/Game.tsx` ActionPanel: tapping an action that needs a target ("Activate", "Resolve dice", "Play card") opens a bottom-sheet (mobile) / modal (desktop) showing legal targets. Tap a target to dispatch.
+- Illegal actions render dimmed-but-visible, not hidden — gives the player visibility into what's available next turn.
+- Tap targets ≥ 44×44px. Confirm modal for destructive actions (concede, claim).
+- Use `getLegalActions` to drive both the action list and the per-action target list.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (ActionPanel, SetupPanel for reference)
+- `packages/game-engine/src/state/legal-actions.ts`
+- `README.md#input-model` (touch-first rules)
+
+**Out of scope.** Resolve-mode symbol-lock UX (separate card). Card detail modal. Pixi board. Just the action→target overlay flow for already-implemented actions.
+
+**Done when.** Typecheck clean. Manual smoke test on phone-portrait viewport (360×640) and desktop. Activate, pass, claim, concede all reachable via tap-only with no hover/right-click. Verified visually before claiming done — type checks don't tell you the UX is right.
+
+---
+
+#### WEB-2 — Resolve mode: symbol-locked die selection
+**Why now.** Resolving dice is the most-clicked action in a real game. The interaction needs to feel right and prevent illegal selections at the UI layer.
+
+**Scope.**
+- After the player taps "Resolve dice" in the action panel, enter a `resolve-mode` Zustand slice: dice tray expands, first die tapped locks the symbol, subsequent taps only enable same-symbol dice (modifiers of the locked symbol included).
+- A "Resolve" confirm button at the bottom; "Cancel" returns the player to the action panel.
+- For damage symbols (melee/ranged): after dice selection, require a target character tap. Send `{ type: 'resolve-dice', playerId, dieInstanceIds, targetCharacterId }`.
+- For resource / disrupt / discard: no target needed.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx`
+- `apps/web/src/state/app.ts` (Zustand store)
+- `packages/game-engine/src/actions/resolve-dice.ts` (what the action expects)
+- `packages/game-engine/src/state/types.ts` (DieInPool, DieSymbol)
+
+**Out of scope.** Animations and Pixi visuals. Special / focus / indirect resolution paths (not engine-supported yet). Just the canonical resolve-mode for the symbols the engine handles.
+
+**Depends on.** WEB-1.
+
+**Done when.** Typecheck clean. Manual smoke: full action of "activate → die rolls into pool → resolve mode → pick a melee → pick target → damage lands" works end-to-end across two browsers in a real lobby.
+
+---
+
+#### SERVER-1 — Reconnect window
+**Why now.** Players drop connection (subway, app backgrounded). Without a rejoin window, every drop ends the game.
+
+**Scope.**
+- In `apps/game-server/src/rooms.ts` (or wherever the room registry lives): on disconnect, mark the player as "away" instead of removing them. Start a 60-second timer; if they don't rejoin, end the game with the still-connected player as winner.
+- On rejoin (same `playerId` + `roomId` + `code`), send a full state snapshot + the recent event log so the client can resync.
+- Persist `playerId` + `roomId` + `code` in localStorage already happens — verify and reuse.
+- Cleanup: existing idle-room TTL still applies once the game has ended.
+
+**Context to load.**
+- `apps/game-server/src/rooms.ts`
+- `apps/game-server/src/index.ts` (socket lifecycle hooks)
+- `apps/web/src/socket.ts` and `apps/web/src/state/app.ts` (client rejoin)
+
+**Out of scope.** Spectator reconnection. Cross-server room handoff (Redis-backed sticky ownership is its own card). Just same-server, same-process rejoin.
+
+**Done when.** Typecheck clean. Manual smoke: in a live 2-device match, kill one device's network for 30 sec, restore, game continues. Kill it for >60 sec, the remaining player wins.
+
+---
+
+#### API-1 — Apply first DB migration against real Postgres
+**Why now.** Schema is generated but never executed. Until the migration actually runs against a live Postgres, the `db:seed` path and any future API endpoints are blocked.
+
+**Scope.**
+- Run `docker compose -f infra/docker-compose.yml up -d postgres` and confirm it's healthy.
+- Run `pnpm db:migrate`. Capture any drift or errors; resolve them.
+- Smoke-check from psql (or via a tiny `apps/api` script) that the seven tables and five enums exist.
+- Document any one-time setup steps (env vars, port mappings) in the README's Local Development section if anything was missing.
+
+**Context to load.**
+- `infra/docker-compose.yml`
+- `packages/db/drizzle.config.ts`
+- `packages/db/migrations/0000_*.sql`
+- `README.md#local-development`
+
+**Out of scope.** New schema. Seed data import. Just apply what's already generated and verify it lands cleanly.
+
+**Done when.** Migration applies without errors. `psql` confirms tables exist. README's setup instructions are accurate (fix them if not).
+
+---
+
+### Backlog — engine (not yet sized)
 - Replacement-effect interceptor framework.
 - Queue + before/after triggers + additional-action handling.
 - Battlefield controller tiebreak across simultaneous abilities.
-- Keyword resolvers (Ambush, Guardian, Modify, Redeploy).
+- Keyword resolvers: Guardian (redirect damage), Modify (modifier-die routing), Redeploy (upgrades move on defeat).
 - Special-ability registry with inherent-die semantics.
-- Deck/team validators (faction, color, points, uniqueness).
-- Replay reconstruction from seed + event log.
+- `use-card-action` handler (Action / Power Action ability invocation).
 - Ability AST resolver dispatch with full coverage of the type tag space.
-- Hand-size draw + readying inside the upkeep transition (currently stubbed at the right place).
+- Replay reconstruction from seed + event log.
+- "After setup" trigger pass.
+- Plots / battlefield abilities (Claim).
 
-### Backlog — services
-- Auth flow (better-auth + Google/Discord OAuth).
+### Backlog — services (not yet sized)
+- Auth flow (better-auth + Google/Discord OAuth) — `apps/api` middleware, `apps/web` login.
 - Card catalog ingestion + admin tooling.
 - Deck builder API + validator.
-- Game server room lifecycle, reconnect window, spectator mode.
-- Sticky room ownership coordinator (Redis-based).
+- Spectator mode read-only socket.
+- Sticky room ownership coordinator (Redis-based) — only needed once we run multi-instance.
 - Matchmaking queues (casual → ranked → private).
 - Tournament engine (Swiss → single-elim → double-elim).
 - Stripe integration: checkout, webhooks, entitlements, refunds.
@@ -475,7 +680,10 @@ Living list of in-flight and planned work. Update this section when scope is add
 - Cloudflare in front of api/game-server with rate-limit rules.
 - Turnstile on signup and high-value actions.
 
-### Backlog — client
+### Backlog — client (not yet sized)
+- Phone-portrait layout pass (360×640): opponent strip, table, hand, dice tray.
+- Card detail modal (tap a card → full text + dice faces).
+- Game over screen + rematch.
 - Pixi board renderer with zones and dice physics.
 - Combat-effect library (melee/ranged/indirect/special) keyed off engine events.
 - Pack-opening choreography (Pixi sprite-sheet driven).
@@ -511,9 +719,16 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
 ### Done
+- **2026-05-12 — Engine: split setup into independent first-player + shield-recipient choices** (`27b3667`). Diverges from SWD's single-choice setup: the roll-off winner now makes two separate decisions — who goes first (= battlefield controller) and who receives the 2 starting shields. The recipient distributes shields freely (1+1 or 2+0). `SetupStep` reworked, three new actions (`setup.choose-first-player`, `setup.choose-shield-recipient`, `setup.place-shield`), events renamed, legal-actions inspector and web SetupPanel rewired, rules-reference updated. 92 engine tests passing.
+- **2026-05-12 — Engine: `resolve-dice` + character defeat** (`c186d6c`). Resolves melee / ranged / shield / resource / disrupt. Shields block damage 1-for-1 (capped at 3). Damage ≥ remaining health defeats the character: removed from `characterOrder`, dice removed from pool. Win condition: opponent has no characters → game ends. Optional `targetCharacterId` on the action shape for damage / shields; ignored for resource / disrupt.
+- **2026-05-12 — Engine: `getLegalActions` inspector + `activate` rotates the turn** (`589fa62`). Pure read-only inspector returning the set of actions each player can take right now (driven by both the UI and tests). Surfaced a latent bug: `activate` wasn't rotating the turn — fixed. `RESOLVABLE_SYMBOLS_V1` excludes blank, special, focus, indirect until those land.
+- **2026-05-11 — Server: lobby + game multiplayer wiring** (`b2b7c4e`, `79bb5b7`, `7ba3949`, `843c6a8`). `apps/game-server` instantiates an engine game per Socket.io room and broadcasts events back to clients. Lobby persistence with idle-room TTL; localStorage-backed rejoin on the web client. Random but deterministic deck assignment from seed. Cross-device LAN testing unblocked: CORS widening, Vite `envDir`, secure-context-aware `crypto.randomUUID` fallback, polling-then-upgrade Socket.io transport.
+- **2026-05-11 — Engine: `activate` action with seeded dice rolling** (`98ce3a4`). Exhaust character, roll N dice into the player's pool (1 die per non-elite character, 2 for elite). Deterministic via per-action seeded fork (Mulberry32 + FNV-1a). `character.activated` event includes the rolled dice. Threw when the character was already exhausted or didn't belong to the player.
+- **2026-05-11 — Fixtures: deck legality validator + test decks** (`0871bc4`, `83ccb33`). `validateDeck` enforces Part 4 rules: team points ≤ 30, faction match (Light/Shadow/Neutral compatibility), color gating, 30 cards total, max 2 of any card. Returns `{ valid, errors, stats: { teamPointTotal, deckCardTotal, costCurve, characterColors } }`. Two reference test decks (`DECK_A` Light, `DECK_B` Shadow) load at game-server startup.
+- **2026-05-10 — Fixtures: third-party-derived reference set, mechanical-only** (`81f0594`). 173-card mechanical port under `packages/game-engine/__fixtures__/synthetic-set/` for engine-validation testing. No card text, no art, no titles — dice profiles, costs, points, types only. Strictly test-only; never bundled into production builds.
 - **2026-05-10 — Monorepo skeleton bootstrapped.** pnpm workspaces + Turborepo + strict TS. Three apps (`web`, `api`, `game-server`) and three packages (`game-engine`, `protocol`, `db`) compile and run. Hono + tRPC v11 in `api`; Socket.io in `game-server`; React 19 + Vite 6 + Tailwind v4 + tRPC client in `web`. Drizzle + postgres.js in `db` with a starter `users` table. Seeded RNG and pure-reducer skeleton in `game-engine`. Docker Compose for Postgres / Redis / MinIO. Touch-first CSS defaults (44 × 44 hit targets, `touch-action: manipulation`, `prefers-reduced-motion` respected) and a Splash route that pings `/trpc` for liveness.
-- **2026-05-10 — Card catalog and deck schema, first migration.** Shared enum value lists in `@prophecy/protocol` (Zod schemas) and a duplicated copy in `@prophecy/db` (drizzle-kit can't follow cross-package imports cleanly) guarded by a drift test. Tables: `cards` (text PK, set/type/subtypes/faction/color/rarity/cost/health/points/is_unique/display_text), `card_abilities` (JSONB AST per row, ordinal-stable), `card_dice` (six rows per dice-bearing card, face-index check 0..5), `decks`, `deck_characters` (4 slots per team), `deck_cards` (count 1..2 check). Generated migration `0000_deep_stellaris.sql` — five Postgres enums plus seven tables with FK cascades and indexes. Migration validated by drizzle-kit's schema model; pending apply against a live Postgres until Docker is installed.
-- **2026-05-10 — Engine: first action slice.** `newGame` factory; pure-reducer `applyAction` dispatch. Three actions implemented: `pass` (consecutive-pass counting, rotation, upkeep transition with +2 resources and dice-pool clear), `claim-battlefield` (single-claim-per-round guard, control transfer, auto-pass cascade for the claimer's subsequent turns this round), and `concede` (1v1 opponent-wins). End-of-round loss check (hand=0 AND deck=0 → lose; battlefield controller wins ties). Typed `EngineEvent` discriminated union (player.passed, turn.advanced, battlefield.claimed, upkeep.begin/player/end, round.begin, game.ended). Shared `guardCanAct` and `rotateAndCascade` helpers. 28 tests passing across smoke, newGame, pass, claim, end-of-round, concede.
+- **2026-05-10 — Card catalog and deck schema, first migration.** Shared enum value lists in `@prophecy/protocol` (Zod schemas) and a duplicated copy in `@prophecy/db` (drizzle-kit can't follow cross-package imports cleanly) guarded by a drift test. Tables: `cards`, `card_abilities`, `card_dice`, `decks`, `deck_characters`, `deck_cards`. Generated migration `0000_deep_stellaris.sql` — five Postgres enums plus seven tables with FK cascades and indexes. Migration validated by drizzle-kit's schema model; pending apply against a live Postgres ([API-1](#api-1--apply-first-db-migration-against-real-postgres)).
+- **2026-05-10 — Engine: first action slice.** `newGame` factory; pure-reducer `applyAction` dispatch. Three actions implemented: `pass` (consecutive-pass counting, rotation, upkeep transition with +2 resources and dice-pool clear), `claim-battlefield` (single-claim-per-round guard, control transfer, auto-pass cascade for the claimer's subsequent turns this round), and `concede` (1v1 opponent-wins). End-of-round loss check (hand=0 AND deck=0 → lose; battlefield controller wins ties). Typed `EngineEvent` discriminated union. Shared `guardCanAct` and `rotateAndCascade` helpers.
 
 ---
 
