@@ -97,6 +97,9 @@ importers:
       '@pixi/particle-emitter':
         specifier: ^5.0.8
         version: 5.0.10(@pixi/constants@7.4.3)(@pixi/core@7.4.3)(@pixi/display@7.4.3(@pixi/core@7.4.3))(@pixi/math@7.4.3)(@pixi/sprite@7.4.3(@pixi/core@7.4.3)(@pixi/display@7.4.3(@pixi/core@7.4.3)))(@pixi/ticker@7.4.3)
+      '@prophecy/game-engine':
+        specifier: workspace:*
+        version: link:../../packages/game-engine
       '@prophecy/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol

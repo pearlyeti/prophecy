@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@pixi/particle-emitter": "^5.0.8",
+    "@prophecy/game-engine": "workspace:*",
     "@prophecy/protocol": "workspace:*",
     "@tanstack/react-query": "^5.62.10",
     "@trpc/client": "^11.0.0-rc.660",

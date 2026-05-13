@@ -1,6 +1,7 @@
+import { getLegalActions } from '@prophecy/game-engine';
 import type { Action, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { getSocket } from '../lib/socket.js';
 import { useApp } from '../store.js';
@@ -173,6 +174,18 @@ function SetupPanel({
   );
 }
 
+// One of the open overlays. Each entry corresponds to a button in
+// ActionPanel that needs follow-up taps to dispatch (target choice,
+// destructive confirm, etc.). Single-string state because at most one
+// overlay is open at a time on touch.
+type OpenOverlay =
+  | { kind: 'activate' }
+  | { kind: 'resolve-pick-die' }
+  | { kind: 'resolve-pick-target'; dieInstanceId: string }
+  | { kind: 'play-card' }
+  | { kind: 'confirm-claim' }
+  | { kind: 'confirm-concede' };
+
 function ActionPanel({
   game,
   playerId,
@@ -184,41 +197,373 @@ function ActionPanel({
   send: (a: Action) => void;
   isMyTurn: boolean;
 }) {
-  const claimedThisRound = game.playerWhoClaimedThisRound !== null;
+  const [overlay, setOverlay] = useState<OpenOverlay | null>(null);
+  const legal = getLegalActions(game, playerId);
+  const close = () => setOverlay(null);
+
+  // After dispatching, clear the overlay. The state shape doesn't tell
+  // us whether the round rotated past us, but closing is the right UX
+  // either way — the user can re-open if it's still their turn.
+  const dispatch = (a: Action) => {
+    send(a);
+    close();
+  };
+
+  const me = game.players[playerId];
+  const opponent = game.playerOrder
+    .map((id) => game.players[id])
+    .find((p) => p && p.id !== playerId);
+
   return (
     <section className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
       <div className="mb-3 text-sm text-neutral-300">
         {isMyTurn ? 'Your turn — pick an action:' : 'Waiting for opponent…'}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={!isMyTurn}
-          onClick={() => send({ type: 'pass', playerId })}
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Pass
-        </button>
-        <button
-          type="button"
-          disabled={!isMyTurn || claimedThisRound}
-          onClick={() => send({ type: 'claim-battlefield', playerId })}
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Claim battlefield
-          {claimedThisRound && <span className="ml-2 text-xs text-neutral-500">(taken)</span>}
-        </button>
-        <button
-          type="button"
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <ActionButton
+          label="Activate"
+          subLabel="character"
+          enabled={legal.activatableCharacterIds.length > 0}
+          onClick={() => setOverlay({ kind: 'activate' })}
+        />
+        <ActionButton
+          label="Resolve dice"
+          subLabel={legal.resolvableSymbols.length > 0 ? `${me?.diceInPool.length ?? 0} in pool` : 'pool empty'}
+          enabled={legal.resolvableSymbols.length > 0}
+          onClick={() => setOverlay({ kind: 'resolve-pick-die' })}
+        />
+        <ActionButton
+          label="Play card"
+          subLabel={legal.canPlayCard ? `${me?.hand.length ?? 0} in hand` : 'no card affordable'}
+          enabled={legal.canPlayCard}
+          onClick={() => setOverlay({ kind: 'play-card' })}
+        />
+        <ActionButton
+          label="Reroll"
+          subLabel="not yet implemented"
+          enabled={false}
           onClick={() => {
-            if (confirm('Concede the game?')) send({ type: 'concede', playerId });
+            /* ENGINE-3 lands the reroll action; button placeholder until then. */
           }}
-          className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-200 hover:border-red-700"
+        />
+        <ActionButton
+          label="Pass"
+          enabled={legal.canPass}
+          onClick={() => dispatch({ type: 'pass', playerId })}
+        />
+        <ActionButton
+          label="Claim battlefield"
+          subLabel={
+            game.playerWhoClaimedThisRound !== null ? 'taken this round' : 'destructive'
+          }
+          enabled={legal.canClaim}
+          tone="warning"
+          onClick={() => setOverlay({ kind: 'confirm-claim' })}
+        />
+        <ActionButton
+          label="Concede"
+          subLabel="destructive"
+          enabled={legal.canConcede}
+          tone="danger"
+          onClick={() => setOverlay({ kind: 'confirm-concede' })}
+        />
+      </div>
+
+      {overlay?.kind === 'activate' && (
+        <ActionOverlay title="Activate which character?" onClose={close}>
+          <TargetGrid>
+            {me?.characterOrder.map((cid) => {
+              const c = me.characters[cid]!;
+              const enabled = legal.activatableCharacterIds.includes(cid);
+              return (
+                <TargetButton
+                  key={cid}
+                  enabled={enabled}
+                  onClick={() => dispatch({ type: 'activate', playerId, cardId: cid })}
+                >
+                  <div className="text-sm">Character {cid.replace(/^.*\./, '')}</div>
+                  <div className="text-[11px] text-neutral-400">
+                    {c.dice.length}d{c.elite ? ' · elite' : ''}
+                    {c.exhausted ? ' · exhausted' : ''}
+                  </div>
+                </TargetButton>
+              );
+            })}
+          </TargetGrid>
+        </ActionOverlay>
+      )}
+
+      {overlay?.kind === 'resolve-pick-die' && (
+        <ActionOverlay title="Resolve which die?" onClose={close}>
+          <div className="mb-2 text-[11px] text-neutral-500">
+            One die at a time for now (multi-die symbol-lock UX lands in a later card).
+          </div>
+          <TargetGrid>
+            {me?.diceInPool.map((d) => {
+              const enabled =
+                !d.face.modifier &&
+                legal.resolvableSymbols.includes(d.face.symbol);
+              return (
+                <TargetButton
+                  key={d.instanceId}
+                  enabled={enabled}
+                  onClick={() => {
+                    if (d.face.symbol === 'melee' || d.face.symbol === 'ranged') {
+                      // Damage symbol — need a target character next.
+                      setOverlay({ kind: 'resolve-pick-target', dieInstanceId: d.instanceId });
+                    } else {
+                      dispatch({
+                        type: 'resolve-dice',
+                        playerId,
+                        dieInstanceIds: [d.instanceId],
+                      });
+                    }
+                  }}
+                >
+                  <div className="text-base font-mono text-neutral-100">
+                    {d.face.modifier ? '+' : ''}
+                    {d.face.value || ''}
+                  </div>
+                  <div className="text-[11px] uppercase tracking-wider text-neutral-400">
+                    {d.face.symbol}
+                  </div>
+                </TargetButton>
+              );
+            })}
+          </TargetGrid>
+        </ActionOverlay>
+      )}
+
+      {overlay?.kind === 'resolve-pick-target' && (
+        <ActionOverlay
+          title="Target which character?"
+          onClose={() => setOverlay({ kind: 'resolve-pick-die' })}
+          backLabel="Back to dice"
         >
-          Concede
+          <TargetGrid>
+            {opponent?.characterOrder.map((cid) => {
+              const c = opponent.characters[cid]!;
+              return (
+                <TargetButton
+                  key={cid}
+                  enabled
+                  onClick={() =>
+                    dispatch({
+                      type: 'resolve-dice',
+                      playerId,
+                      dieInstanceIds: [overlay.dieInstanceId],
+                      targetCharacterId: cid,
+                    })
+                  }
+                >
+                  <div className="text-sm">Character {cid.replace(/^.*\./, '')}</div>
+                  <div className="text-[11px] text-neutral-400">
+                    ♥ {c.damage} / {c.health} · shields {c.shields}
+                  </div>
+                </TargetButton>
+              );
+            })}
+          </TargetGrid>
+        </ActionOverlay>
+      )}
+
+      {overlay?.kind === 'play-card' && (
+        <ActionOverlay title="Play which card?" onClose={close}>
+          <div className="mb-2 text-[11px] text-neutral-500">
+            Resources: {me?.resources ?? 0}. Card abilities don't fire yet — this is
+            cost-only play.
+          </div>
+          <TargetGrid>
+            {me?.hand.map((cardId) => {
+              const cost = game.cardCosts[cardId] ?? 0;
+              const affordable = (me?.resources ?? 0) >= cost;
+              return (
+                <TargetButton
+                  key={cardId}
+                  enabled={affordable}
+                  onClick={() => dispatch({ type: 'play-card', playerId, cardId })}
+                >
+                  <div className="font-mono text-sm">{cardId.replace(/^.*\./, '')}</div>
+                  <div className="text-[11px] text-neutral-400">cost {cost}</div>
+                </TargetButton>
+              );
+            })}
+          </TargetGrid>
+        </ActionOverlay>
+      )}
+
+      {overlay?.kind === 'confirm-claim' && (
+        <ConfirmOverlay
+          title="Claim the battlefield?"
+          body="You'll skip the rest of your turns this round. Other players' turns continue until they pass."
+          confirmLabel="Claim"
+          tone="warning"
+          onConfirm={() => dispatch({ type: 'claim-battlefield', playerId })}
+          onCancel={close}
+        />
+      )}
+
+      {overlay?.kind === 'confirm-concede' && (
+        <ConfirmOverlay
+          title="Concede the game?"
+          body="Your opponent wins immediately. This cannot be undone."
+          confirmLabel="Concede"
+          tone="danger"
+          onConfirm={() => dispatch({ type: 'concede', playerId })}
+          onCancel={close}
+        />
+      )}
+    </section>
+  );
+}
+
+function ActionButton({
+  label,
+  subLabel,
+  enabled,
+  onClick,
+  tone = 'default',
+}: {
+  label: string;
+  subLabel?: string;
+  enabled: boolean;
+  onClick: () => void;
+  tone?: 'default' | 'warning' | 'danger';
+}) {
+  const toneClasses =
+    tone === 'danger'
+      ? 'border-red-900 bg-red-950/40 text-red-200 hover:border-red-700'
+      : tone === 'warning'
+        ? 'border-amber-900 bg-amber-950/30 text-amber-100 hover:border-amber-700'
+        : 'border-neutral-700 bg-neutral-900 text-neutral-100 hover:border-neutral-500';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!enabled}
+      // min-h-[44px] enforces the touch-first 44×44 rule from working
+      // agreement #10. Disabled buttons stay visible (dimmed) so the
+      // player can see what's available next turn.
+      className={`flex min-h-[44px] flex-col items-start rounded-lg border px-3 py-2 text-left transition ${toneClasses} disabled:cursor-not-allowed disabled:opacity-40`}
+    >
+      <span className="text-sm font-medium">{label}</span>
+      {subLabel && (
+        <span className="text-[11px] text-neutral-500">{subLabel}</span>
+      )}
+    </button>
+  );
+}
+
+// Bottom-sheet on touch widths, centered modal on sm+. Closes on
+// backdrop tap. Escape key closes too (keyboard parity with touch).
+function ActionOverlay({
+  title,
+  children,
+  onClose,
+  backLabel,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+  backLabel?: string;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center">
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      />
+      <div className="relative z-10 w-full max-w-md rounded-t-2xl border border-neutral-800 bg-neutral-950 p-4 shadow-2xl sm:max-w-lg sm:rounded-2xl">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-sm font-medium text-neutral-100">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] min-w-[44px] rounded-md px-3 text-xs uppercase tracking-wider text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
+          >
+            {backLabel ?? 'Close'}
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function TargetGrid({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{children}</div>;
+}
+
+function TargetButton({
+  enabled,
+  onClick,
+  children,
+}: {
+  enabled: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!enabled}
+      className="flex min-h-[44px] flex-col items-start rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-left text-neutral-100 hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {children}
+    </button>
+  );
+}
+
+function ConfirmOverlay({
+  title,
+  body,
+  confirmLabel,
+  tone,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  tone: 'warning' | 'danger';
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const confirmClasses =
+    tone === 'danger'
+      ? 'border-red-700 bg-red-900 text-red-50 hover:bg-red-800'
+      : 'border-amber-700 bg-amber-900 text-amber-50 hover:bg-amber-800';
+  return (
+    <ActionOverlay title={title} onClose={onCancel}>
+      <p className="mb-4 text-sm text-neutral-300">{body}</p>
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className={`min-h-[44px] rounded-lg border px-4 py-2 text-sm ${confirmClasses}`}
+        >
+          {confirmLabel}
         </button>
       </div>
-    </section>
+    </ActionOverlay>
   );
 }
 

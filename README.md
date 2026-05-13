@@ -520,26 +520,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
-#### WEB-1 — ActionPanel: action → target two-step
-**Why now.** Touch-first input rule. Current ActionPanel renders flat buttons; a target-requiring action (activate, resolve, play) should open a target overlay rather than expecting a long-press or right-click.
-
-**Scope.**
-- Refactor `apps/web/src/routes/Game.tsx` ActionPanel: tapping an action that needs a target ("Activate", "Resolve dice", "Play card") opens a bottom-sheet (mobile) / modal (desktop) showing legal targets. Tap a target to dispatch.
-- Illegal actions render dimmed-but-visible, not hidden — gives the player visibility into what's available next turn.
-- Tap targets ≥ 44×44px. Confirm modal for destructive actions (concede, claim).
-- Use `getLegalActions` to drive both the action list and the per-action target list.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (ActionPanel, SetupPanel for reference)
-- `packages/game-engine/src/state/legal-actions.ts`
-- `README.md#input-model` (touch-first rules)
-
-**Out of scope.** Resolve-mode symbol-lock UX (separate card). Card detail modal. Pixi board. Just the action→target overlay flow for already-implemented actions.
-
-**Done when.** Typecheck clean. Manual smoke test on phone-portrait viewport (360×640) and desktop. Activate, pass, claim, concede all reachable via tap-only with no hover/right-click. Verified visually before claiming done — type checks don't tell you the UX is right.
-
----
-
 #### WEB-2 — Resolve mode: symbol-locked die selection
 **Why now.** Resolving dice is the most-clicked action in a real game. The interaction needs to feel right and prevent illegal selections at the UI layer.
 
@@ -670,6 +650,8 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
 ### Done
+- **2026-05-13 — Engine: ready exhausted characters at upkeep** (`fcf4920`). Plugs a placeholder in `runUpkeepAndStartRound` — exhausted characters now flip back to ready at start-of-round per [rules-reference §Upkeep step 1](docs/rules-reference.md). Without this, a new round started with no activatable characters and the game stalled. +1 test in `pass.test.ts`.
+- **2026-05-13 — WEB-1 — ActionPanel: action → target two-step.** ActionPanel now drives every action through `getLegalActions`. Activate / Resolve / Play-card / Claim / Concede open a bottom-sheet (≤ sm) or centered modal (≥ sm) instead of relying on flat buttons; tap targets ≥ 44×44, disabled actions stay dimmed-but-visible, backdrop tap or Escape closes. Claim and Concede route through a dedicated `ConfirmOverlay` (no more `window.confirm`). Resolve is single-die-at-a-time for now — the symbol-locked multi-die UX is WEB-2. Added `@prophecy/game-engine` as a direct web dep so the client can call `getLegalActions` against live state. Manual smoke verified by user on desktop + phone-portrait viewport.
 - **2026-05-13 — Server: wire `startRoom` to the committed test decks** (`0c49534`). Replaces the `CHAR_TEST_001` placeholder in `rooms.ts` with `newGameFromDecks` against the loaded corpus. DECK_A (Light: Spark of Hope) and DECK_B (Shadow: Iron Fist) are paired with the two players; pairing is randomized 50/50 by a `deck-assignment` RNG fork of the game seed so replays of the same seed always produce the same matchup.
 - **2026-05-13 — Engine: collapse setup to a single roll-off-winner choice** (`d87e0d2`). Reverts the independent-choices split from 2026-05-12. The roll-off winner now makes one decision — who goes first — and the engine automatically assigns the non-first player as the shield recipient. The recipient still distributes 2 shields freely (1+1 or 2+0). `SetupStep` drops `choose-shield-recipient`; the `setup.choose-shield-recipient` action, its `setup.shield-recipient-chosen` event, and `canChooseShieldRecipient` are removed. Rules-reference, web SetupPanel, and test helpers (`newGameInActionPhase`) all updated. 102 engine tests green.
 - **2026-05-13 — ENGINE-2 — `applyPlayCard` (vanilla cost-only)** (`33e349f`). New `actions/play-card.ts` handler: validates active player + action phase + card in hand + affordable, pays the resource cost, moves the instance from `hand` → `discard`, emits `card.played` event, resets `consecutivePasses` and rotates the turn via `rotateAndCascade`. Card abilities do not fire — that's the AST resolver's job in a later card. `GameState` gains `cardCosts: Readonly<Record<string, number>>` (missing entries default to cost 0); `NewGameInput` accepts an optional `cardCosts` to seed it. `legal-actions.canPlayCard` now requires at least one card in hand to satisfy `cost ≤ resources`. 105 engine tests green (8 new in `play-card.test.ts`).
