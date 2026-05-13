@@ -1,6 +1,6 @@
 import type { EngineEvent } from '../events';
 import { createRng } from '../rng/seeded-rng';
-import { rotateAndCascade } from '../state/turn';
+import { endTurn } from '../state/turn';
 import { guardCanAct, runUpkeepAndStartRound } from './pass';
 import type { ApplyResult } from './pass';
 import type { CharacterState, DieFace, DieInPool, GameState, PlayerState } from '../state/types';
@@ -81,14 +81,15 @@ export function applyActivate(
   ];
 
   // Activate is an action, not a pass — reset consecutivePasses and end
-  // this player's turn. rotateAndCascade handles the auto-pass case if
-  // the next seat has already claimed this round.
+  // this player's turn. endTurn consumes an extra-turn slot (Ambush)
+  // before rotating, and rotateAndCascade handles the auto-pass case
+  // if the next seat has already claimed this round.
   const stateAfterActivate: GameState = {
     ...state,
     players: { ...state.players, [playerId]: updatedPlayer },
     consecutivePasses: 0,
   };
-  const rotated = rotateAndCascade(stateAfterActivate, playerId, events);
+  const rotated = endTurn(stateAfterActivate, playerId, events);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }

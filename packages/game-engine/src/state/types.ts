@@ -180,4 +180,22 @@ export interface GameState {
    * the AST resolver lands.
    */
   readonly cardCosts: Readonly<Record<string, number>>;
+  /**
+   * How many extra turns each player has banked. The turn-rotation
+   * path consumes one before rotating; a count > 0 means the same
+   * player acts again instead. Granted by Ambush and other ability
+   * effects via `grantExtraTurn` (no callers in the engine yet — the
+   * Ambush keyword wiring lands once the ability AST resolves).
+   */
+  readonly extraTurnsPending: Readonly<Record<string, number>>;
+  /**
+   * Per-turn flag: has Ambush already granted an extra action on the
+   * current turn? Per the rules, Ambush doesn't stack within a turn
+   * but chains across consecutive turns. Reset to false on every turn
+   * boundary (rotation, extra-turn consumption, round start). The
+   * Ambush trigger code reads this flag before calling
+   * `grantExtraTurn`; nothing reads it yet — wiring is part of the
+   * keyword resolver, not this card.
+   */
+  readonly ambushGrantedThisTurn: boolean;
 }

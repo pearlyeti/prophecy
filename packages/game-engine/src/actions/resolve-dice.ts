@@ -1,5 +1,5 @@
 import type { EngineEvent } from '../events';
-import { rotateAndCascade } from '../state/turn';
+import { endTurn } from '../state/turn';
 import type { CharacterState, DieInPool, GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
 import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass';
@@ -147,7 +147,7 @@ export function applyResolveDice(
     return { state: finalState, events };
   }
 
-  const rotated = rotateAndCascade(finalState, playerId, events);
+  const rotated = endTurn(finalState, playerId, events);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }

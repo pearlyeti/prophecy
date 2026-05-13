@@ -1,5 +1,5 @@
 import type { EngineEvent } from '../events';
-import { rotateAndCascade } from '../state/turn';
+import { endTurn } from '../state/turn';
 import type { GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
 import { guardCanAct, runUpkeepAndStartRound } from './pass';
@@ -57,7 +57,7 @@ export function applyPlayCard(
     consecutivePasses: 0,
   };
 
-  const rotated = rotateAndCascade(stateAfterPlay, playerId, events);
+  const rotated = endTurn(stateAfterPlay, playerId, events);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }

@@ -176,6 +176,8 @@ export function newGame(input: NewGameInput): GameState {
     setup,
     winnerId: null,
     cardCosts: cardCosts ?? {},
+    extraTurnsPending: {},
+    ambushGrantedThisTurn: false,
   };
 }
 

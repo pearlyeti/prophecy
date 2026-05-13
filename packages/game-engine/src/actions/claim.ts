@@ -1,5 +1,5 @@
 import type { EngineEvent } from '../events';
-import { rotateAndCascade } from '../state/turn';
+import { endTurn } from '../state/turn';
 import type { GameState } from '../state/types';
 import { IllegalActionError } from './illegal';
 import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass';
@@ -41,7 +41,7 @@ export function applyClaim(state: GameState, playerId: string): ApplyResult {
     consecutivePasses: 0,
   };
 
-  const rotated = rotateAndCascade(claimedState, playerId, events);
+  const rotated = endTurn(claimedState, playerId, events);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }

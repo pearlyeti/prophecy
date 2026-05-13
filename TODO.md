@@ -24,28 +24,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ### Up next — task cards
 
-#### ENGINE-4 — Ambush + extra-turn plumbing
-**Why now.** Ambush is a core keyword; the rules say "after this character activates, they may take an additional action this turn" — and other effects grant extra turns too. Without this, the turn loop is structurally wrong even if no card uses it yet.
-
-**Scope.**
-- Add `extraTurnsPending: Readonly<Record<string, number>>` to `GameState`. Increments via a helper; the turn-rotation path checks the current player's count before rotating and decrements instead of rotating if > 0.
-- Add `ambushGrantedThisTurn: boolean` (per the rule: Ambush only grants one extra action *per* turn, doesn't stack within a turn but chains across).
-- Extract a single `endTurn(state)` helper used by `pass`, `activate`, `play-card`, `reroll-dice` — so all four paths share the extra-turn logic.
-- Add a `grantExtraTurn(state, playerId)` helper for ability code to call (no callers yet; that's fine — wire the seam).
-- Reset `ambushGrantedThisTurn` to false on each turn rotation.
-
-**Context to load.**
-- `packages/game-engine/src/reducers/rotate-and-cascade.ts` (or wherever the turn rotation helper lives)
-- `packages/game-engine/src/state/types.ts`
-- `packages/game-engine/src/actions/pass.ts`, `activate.ts`
-- `packages/game-engine/src/__tests__/pass.test.ts`
-
-**Out of scope.** Ambush keyword wiring on actual card abilities (the ability AST doesn't resolve abilities yet). Just the state shape + helpers + tests that verify the *mechanism* via synthesized state.
-
-**Done when.** Typecheck clean. New tests assert: synthesized `extraTurnsPending` keeps the same player on next rotation; flag is consumed once; `ambushGrantedThisTurn` resets on rotation; chained extra turns across two turns work.
-
----
-
 #### ENGINE-5 — Modifier-with-parent enforcement in `resolve-dice`
 **Why now.** Rules require: a `+N` modifier die can only resolve alongside a non-modifier die of the same symbol. Currently `resolve-dice` accepts modifier-only selections silently. Small, contained fix.
 
@@ -271,6 +249,7 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
 ### Done
+- **2026-05-13 — ENGINE-4 — Ambush + extra-turn plumbing.** `GameState` gains `extraTurnsPending: Readonly<Record<string, number>>` and `ambushGrantedThisTurn: boolean` (both seeded by `newGame`). New `endTurn(state, fromPlayerId, events)` helper in `state/turn.ts`: if the leaving player has extras pending, decrement and keep them active (turnIndex bumps so seeded RNG forks stay distinct); otherwise delegate to `rotateAndCascade`. Either way, `ambushGrantedThisTurn` resets — fresh Ambush budget each turn. Round-start in `runUpkeepAndStartRound` also resets the flag. All six action handlers (`pass`, `activate`, `play-card`, `resolve-dice`, `reroll-dice`, `claim`) now route through `endTurn` instead of calling `rotateAndCascade` directly. New `grantExtraTurn(state, playerId)` helper exposes the seam for ability code (no callers yet — Ambush keyword wiring lands once the ability AST resolves). 116 engine tests green (7 new in `extra-turns.test.ts`).
 - **2026-05-13 — ENGINE-3 — `applyRerollDice` + discard-first UI** (`ffce0f1`, `7ba508f`). New `applyRerollDice(state, playerId, discardCardId, dieInstanceIds)` handler: validates active player + card-in-hand + dice-in-pool, discards the card, rerolls each listed die via a per-action seeded RNG fork (`reroll:${turnIndex}:${discardCardId}`), emits `dice.rerolled`, resets `consecutivePasses`, rotates. Zero dice is legal (the player cycles a card without rerolling anything). 109 engine tests green (6 new in `reroll.test.ts`). UI: the Zustand `resolveMode` slice generalised to `selectionMode` (discriminated union of `resolve` / `reroll`); a new top-level "Discard to reroll" action button opens a hand-card picker → `enterRerollMode(cardId)` → dice tray becomes interactive with no symbol-lock → sticky action bar shows "Reroll selected dice" (zero or more allowed).
 - **2026-05-13 — WEB-2 — Resolve mode: symbol-locked die selection** (`31a15d4`). Tap "Resolve dice" in the action panel → the panel hides, the player's own dice tiles in `DicePoolStrip` become tap targets, and a sticky bottom bar (cost / total / warnings / Cancel / Resolve) drives the dispatch. First die tap locks the symbol; subsequent taps enable only same-symbol dice (modifiers of the locked symbol included); tap a selected die to deselect. Resolve dispatches directly for resource / disrupt; opens a target overlay first for melee / ranged (opponent characters) and shield (own characters). New `resolveMode` slice on the Zustand store keeps the selection in one place. Resolve mode auto-exits when the turn rotates away or the phase changes.
 - **2026-05-13 — Engine: ready exhausted characters at upkeep** (`fcf4920`). Plugs a placeholder in `runUpkeepAndStartRound` — exhausted characters now flip back to ready at start-of-round per rules-reference §Upkeep step 1. Without this, a new round started with no activatable characters and the game stalled. +1 test in `pass.test.ts`.

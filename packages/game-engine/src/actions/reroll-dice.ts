@@ -1,6 +1,6 @@
 import type { EngineEvent } from '../events';
 import { createRng } from '../rng/seeded-rng';
-import { rotateAndCascade } from '../state/turn';
+import { endTurn } from '../state/turn';
 import type { DieFace, DieInPool, GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
 import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass';
@@ -94,7 +94,7 @@ export function applyRerollDice(
     consecutivePasses: 0,
   };
 
-  const rotated = rotateAndCascade(stateAfter, playerId, events);
+  const rotated = endTurn(stateAfter, playerId, events);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }

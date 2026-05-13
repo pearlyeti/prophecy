@@ -1,6 +1,6 @@
 import type { EngineEvent } from '../events';
 import { drawCards } from '../state/draw';
-import { rotateAndCascade } from '../state/turn';
+import { endTurn } from '../state/turn';
 import type { GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
 
@@ -39,7 +39,7 @@ export function applyPass(state: GameState, playerId: string): ApplyResult {
     return runUpkeepAndStartRound(stateAfterPass, prelude);
   }
 
-  const rotated = rotateAndCascade(stateAfterPass, playerId, prelude);
+  const rotated = endTurn(stateAfterPass, playerId, prelude);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }
@@ -179,6 +179,8 @@ export function runUpkeepAndStartRound(
       consecutivePasses: 0,
       playerWhoClaimedThisRound: null,
       turnIndex: state.turnIndex + 1,
+      // New round → new turn for the first player; fresh Ambush budget.
+      ambushGrantedThisTurn: false,
     },
     events,
   };
