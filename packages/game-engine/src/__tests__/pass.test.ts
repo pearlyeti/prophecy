@@ -153,6 +153,46 @@ describe('applyAction({ type: "pass" })', () => {
     expect((upkeepAlice?.payload as { cardsDrawn: number }).cardsDrawn).toBe(3);
   });
 
+  it('upkeep readies all exhausted characters', () => {
+    const initial = newGameInActionPhase(basicGameInput({ seed: 'upkeep-ready' }));
+    const first = initial.activePlayerId!;
+    const second = initial.playerOrder.find((id) => id !== first)!;
+    // Pre-exhaust everybody's first character to prove upkeep readies them.
+    const exhausted = {
+      ...initial,
+      players: Object.fromEntries(
+        initial.playerOrder.map((id) => {
+          const p = initial.players[id]!;
+          const cid = p.characterOrder[0]!;
+          return [
+            id,
+            {
+              ...p,
+              characters: {
+                ...p.characters,
+                [cid]: { ...p.characters[cid]!, exhausted: true },
+              },
+            },
+          ];
+        }),
+      ),
+    };
+    for (const id of exhausted.playerOrder) {
+      const cid = exhausted.players[id]!.characterOrder[0]!;
+      expect(exhausted.players[id]?.characters[cid]?.exhausted).toBe(true);
+    }
+
+    const after = applyAction(
+      applyAction(exhausted, { type: 'pass', playerId: first }).state,
+      { type: 'pass', playerId: second },
+    );
+
+    for (const id of after.state.playerOrder) {
+      const cid = after.state.players[id]!.characterOrder[0]!;
+      expect(after.state.players[id]?.characters[cid]?.exhausted).toBe(false);
+    }
+  });
+
   it('upkeep does not draw past an empty deck', () => {
     const initial = newGameInActionPhase(
       basicGameInput({

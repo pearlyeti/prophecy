@@ -79,16 +79,23 @@ export function runUpkeepAndStartRound(
     if (!p) {
       throw new Error(`player ${id} missing from state.players`);
     }
-    // 1. Ready exhausted cards — no-op until we model exhaustion.
+    // 1. Ready exhausted cards.
     // 2. Return dice in pool to matching cards (clear pool).
     // 3. Gain 2 resources.
     // 4. Discard then draw to hand size — discard step deferred until
     //    play-card lands; draw step active.
     diceReturnedBefore[id] = p.diceInPool.length;
+    const readied: Record<string, (typeof p.characters)[string]> = {};
+    for (const cid of p.characterOrder) {
+      const c = p.characters[cid];
+      if (!c) continue;
+      readied[cid] = c.exhausted ? { ...c, exhausted: false } : c;
+    }
     players[id] = {
       ...p,
       diceInPool: [],
       resources: p.resources + UPKEEP_RESOURCES,
+      characters: readied,
     };
   }
   working = { ...state, players };
