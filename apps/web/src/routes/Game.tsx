@@ -1,4 +1,4 @@
-import { getLegalActions } from '@prophecy/game-engine';
+import { getLegalActions, type DieSymbol, type DieInPool } from '@prophecy/game-engine';
 import type { Action, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -15,6 +15,18 @@ export function Game() {
   const game = useApp((s) => s.game);
   const events = useApp((s) => s.recentEvents);
   const setError = useApp((s) => s.setError);
+  const resolveMode = useApp((s) => s.resolveMode);
+  const exitResolveMode = useApp((s) => s.exitResolveMode);
+
+  // Drop resolve-mode state if the turn rotates away or the game leaves
+  // the action phase. Without this, a lingering selection from a prior
+  // turn would re-render the bottom bar over a state where it makes no
+  // sense.
+  const isMyTurn = game?.activePlayerId === playerId;
+  const inActionPhase = game?.phase === 'action';
+  useEffect(() => {
+    if (!isMyTurn || !inActionPhase) exitResolveMode();
+  }, [isMyTurn, inActionPhase, exitResolveMode]);
 
   if (!lobby || !game) return null;
 
@@ -30,7 +42,6 @@ export function Game() {
 
   const me = lobby.members.find((m) => m.playerId === playerId);
   const opponent = lobby.members.find((m) => m.playerId !== playerId);
-  const isMyTurn = game.activePlayerId === playerId;
   const ended = game.phase === 'ended';
 
   return (
@@ -55,7 +66,7 @@ export function Game() {
         <SetupPanel game={game} playerId={playerId} send={send} />
       )}
 
-      {!ended && game.phase === 'action' && (
+      {!ended && game.phase === 'action' && !resolveMode && (
         <ActionPanel game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
       )}
 
@@ -75,6 +86,10 @@ export function Game() {
           {JSON.stringify(game, null, 2)}
         </pre>
       </details>
+
+      {resolveMode && !ended && game.phase === 'action' && (
+        <ResolveActionBar game={game} playerId={playerId} send={send} />
+      )}
     </main>
   );
 }
@@ -177,11 +192,11 @@ function SetupPanel({
 // One of the open overlays. Each entry corresponds to a button in
 // ActionPanel that needs follow-up taps to dispatch (target choice,
 // destructive confirm, etc.). Single-string state because at most one
-// overlay is open at a time on touch.
+// overlay is open at a time on touch. Resolve-dice is *not* an overlay
+// — it takes over the dice tray plus a sticky bottom bar; see
+// ResolveActionBar.
 type OpenOverlay =
   | { kind: 'activate' }
-  | { kind: 'resolve-pick-die' }
-  | { kind: 'resolve-pick-target'; dieInstanceId: string }
   | { kind: 'play-card' }
   | { kind: 'confirm-claim' }
   | { kind: 'confirm-concede' };
@@ -198,6 +213,7 @@ function ActionPanel({
   isMyTurn: boolean;
 }) {
   const [overlay, setOverlay] = useState<OpenOverlay | null>(null);
+  const enterResolveMode = useApp((s) => s.enterResolveMode);
   const legal = getLegalActions(game, playerId);
   const close = () => setOverlay(null);
 
@@ -210,9 +226,6 @@ function ActionPanel({
   };
 
   const me = game.players[playerId];
-  const opponent = game.playerOrder
-    .map((id) => game.players[id])
-    .find((p) => p && p.id !== playerId);
 
   return (
     <section className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
@@ -230,7 +243,7 @@ function ActionPanel({
           label="Resolve dice"
           subLabel={legal.resolvableSymbols.length > 0 ? `${me?.diceInPool.length ?? 0} in pool` : 'pool empty'}
           enabled={legal.resolvableSymbols.length > 0}
-          onClick={() => setOverlay({ kind: 'resolve-pick-die' })}
+          onClick={enterResolveMode}
         />
         <ActionButton
           label="Play card"
@@ -285,80 +298,6 @@ function ActionPanel({
                   <div className="text-[11px] text-neutral-400">
                     {c.dice.length}d{c.elite ? ' · elite' : ''}
                     {c.exhausted ? ' · exhausted' : ''}
-                  </div>
-                </TargetButton>
-              );
-            })}
-          </TargetGrid>
-        </ActionOverlay>
-      )}
-
-      {overlay?.kind === 'resolve-pick-die' && (
-        <ActionOverlay title="Resolve which die?" onClose={close}>
-          <div className="mb-2 text-[11px] text-neutral-500">
-            One die at a time for now (multi-die symbol-lock UX lands in a later card).
-          </div>
-          <TargetGrid>
-            {me?.diceInPool.map((d) => {
-              const enabled =
-                !d.face.modifier &&
-                legal.resolvableSymbols.includes(d.face.symbol);
-              return (
-                <TargetButton
-                  key={d.instanceId}
-                  enabled={enabled}
-                  onClick={() => {
-                    if (d.face.symbol === 'melee' || d.face.symbol === 'ranged') {
-                      // Damage symbol — need a target character next.
-                      setOverlay({ kind: 'resolve-pick-target', dieInstanceId: d.instanceId });
-                    } else {
-                      dispatch({
-                        type: 'resolve-dice',
-                        playerId,
-                        dieInstanceIds: [d.instanceId],
-                      });
-                    }
-                  }}
-                >
-                  <div className="text-base font-mono text-neutral-100">
-                    {d.face.modifier ? '+' : ''}
-                    {d.face.value || ''}
-                  </div>
-                  <div className="text-[11px] uppercase tracking-wider text-neutral-400">
-                    {d.face.symbol}
-                  </div>
-                </TargetButton>
-              );
-            })}
-          </TargetGrid>
-        </ActionOverlay>
-      )}
-
-      {overlay?.kind === 'resolve-pick-target' && (
-        <ActionOverlay
-          title="Target which character?"
-          onClose={() => setOverlay({ kind: 'resolve-pick-die' })}
-          backLabel="Back to dice"
-        >
-          <TargetGrid>
-            {opponent?.characterOrder.map((cid) => {
-              const c = opponent.characters[cid]!;
-              return (
-                <TargetButton
-                  key={cid}
-                  enabled
-                  onClick={() =>
-                    dispatch({
-                      type: 'resolve-dice',
-                      playerId,
-                      dieInstanceIds: [overlay.dieInstanceId],
-                      targetCharacterId: cid,
-                    })
-                  }
-                >
-                  <div className="text-sm">Character {cid.replace(/^.*\./, '')}</div>
-                  <div className="text-[11px] text-neutral-400">
-                    ♥ {c.damage} / {c.health} · shields {c.shields}
                   </div>
                 </TargetButton>
               );
@@ -677,12 +616,25 @@ function EventLog({ events }: { events: readonly EngineEvent[] }) {
 
 function DicePoolStrip({ game, playerId }: { game: GameState; playerId: string }) {
   const lobby = useApp.getState().lobby!;
+  const resolveMode = useApp((s) => s.resolveMode);
+  const toggleResolveDie = useApp((s) => s.toggleResolveDie);
+  const me = game.players[playerId];
+  const selectedIds = resolveMode?.selectedDieIds ?? null;
+  // Symbol lock derives from the first selected die (any die's symbol —
+  // a modifier-only selection is illegal at dispatch time, gated below).
+  const lockedSymbol: DieSymbol | null = (() => {
+    if (!selectedIds?.length || !me) return null;
+    const first = me.diceInPool.find((d) => selectedIds.includes(d.instanceId));
+    return first?.face.symbol ?? null;
+  })();
+
   return (
     <section className="mb-4 grid gap-3 sm:grid-cols-2">
       {game.playerOrder.map((id) => {
         const p = game.players[id]!;
         const name = lobby.members.find((m) => m.playerId === id)?.displayName ?? id;
         const isMe = id === playerId;
+        const interactive = resolveMode !== null && isMe;
         return (
           <div key={id} className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-3">
             <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wider text-neutral-500">
@@ -693,30 +645,226 @@ function DicePoolStrip({ game, playerId }: { game: GameState; playerId: string }
               <div className="text-xs text-neutral-600">(empty)</div>
             ) : (
               <ul className="flex flex-wrap gap-2">
-                {p.diceInPool.map((d) => (
-                  <li
-                    key={d.instanceId}
-                    className="flex h-12 w-12 flex-col items-center justify-center rounded-md border border-neutral-700 bg-neutral-900 text-[10px] uppercase text-neutral-300"
-                    title={`${d.face.symbol} ${d.face.value} (cost ${d.face.cost})${d.face.modifier ? ' +mod' : ''}`}
-                  >
-                    <span className="text-base font-mono text-neutral-100">
-                      {d.face.modifier ? '+' : ''}
-                      {d.face.value || ''}
-                    </span>
-                    <span className="text-[9px]">{symbolGlyph(d.face.symbol)}</span>
-                  </li>
-                ))}
+                {p.diceInPool.map((d) => {
+                  const selected = !!selectedIds?.includes(d.instanceId);
+                  const enabled = interactive && (selected || canSelectDie(d, lockedSymbol));
+                  const tile = (
+                    <div
+                      className={`flex h-12 w-12 flex-col items-center justify-center rounded-md border text-[10px] uppercase ${
+                        selected
+                          ? 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500'
+                          : interactive && !enabled
+                            ? 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50'
+                            : 'border-neutral-700 bg-neutral-900 text-neutral-300'
+                      }`}
+                      title={`${d.face.symbol} ${d.face.value} (cost ${d.face.cost})${d.face.modifier ? ' +mod' : ''}`}
+                    >
+                      <span className="text-base font-mono text-neutral-100">
+                        {d.face.modifier ? '+' : ''}
+                        {d.face.value || ''}
+                      </span>
+                      <span className="text-[9px]">{symbolGlyph(d.face.symbol)}</span>
+                    </div>
+                  );
+                  if (interactive) {
+                    return (
+                      <li key={d.instanceId}>
+                        <button
+                          type="button"
+                          disabled={!enabled}
+                          onClick={() => toggleResolveDie(d.instanceId)}
+                          // min size satisfies the 44×44 touch-target rule
+                          // even though the visual tile is 48×48.
+                          className="min-h-[44px] min-w-[44px] rounded-md disabled:cursor-not-allowed"
+                        >
+                          {tile}
+                        </button>
+                      </li>
+                    );
+                  }
+                  return <li key={d.instanceId}>{tile}</li>;
+                })}
               </ul>
             )}
-            {isMe && p.diceInPool.length > 0 && (
-              <div className="mt-2 text-[10px] text-neutral-600">
-                Resolve / reroll actions coming soon.
+            {interactive && p.diceInPool.length > 0 && (
+              <div className="mt-2 text-[10px] text-neutral-500">
+                Tap dice of the same symbol to add them. Tap a selected die to remove it.
               </div>
             )}
           </div>
         );
       })}
     </section>
+  );
+}
+
+/**
+ * Whether a pool die can be added to the current resolve-mode selection.
+ *
+ *  - Blank dice and engine-unimplemented symbols (special / focus /
+ *    indirect / discard) are never selectable.
+ *  - With nothing selected yet, only non-modifier dice are eligible
+ *    (a modifier-only resolution is illegal per the rules).
+ *  - With a locked symbol, any die of that symbol — modifier or not —
+ *    is eligible.
+ */
+function canSelectDie(d: DieInPool, lockedSymbol: DieSymbol | null): boolean {
+  if (d.face.symbol === 'blank') return false;
+  if (
+    d.face.symbol === 'special' ||
+    d.face.symbol === 'focus' ||
+    d.face.symbol === 'indirect' ||
+    d.face.symbol === 'discard'
+  ) {
+    return false;
+  }
+  if (lockedSymbol === null) return !d.face.modifier;
+  return d.face.symbol === lockedSymbol;
+}
+
+function ResolveActionBar({
+  game,
+  playerId,
+  send,
+}: {
+  game: GameState;
+  playerId: string;
+  send: (a: Action) => void;
+}) {
+  const resolveMode = useApp((s) => s.resolveMode);
+  const exitResolveMode = useApp((s) => s.exitResolveMode);
+  const [pickingTarget, setPickingTarget] = useState(false);
+
+  const me = game.players[playerId];
+  if (!resolveMode || !me) return null;
+
+  const selectedDice = resolveMode.selectedDieIds
+    .map((id) => me.diceInPool.find((d) => d.instanceId === id))
+    .filter((d): d is DieInPool => Boolean(d));
+
+  const totalValue = selectedDice.reduce((s, d) => s + d.face.value, 0);
+  const totalCost = selectedDice.reduce((s, d) => s + d.face.cost, 0);
+  const lockedSymbol = selectedDice[0]?.face.symbol ?? null;
+  const hasNonModifier = selectedDice.some((d) => !d.face.modifier);
+  const affordable = me.resources >= totalCost;
+  const canResolve = selectedDice.length > 0 && hasNonModifier && affordable;
+  const needsTarget =
+    lockedSymbol === 'melee' || lockedSymbol === 'ranged' || lockedSymbol === 'shield';
+
+  const dispatch = (targetCharacterId?: string) => {
+    send({
+      type: 'resolve-dice',
+      playerId,
+      dieInstanceIds: selectedDice.map((d) => d.instanceId),
+      ...(targetCharacterId ? { targetCharacterId } : {}),
+    });
+    setPickingTarget(false);
+    exitResolveMode();
+  };
+
+  const cancel = () => {
+    setPickingTarget(false);
+    exitResolveMode();
+  };
+
+  const opponent = game.playerOrder
+    .map((id) => game.players[id])
+    .find((p): p is NonNullable<typeof p> => !!p && p.id !== playerId);
+
+  return (
+    <>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-800 bg-neutral-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2 px-4 py-3">
+          <div className="text-sm">
+            {selectedDice.length === 0 ? (
+              <span className="text-neutral-400">Tap a die in your pool to start.</span>
+            ) : (
+              <>
+                <span className="font-mono text-neutral-100">{totalValue}</span>{' '}
+                <span className="uppercase tracking-wider text-neutral-300">
+                  {lockedSymbol}
+                </span>
+                <span className="ml-2 text-xs text-neutral-500">
+                  {selectedDice.length} die{selectedDice.length === 1 ? '' : 's'} · cost{' '}
+                  {totalCost}
+                </span>
+                {!hasNonModifier && (
+                  <span className="ml-2 text-xs text-amber-400">need a non-modifier</span>
+                )}
+                {!affordable && (
+                  <span className="ml-2 text-xs text-amber-400">
+                    cost &gt; resources ({me.resources})
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={cancel}
+              className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!canResolve}
+              onClick={() => {
+                if (needsTarget) setPickingTarget(true);
+                else dispatch();
+              }}
+              className="min-h-[44px] rounded-lg border border-emerald-700 bg-emerald-900 px-4 py-2 text-sm text-emerald-50 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {needsTarget ? 'Next: pick target' : 'Resolve'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {pickingTarget && lockedSymbol && (
+        <ActionOverlay
+          title={
+            lockedSymbol === 'shield'
+              ? 'Place shields on which character?'
+              : 'Target which character?'
+          }
+          onClose={() => setPickingTarget(false)}
+          backLabel="Back to dice"
+        >
+          <TargetGrid>
+            {lockedSymbol === 'shield'
+              ? me.characterOrder.map((cid) => {
+                  const c = me.characters[cid]!;
+                  const room = 3 - c.shields;
+                  return (
+                    <TargetButton
+                      key={cid}
+                      enabled={room > 0}
+                      onClick={() => dispatch(cid)}
+                    >
+                      <div className="text-sm">Character {cid.replace(/^.*\./, '')}</div>
+                      <div className="text-[11px] text-neutral-400">
+                        shields {c.shields}/3
+                      </div>
+                    </TargetButton>
+                  );
+                })
+              : opponent?.characterOrder.map((cid) => {
+                  const c = opponent.characters[cid]!;
+                  return (
+                    <TargetButton key={cid} enabled onClick={() => dispatch(cid)}>
+                      <div className="text-sm">Character {cid.replace(/^.*\./, '')}</div>
+                      <div className="text-[11px] text-neutral-400">
+                        ♥ {c.damage}/{c.health} · shields {c.shields}
+                      </div>
+                    </TargetButton>
+                  );
+                })}
+          </TargetGrid>
+        </ActionOverlay>
+      )}
+    </>
   );
 }
 

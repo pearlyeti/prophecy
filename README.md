@@ -520,29 +520,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
-#### WEB-2 — Resolve mode: symbol-locked die selection
-**Why now.** Resolving dice is the most-clicked action in a real game. The interaction needs to feel right and prevent illegal selections at the UI layer.
-
-**Scope.**
-- After the player taps "Resolve dice" in the action panel, enter a `resolve-mode` Zustand slice: dice tray expands, first die tapped locks the symbol, subsequent taps only enable same-symbol dice (modifiers of the locked symbol included).
-- A "Resolve" confirm button at the bottom; "Cancel" returns the player to the action panel.
-- For damage symbols (melee/ranged): after dice selection, require a target character tap. Send `{ type: 'resolve-dice', playerId, dieInstanceIds, targetCharacterId }`.
-- For resource / disrupt / discard: no target needed.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx`
-- `apps/web/src/state/app.ts` (Zustand store)
-- `packages/game-engine/src/actions/resolve-dice.ts` (what the action expects)
-- `packages/game-engine/src/state/types.ts` (DieInPool, DieSymbol)
-
-**Out of scope.** Animations and Pixi visuals. Special / focus / indirect resolution paths (not engine-supported yet). Just the canonical resolve-mode for the symbols the engine handles.
-
-**Depends on.** WEB-1.
-
-**Done when.** Typecheck clean. Manual smoke: full action of "activate → die rolls into pool → resolve mode → pick a melee → pick target → damage lands" works end-to-end across two browsers in a real lobby.
-
----
-
 #### SERVER-1 — Reconnect window
 **Why now.** Players drop connection (subway, app backgrounded). Without a rejoin window, every drop ends the game.
 
@@ -650,6 +627,7 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
 ### Done
+- **2026-05-13 — WEB-2 — Resolve mode: symbol-locked die selection.** Tap "Resolve dice" in the action panel → the panel hides, the player's own dice tiles in `DicePoolStrip` become tap targets, and a sticky bottom bar (cost / total / warnings / Cancel / Resolve) drives the dispatch. First die tap locks the symbol; subsequent taps enable only same-symbol dice (modifiers of the locked symbol included); tap a selected die to deselect. Resolve dispatches directly for resource / disrupt; opens a target overlay first for melee / ranged (opponent characters) and shield (own characters). New `resolveMode` slice on the Zustand store keeps the selection in one place. Resolve mode auto-exits when the turn rotates away or the phase changes.
 - **2026-05-13 — Engine: ready exhausted characters at upkeep** (`fcf4920`). Plugs a placeholder in `runUpkeepAndStartRound` — exhausted characters now flip back to ready at start-of-round per [rules-reference §Upkeep step 1](docs/rules-reference.md). Without this, a new round started with no activatable characters and the game stalled. +1 test in `pass.test.ts`.
 - **2026-05-13 — WEB-1 — ActionPanel: action → target two-step** (`1767a5d`). ActionPanel now drives every action through `getLegalActions`. Activate / Resolve / Play-card / Claim / Concede open a bottom-sheet (≤ sm) or centered modal (≥ sm) instead of relying on flat buttons; tap targets ≥ 44×44, disabled actions stay dimmed-but-visible, backdrop tap or Escape closes. Claim and Concede route through a dedicated `ConfirmOverlay` (no more `window.confirm`). Resolve is single-die-at-a-time for now — the symbol-locked multi-die UX is WEB-2. Added `@prophecy/game-engine` as a direct web dep so the client can call `getLegalActions` against live state. Manual smoke verified by user on desktop + phone-portrait viewport.
 - **2026-05-13 — Server: wire `startRoom` to the committed test decks** (`0c49534`). Replaces the `CHAR_TEST_001` placeholder in `rooms.ts` with `newGameFromDecks` against the loaded corpus. DECK_A (Light: Spark of Hope) and DECK_B (Shadow: Iron Fist) are paired with the two players; pairing is randomized 50/50 by a `deck-assignment` RNG fork of the game seed so replays of the same seed always produce the same matchup.

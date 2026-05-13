@@ -6,6 +6,15 @@ import { getOrCreatePlayerId } from './lib/playerId';
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
+/**
+ * Transient UI state for the resolve-dice flow. Stored centrally (not
+ * in a component) so the dice tray, sticky action bar, and target
+ * overlay can all read/write the same selection without prop-drilling.
+ */
+export interface ResolveMode {
+  readonly selectedDieIds: readonly string[];
+}
+
 interface AppStore {
   readonly playerId: string;
   displayName: string;
@@ -25,6 +34,11 @@ interface AppStore {
 
   lastError: string | null;
   setError: (e: string | null) => void;
+
+  resolveMode: ResolveMode | null;
+  enterResolveMode: () => void;
+  exitResolveMode: () => void;
+  toggleResolveDie: (instanceId: string) => void;
 
   reset: () => void;
 }
@@ -55,6 +69,19 @@ export const useApp = create<AppStore>((set) => ({
   lastError: null,
   setError: (e) => set({ lastError: e }),
 
+  resolveMode: null,
+  enterResolveMode: () => set({ resolveMode: { selectedDieIds: [] } }),
+  exitResolveMode: () => set({ resolveMode: null }),
+  toggleResolveDie: (instanceId) =>
+    set((s) => {
+      if (!s.resolveMode) return {};
+      const current = s.resolveMode.selectedDieIds;
+      const next = current.includes(instanceId)
+        ? current.filter((id) => id !== instanceId)
+        : [...current, instanceId];
+      return { resolveMode: { selectedDieIds: next } };
+    }),
+
   reset: () => {
     clearCachedLobby();
     set({
@@ -62,6 +89,7 @@ export const useApp = create<AppStore>((set) => ({
       game: null,
       recentEvents: [],
       lastError: null,
+      resolveMode: null,
     });
   },
 }));
