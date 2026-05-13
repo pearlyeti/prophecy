@@ -1,12 +1,16 @@
 import { IllegalActionError } from '@prophecy/game-engine';
-import type {
-  ClientToServerEvents,
-  ErrorPayload,
-  ServerToClientEvents,
+import {
+  cardCatalogSchema,
+  deckCatalogSchema,
+  type ClientToServerEvents,
+  type ErrorPayload,
+  type ServerToClientEvents,
 } from '@prophecy/protocol';
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { Server } from 'socket.io';
+
+import { getCards, getDecks, writeCards, writeDecks } from './corpus.js';
 
 import {
   applyRoomAction,
@@ -22,15 +26,74 @@ import {
   type Room,
 } from './rooms.js';
 
-const httpServer = createServer((req, res) => {
+const httpServer = createServer(async (req, res) => {
+  // CORS preflight + headers for every /admin response.
+  const origin = (req.headers.origin as string | undefined) ?? '*';
+  if (req.url?.startsWith('/admin')) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Vary', 'Origin');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+  }
+
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, service: 'game-server' }));
     return;
   }
+
+  if (req.url === '/admin/cards' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ cards: getCards() }));
+    return;
+  }
+  if (req.url === '/admin/cards' && req.method === 'PUT') {
+    try {
+      const body = await readJsonBody(req);
+      const parsed = cardCatalogSchema.parse(body);
+      writeCards(parsed.cards);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, count: parsed.cards.length }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
+    }
+    return;
+  }
+  if (req.url === '/admin/decks' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ decks: getDecks() }));
+    return;
+  }
+  if (req.url === '/admin/decks' && req.method === 'PUT') {
+    try {
+      const body = await readJsonBody(req);
+      const parsed = deckCatalogSchema.parse(body);
+      writeDecks(parsed.decks);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, count: parsed.decks.length }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
+
+async function readJsonBody(req: import('node:http').IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(chunk as Buffer);
+  const text = Buffer.concat(chunks).toString('utf8');
+  return text ? JSON.parse(text) : {};
+}
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {

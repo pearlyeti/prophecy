@@ -1,60 +1,87 @@
-// Loads the committed testing-set fixtures (cards + decks) at startup
-// so room creation can spin a real game from real decks. In production
-// these come from the database; for now they're files committed under
-// the game-engine package.
+// Loads the original-IP card / deck catalog at startup. The committed
+// files at `packages/db/seed/{cards,decks}.json` are the canonical
+// catalog — the `/admin` endpoints in this same server read / write
+// them, and once the DB lands, `pnpm db:seed` will import them too.
+//
+// We validate against the catalog schemas in `@prophecy/protocol` so a
+// hand-edited file with a typo fails fast at boot rather than at the
+// first lobby join.
 
-import { readFileSync } from 'node:fs';
+import { cardCatalogSchema, deckCatalogSchema, type Card, type Deck } from '@prophecy/protocol';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-interface RawDeck {
-  readonly id: string;
-  readonly name: string;
-  readonly description?: string;
-  readonly faction: 'light' | 'shadow' | 'neutral';
-  readonly characters: readonly { cardId: string; elite: boolean }[];
-  readonly battlefieldCardId: string;
-  readonly plotCardId?: string | null;
-  readonly cards: readonly { cardId: string; count: number }[];
-}
-
-interface RawCard {
-  readonly id: string;
-  readonly title: string;
-  readonly type: string;
-  readonly faction: string;
-  readonly color: string;
-  // Plus many other fields; only the ones the engine reads matter
-  // here. The shape is validated by the engine's own Zod schema when
-  // newGameFromDecks looks up each id.
-  readonly [key: string]: unknown;
-}
-
 const here = dirname(fileURLToPath(import.meta.url));
-const fixtureDir = resolve(
-  here,
-  '..',
-  '..',
-  '..',
-  'packages',
-  'game-engine',
-  'src',
-  '__fixtures__',
-  'synthetic-set',
-);
+const seedDir = resolve(here, '..', '..', '..', 'packages', 'db', 'seed');
 
-const cardSet = JSON.parse(readFileSync(resolve(fixtureDir, 'cards.json'), 'utf8')) as {
-  cards: RawCard[];
-};
-const deckSet = JSON.parse(readFileSync(resolve(fixtureDir, 'decks.json'), 'utf8')) as {
-  decks: RawDeck[];
-};
+const cardsPath = resolve(seedDir, 'cards.json');
+const decksPath = resolve(seedDir, 'decks.json');
 
-export const TESTING_CARDS = cardSet.cards;
-export const TESTING_DECKS = deckSet.decks;
+function loadCards(): Card[] {
+  const raw = JSON.parse(readFileSync(cardsPath, 'utf8'));
+  const parsed = cardCatalogSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(
+      `cards.json failed schema validation: ${parsed.error.message}`,
+    );
+  }
+  return parsed.data.cards;
+}
 
-if (TESTING_DECKS.length < 2) {
+function loadDecks(): Deck[] {
+  const raw = JSON.parse(readFileSync(decksPath, 'utf8'));
+  const parsed = deckCatalogSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(
+      `decks.json failed schema validation: ${parsed.error.message}`,
+    );
+  }
+  return parsed.data.decks;
+}
+
+let cachedCards: Card[] | null = null;
+let cachedDecks: Deck[] | null = null;
+
+export function getCards(): readonly Card[] {
+  if (!cachedCards) cachedCards = loadCards();
+  return cachedCards;
+}
+
+export function getDecks(): readonly Deck[] {
+  if (!cachedDecks) cachedDecks = loadDecks();
+  return cachedDecks;
+}
+
+/** Replace the catalog wholesale (admin PUT). Writes to disk, validates first. */
+export function writeCards(cards: readonly Card[]): void {
+  // Re-parse so callers can't sneak in unknown fields.
+  const parsed = cardCatalogSchema.parse({ cards: [...cards] });
+  writeFileSync(cardsPath, JSON.stringify(parsed, null, 2) + '\n');
+  cachedCards = [...parsed.cards];
+}
+
+export function writeDecks(decks: readonly Deck[]): void {
+  const parsed = deckCatalogSchema.parse({ decks: [...decks] });
+  writeFileSync(decksPath, JSON.stringify(parsed, null, 2) + '\n');
+  cachedDecks = [...parsed.decks];
+}
+
+// Backwards-compat aliases used by rooms.ts. Phase out once rooms.ts
+// is updated to call getCards / getDecks directly.
+export const TESTING_CARDS = new Proxy([] as unknown as Card[], {
+  get(_t, prop) {
+    return Reflect.get(getCards(), prop);
+  },
+});
+export const TESTING_DECKS = new Proxy([] as unknown as Deck[], {
+  get(_t, prop) {
+    return Reflect.get(getDecks(), prop);
+  },
+});
+
+if (getDecks().length < 2) {
   throw new Error(
-    `decks.json must contain at least 2 decks for 1v1; found ${TESTING_DECKS.length}`,
+    `decks.json must contain at least 2 decks for 1v1; found ${getDecks().length}`,
   );
 }

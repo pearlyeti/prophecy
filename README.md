@@ -8,7 +8,7 @@ An online multiplayer platform for **Prophecy** — an original dice-and-card du
 
 > **Scope note.** Prophecy is an original property. The gameplay system implemented here is inspired by the design space of dice-and-card dueling games but does **not** ship with or depend on any third-party intellectual property (names, art, characters, factions, world). All cards, art, names, and lore that ship to players are original to this project. The reference rules document under `docs/` describes the abstract game system only.
 >
-> Third-party reference data (e.g., a public card index from a related game) may live under clearly-isolated `__fixtures__/` paths for engine-validation purposes only — mechanical structure only, no titles, ability prose, or art. See [Reference data & test fixtures](#reference-data--test-fixtures).
+> Third-party reference data (e.g., a public card index from a related game) may live under clearly-isolated `__fixtures__/` paths for engine-validation purposes only — mechanical structure only, no titles, ability prose, or art. See [Engine test fixtures](#engine-test-fixtures-test-only).
 
 ---
 
@@ -121,7 +121,7 @@ game-engine/
 ├── reducers/        # Pure (state, action) => { state, events } transitions
 ├── rng/             # Seeded RNG + dice rolling
 ├── __tests__/       # Exhaustive unit tests per rule section
-└── __fixtures__/    # Reference test data (see "Reference data & test fixtures")
+└── __fixtures__/    # Engine test fixtures only — see "Engine test fixtures (test-only)"
 ```
 
 All rules from [docs/rules-reference.md](docs/rules-reference.md) are implemented here. The game server imports this package and wraps it with I/O (sockets, persistence).
@@ -247,7 +247,7 @@ A card's ability is the most load-bearing piece of game data. We store abilities
 }
 ```
 
-The fixture importer ([Reference data & test fixtures](#reference-data--test-fixtures)) emits the same AST. The engine's ability registry dispatches on `kind` and resolves `effect[]` against game state. Adding a new ability shape means adding a tag + a resolver — never editing core action logic.
+The fixture importer ([Engine test fixtures](#engine-test-fixtures-test-only)) emits the same AST. The engine's ability registry dispatches on `kind` and resolves `effect[]` against game state. Adding a new ability shape means adding a tag + a resolver — never editing core action logic.
 
 ---
 
@@ -416,17 +416,33 @@ pnpm --filter @prophecy/game-engine test
 
 ---
 
-## Reference data & test fixtures
+## Card catalog & deck registry
 
-The engine needs a substantial corpus of cards to be exercised against. Building Prophecy's own card pool will take time, so during early development we use a public reference set as **engine-validation fixtures only**.
+The canonical original-IP catalog lives in committed JSON at:
 
-- **What.** A *mechanical* snapshot derived from a public community card index for the dice-and-card system Prophecy descends from. Dice profiles (symbol, value, cost, modifier flag), point values, health, faction, color, keyword set, and ability *type tags* — never card titles, ability prose, or art.
-- **Where.** `packages/game-engine/__fixtures__/reference-set/` — clearly labeled as third-party-derived reference data, JSON only. Loaded only by tests under `__tests__/`.
-- **What it's for.** Verifying engine behavior against a large, real-world card pool with weird interactions (Guardian + Redeploy + Ambush, replacement effects, inherent dice abilities, etc.). Catches edge cases that hand-written fixtures miss.
-- **What it is *not* for.** Production seed data, art, copy, names, or anything user-visible. The production card catalog (`pnpm db:seed`) loads only original Prophecy cards from `packages/db/seed/cards/`.
-- **Build vs. ship.** `__fixtures__/` is excluded from production bundles by Turborepo build outputs. Tests that import from it run in CI but never ship.
+- `packages/db/seed/cards.json` — every card the game knows about (events, characters, upgrades, supports, plots, battlefields).
+- `packages/db/seed/decks.json` — saved decks (starter / preview / curated).
 
-This separation is enforced by [Working agreement #5](#working-agreements). If you find yourself reaching into `__fixtures__/` from a non-test path, stop.
+Both files are loaded at game-server startup (`apps/game-server/src/corpus.ts`) and validated against the Zod schemas in `@prophecy/protocol` (`cardSchema`, `deckSchema`). A typo in either file fails fast at boot. The same files are managed through the admin UX (see below) and will be the `pnpm db:seed` source once API-1 lands.
+
+### Admin UX
+
+`apps/web/src/routes/admin/*` ships a hidden authoring tool at `/admin`:
+
+- **`/admin/cards`** — table of every card; click to edit metadata (name, type, subtype, faction, color, rarity, cost, point / elite-point / health, isUnique, displayText, die faces read-only for now). Abilities use a form-based builder: pick an `op` from a dropdown of the engine-supported ops, fill in its parameters. Cards that need an op the engine doesn't have yet pick `(new)` and write a working name + notes; that effectively tags the catalog with the running TODO list of ops to implement next.
+- **`/admin/decks`** — table of decks; click to edit name, faction, characters (with elite toggle), battlefield, plot, and the card list (counts). Deck-building rule enforcement (color / faction / 30-card / 2-copy cap) is **not** enforced in the UX — author rules manually for now; a validator lands later.
+
+Persistence is filesystem-direct: `GET /admin/cards`, `PUT /admin/cards`, `GET /admin/decks`, `PUT /admin/decks` on the game-server. Dev-only, no auth in v1.
+
+### Engine test fixtures (test-only)
+
+Separately from the canonical catalog above, the engine has a third-party-derived synthetic corpus used by automated tests only:
+
+- **Where.** `packages/game-engine/src/__fixtures__/synthetic-set/` — clearly labeled, JSON + Zod schemas. Loaded only by `__tests__/` paths.
+- **What.** A *mechanical* snapshot derived from a public community card index for the dice-and-card system Prophecy descends from. Dice profiles, point values, health, faction, color, keyword set, and ability *type tags* — never card titles, ability prose, or art.
+- **What it's for.** Exercising the engine against a large card pool with weird interactions; catches edge cases hand-written fixtures miss.
+- **What it is *not* for.** Live play, the admin UX, seed data, or anything user-visible. The game-server reads from `packages/db/seed/` instead.
+- **Build vs. ship.** `__fixtures__/` is excluded from production bundles. This separation is enforced by [Working agreement #5](#working-agreements).
 
 ---
 
@@ -444,7 +460,7 @@ These rules apply to every contributor and to Claude when assisting in this repo
 2. **Decisions land in the README, not in chat.** When a non-trivial decision is made (library swap, new service, schema change, scope cut), reflect it in the relevant section. If the rationale is non-obvious, leave a one-line note.
 3. **TODOs go in [TODO.md](TODO.md).** Don't sprinkle TODO comments in code as the system of record. A code TODO is fine for a localized follow-up; anything cross-cutting belongs in TODO.md.
 4. **Game rules live only in `packages/game-engine`.** No game logic in `apps/api`, `apps/web`, or `apps/game-server`. Those are I/O around the engine.
-5. **Original IP only in shipped surfaces.** No third-party names, art, characters, factions, or lore in anything that ships to users. Third-party reference data may live under `__fixtures__/` for engine validation tests only — mechanical-only, never imported from a non-test path, never bundled into production builds. See [Reference data & test fixtures](#reference-data--test-fixtures).
+5. **Original IP only in shipped surfaces.** No third-party names, art, characters, factions, or lore in anything that ships to users. Third-party reference data may live under `__fixtures__/` for engine validation tests only — mechanical-only, never imported from a non-test path, never bundled into production builds. See [Engine test fixtures](#engine-test-fixtures-test-only).
 6. **Server-authoritative, deterministic.** Don't add logic that breaks replay determinism (unseeded randomness, wall-clock dependencies, non-deterministic iteration order, network-dependent shuffles, etc.).
 7. **Cosmetics are gameplay-neutral.** Anything purchasable with hard currency cannot affect game balance. The line is bright; do not blur it.
 8. **No paid randomized gameplay-card packs.** Booster packs of gameplay cards are bought with soft currency only. This keeps the platform out of the lootbox-regulation mess and keeps the ladder fair-to-play.

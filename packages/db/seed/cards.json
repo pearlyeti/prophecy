@@ -1,0 +1,1489 @@
+{
+  "cards": [
+    {
+      "id": "BFD_002",
+      "name": "The Sundered Bastion",
+      "type": "battlefield",
+      "subtype": null,
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": null,
+      "abilities": []
+    },
+    {
+      "id": "BFD_003",
+      "name": "Ashen Crossroads",
+      "type": "battlefield",
+      "subtype": null,
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": null,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": null,
+      "abilities": []
+    },
+    {
+      "id": "CHAR_003",
+      "name": "Iron Conscript",
+      "type": "character",
+      "subtype": "Soldier",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "rare",
+      "cost": null,
+      "health": 10,
+      "pointValue": 13,
+      "elitePointValue": 18,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "CHAR_011",
+      "name": "Voidcutter Pilot",
+      "type": "character",
+      "subtype": "Pilot, Vehicle",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": null,
+      "health": 10,
+      "pointValue": 12,
+      "elitePointValue": 16,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "CHAR_016",
+      "name": "Spark Initiate",
+      "type": "character",
+      "subtype": "Apprentice",
+      "faction": "light",
+      "color": "red",
+      "rarity": "rare",
+      "cost": null,
+      "health": 7,
+      "pointValue": 8,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "CHAR_017",
+      "name": "Mira of Hollow Pass",
+      "type": "character",
+      "subtype": "Warrior",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "legendary",
+      "cost": null,
+      "health": 12,
+      "pointValue": 15,
+      "elitePointValue": 20,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "EVT_001",
+      "name": "Quick Strike",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Deal 1 melee damage to a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "deal_damage",
+              "amount": 1,
+              "kind": "melee"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_002",
+      "name": "Steady Stance",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Give a character 2 shields.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "give_shields",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_004",
+      "name": "Sundering Blow",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Remove all shields from a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "remove_shields",
+              "amount": "all"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_005",
+      "name": "Watchful Eye",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Draw 1 card.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "draw_cards",
+              "scope": "self",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_007",
+      "name": "Brace for Action",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Each player draws 2 cards.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "draw_cards",
+              "scope": "each_player",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_018",
+      "name": "Quartermaster's Cache",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Gain 3 resources.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "gain_resources",
+              "amount": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_019",
+      "name": "Quick Pocket",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Gain 1 resource.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "gain_resources",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_020",
+      "name": "Triage",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Heal 1 damage from a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "heal_damage",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_022",
+      "name": "Pressing Assault",
+      "type": "event",
+      "subtype": null,
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Deal 2 melee damage to a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "deal_damage",
+              "amount": 2,
+              "kind": "melee"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_026",
+      "name": "Tactical Insight",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Draw 2 cards.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "draw_cards",
+              "scope": "self",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_028",
+      "name": "Field Medic",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Remove 2 damage from a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "heal_damage",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_029",
+      "name": "Resupply",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "red",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Gain 2 resources.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "gain_resources",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_032",
+      "name": "Battle Plan",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Draw 1 card.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "draw_cards",
+              "scope": "self",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_033",
+      "name": "Decisive Strike",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "red",
+      "rarity": "uncommon",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Deal 3 melee damage to a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "deal_damage",
+              "amount": 3,
+              "kind": "melee"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_038",
+      "name": "Marksman's Eye",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Deal 1 ranged damage to a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "deal_damage",
+              "amount": 1,
+              "kind": "ranged"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_039",
+      "name": "Ward of Light",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "blue",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Give a character 1 shield.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "give_shields",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_044",
+      "name": "Last-Minute Plans",
+      "type": "event",
+      "subtype": null,
+      "faction": "light",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Draw cards up to your hand size.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "draw_cards",
+              "scope": "self_to_hand_size",
+              "amount": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EVT_055",
+      "name": "Long Shot",
+      "type": "event",
+      "subtype": null,
+      "faction": "neutral",
+      "color": "red",
+      "rarity": "common",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "Deal 2 ranged damage to a character.",
+      "dieFaces": null,
+      "abilities": [
+        {
+          "kind": "immediate",
+          "effects": [
+            {
+              "op": "deal_damage",
+              "amount": 2,
+              "kind": "ranged"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UPG_001",
+      "name": "Crimson Vambrace",
+      "type": "upgrade",
+      "subtype": "Armor",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "legendary",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_002",
+      "name": "Blackthorn Edge",
+      "type": "upgrade",
+      "subtype": "Weapon",
+      "faction": "shadow",
+      "color": "red",
+      "rarity": "fixed",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_007",
+      "name": "Hardened Plating",
+      "type": "upgrade",
+      "subtype": "Armor",
+      "faction": "shadow",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_009",
+      "name": "Stratos Sidearm",
+      "type": "upgrade",
+      "subtype": "Weapon",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 4,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_011",
+      "name": "Quickdraw Sleeve",
+      "type": "upgrade",
+      "subtype": "Equipment",
+      "faction": "shadow",
+      "color": "yellow",
+      "rarity": "rare",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_013",
+      "name": "Sunsteel Sword",
+      "type": "upgrade",
+      "subtype": "Weapon",
+      "faction": "light",
+      "color": "red",
+      "rarity": "rare",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_014",
+      "name": "Tide-Touched Helm",
+      "type": "upgrade",
+      "subtype": "Armor",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "rare",
+      "cost": 3,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "disrupt",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "discard",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_017",
+      "name": "Lattice Aegis",
+      "type": "upgrade",
+      "subtype": "Armor",
+      "faction": "light",
+      "color": "blue",
+      "rarity": "legendary",
+      "cost": 4,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "disrupt",
+          "value": 3,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_022",
+      "name": "Smuggler's Brace",
+      "type": "upgrade",
+      "subtype": "Equipment",
+      "faction": "neutral",
+      "color": "red",
+      "rarity": "rare",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "ranged",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_024",
+      "name": "Bowmaster's Cord",
+      "type": "upgrade",
+      "subtype": "Equipment",
+      "faction": "neutral",
+      "color": "red",
+      "rarity": "rare",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "shield",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_026",
+      "name": "Hollow Lens",
+      "type": "upgrade",
+      "subtype": "Equipment",
+      "faction": "neutral",
+      "color": "blue",
+      "rarity": "rare",
+      "cost": 2,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "ranged",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "melee",
+          "value": 2,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "focus",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_030",
+      "name": "Trade Charm",
+      "type": "upgrade",
+      "subtype": "Equipment",
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "rare",
+      "cost": 1,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": true,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": [
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "resource",
+          "value": 1,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "special",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        },
+        {
+          "symbol": "blank",
+          "value": 0,
+          "cost": 0,
+          "modifier": false
+        }
+      ],
+      "abilities": []
+    },
+    {
+      "id": "UPG_039",
+      "name": "Patchcoat",
+      "type": "upgrade",
+      "subtype": "Armor",
+      "faction": "neutral",
+      "color": "yellow",
+      "rarity": "common",
+      "cost": 0,
+      "health": null,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "",
+      "dieFaces": null,
+      "abilities": []
+    }
+  ]
+}

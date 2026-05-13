@@ -10,7 +10,7 @@ Before doing anything substantive in this repo, read [README.md](README.md). It 
 - Database schema overview
 - Game features (matches, deckbuilder, storefront, ladder, tournaments)
 - Game engine design principles **and** [Engine implementation notes](README.md#engine-implementation-notes)
-- Reference data & test fixtures policy
+- Card catalog & deck registry (and the test-only engine fixtures policy)
 - Roadmap (in-progress, up next as task cards, backlog, done)
 - Working agreements
 
