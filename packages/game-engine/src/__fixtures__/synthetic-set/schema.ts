@@ -244,3 +244,41 @@ export const CardSetSchema = z.object({
   cards: z.array(CardFixtureSchema).min(100),
 });
 export type CardSet = z.infer<typeof CardSetSchema>;
+
+// ────────────────────────────────────────────────────────────────────
+// DeckFixture — one player's team, deck, plot, and battlefield.
+// Used by tests and as the input shape for newGame on real decks.
+// ────────────────────────────────────────────────────────────────────
+
+export const DeckCharacterSchema = z.object({
+  cardId: z.string(),
+  elite: z.boolean(),
+});
+
+export const DeckCardSchema = z.object({
+  cardId: z.string(),
+  count: z.number().int().min(1).max(2),
+});
+
+export const DeckFixtureSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1).max(60),
+    description: z.string().default(''),
+    faction: FactionSchema,
+    characters: z.array(DeckCharacterSchema).min(1).max(4),
+    battlefieldCardId: z.string().min(1),
+    plotCardId: z.string().nullable().default(null),
+    cards: z.array(DeckCardSchema),
+  })
+  .strict();
+
+export const DeckSetSchema = z.object({
+  version: z.string(),
+  decks: z.array(DeckFixtureSchema).min(1),
+});
+
+export type DeckCharacter = z.infer<typeof DeckCharacterSchema>;
+export type DeckCard = z.infer<typeof DeckCardSchema>;
+export type DeckFixture = z.infer<typeof DeckFixtureSchema>;
+export type DeckSet = z.infer<typeof DeckSetSchema>;
