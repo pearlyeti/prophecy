@@ -299,10 +299,10 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
 /**
  * Test helper: produce a state that's already past the setup phase by
  * driving the deterministic choices the engine expects in order —
- * winner picks self as first player, picks the loser as shield
- * recipient, loser stacks both shields on their first character.
- * Useful for tests that exercise action-phase behaviour and don't
- * want to drive setup themselves.
+ * winner picks self as first player (which auto-assigns the loser as
+ * shield recipient), then the loser stacks both shields on their first
+ * character. Useful for tests that exercise action-phase behaviour and
+ * don't want to drive setup themselves.
  *
  * Not exported from the engine entry point — tests import it directly.
  */
@@ -315,12 +315,6 @@ export function newGameInActionPhase(input: NewGameInput): GameState {
     type: 'setup.choose-first-player',
     playerId: winnerId,
     firstPlayerId: winnerId,
-  }).state;
-
-  state = applyAction(state, {
-    type: 'setup.choose-shield-recipient',
-    playerId: winnerId,
-    shieldRecipientId: loserId,
   }).state;
 
   const recipient = state.players[loserId]!;

@@ -138,34 +138,6 @@ function SetupPanel({
         <div className="text-sm text-neutral-400">Waiting for {winnerName} to choose who goes first…</div>
       )}
 
-      {game.setup.step === 'choose-shield-recipient' && isWinner && (
-        <div className="space-y-2">
-          <div className="text-sm text-neutral-300">Choose who receives the 2 starting shields:</div>
-          <div className="flex flex-wrap gap-2">
-            {lobby.members.map((m) => (
-              <button
-                key={m.playerId}
-                type="button"
-                onClick={() =>
-                  send({
-                    type: 'setup.choose-shield-recipient',
-                    playerId,
-                    shieldRecipientId: m.playerId,
-                  })
-                }
-                className="rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm hover:border-neutral-500"
-              >
-                {m.playerId === playerId ? 'I take the shields' : `${m.displayName} takes the shields`}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {game.setup.step === 'choose-shield-recipient' && !isWinner && (
-        <div className="text-sm text-neutral-400">Waiting for {winnerName} to assign the shields…</div>
-      )}
-
       {game.setup.step === 'place-shields' && isShieldRecipient && (
         <div className="space-y-2">
           <div className="text-sm text-neutral-300">

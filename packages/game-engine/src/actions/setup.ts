@@ -8,8 +8,8 @@ import type { ApplyResult } from './pass';
  *
  * The roll-off winner picks which player acts first each round. That
  * player is the battlefield controller; their brought-in battlefield
- * card is the one in play. The shield-recipient choice happens in the
- * next step and is independent of this one.
+ * card is the one in play. The OTHER player automatically becomes the
+ * shield recipient and proceeds to distribute the 2 starting shields.
  */
 export function applyChooseFirstPlayer(
   state: GameState,
@@ -33,6 +33,11 @@ export function applyChooseFirstPlayer(
     throw new IllegalActionError(`${firstPlayerId} is not in this game`);
   }
 
+  const shieldRecipientId = state.playerOrder.find((id) => id !== firstPlayerId);
+  if (shieldRecipientId === undefined) {
+    throw new Error('cannot derive shield recipient — only one player in game');
+  }
+
   const events: EngineEvent[] = [
     {
       type: 'setup.first-player-chosen',
@@ -46,56 +51,8 @@ export function applyChooseFirstPlayer(
       battlefieldControllerId: firstPlayerId,
       setup: {
         ...state.setup,
-        step: 'choose-shield-recipient',
-        firstPlayerId,
-      },
-    },
-    events,
-  };
-}
-
-/**
- * setup.choose-shield-recipient
- *
- * Independent of the first-player choice: the roll-off winner picks
- * which player gets the two starting shields. Could be either player —
- * the winner trades initiative against defense however they like.
- */
-export function applyChooseShieldRecipient(
-  state: GameState,
-  playerId: string,
-  shieldRecipientId: string,
-): ApplyResult {
-  if (state.phase !== 'setup' || state.setup === null) {
-    throw new IllegalActionError(`cannot choose shield recipient outside the setup phase`);
-  }
-  if (state.setup.step !== 'choose-shield-recipient') {
-    throw new IllegalActionError(
-      `setup is at step "${state.setup.step}"; choose-shield-recipient no longer applies`,
-    );
-  }
-  if (playerId !== state.setup.rollOffWinnerId) {
-    throw new IllegalActionError(
-      `${playerId} did not win the roll-off (winner: ${state.setup.rollOffWinnerId})`,
-    );
-  }
-  if (!state.playerOrder.includes(shieldRecipientId)) {
-    throw new IllegalActionError(`${shieldRecipientId} is not in this game`);
-  }
-
-  const events: EngineEvent[] = [
-    {
-      type: 'setup.shield-recipient-chosen',
-      payload: { chosenByPlayerId: playerId, shieldRecipientId },
-    },
-  ];
-
-  return {
-    state: {
-      ...state,
-      setup: {
-        ...state.setup,
         step: 'place-shields',
+        firstPlayerId,
         shieldRecipientId,
       },
     },

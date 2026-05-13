@@ -111,31 +111,28 @@ export interface PlayerState {
 
 export type Phase = 'setup' | 'action' | 'upkeep' | 'ended';
 
-export type SetupStep =
-  | 'choose-first-player'
-  | 'choose-shield-recipient'
-  | 'place-shields'
-  | 'done';
+export type SetupStep = 'choose-first-player' | 'place-shields' | 'done';
 
 /**
  * Substate that exists only while phase === 'setup'. The roll-off has
  * already happened (deterministically, at newGame time). The winner
- * then makes two independent decisions:
+ * makes a single choice — who goes first — and the rest of setup
+ * follows automatically:
  *
- *   1. Who goes first. The chosen player's battlefield is in play and
- *      they get the first turn each round (= battlefield controller).
- *   2. Who gets shields. Independent of #1 — the winner can hand
- *      shields to either themselves or the opponent.
+ *   - The first player is the battlefield controller (their battlefield
+ *     is in play, they act first each round).
+ *   - The OTHER player automatically becomes the shield recipient and
+ *     distributes 2 starting shields across their own characters
+ *     (1+1 split or both on one character).
  *
- * The shield recipient distributes 2 shields freely across their own
- * characters (1+1 split or 2 on a single character). When `step`
- * reaches 'done', the engine transitions to phase = 'action'.
+ * When `step` reaches 'done', the engine transitions to phase =
+ * 'action' and seats the battlefield controller as active player.
  */
 export interface SetupContext {
   readonly step: SetupStep;
   /** Each player's roll-off total. */
   readonly rollOffValues: Readonly<Record<string, number>>;
-  /** Winner of the roll-off — the player who makes both setup choices. */
+  /** Winner of the roll-off — the player who picks who goes first. */
   readonly rollOffWinnerId: string;
   /** How many shields are still to be distributed. Starts at 2. */
   readonly shieldsRemaining: number;
@@ -145,8 +142,8 @@ export interface SetupContext {
    */
   readonly firstPlayerId: string | null;
   /**
-   * Whichever player the winner chose to receive shields. Null until
-   * the choice has been made.
+   * The non-first player. Set automatically when firstPlayerId is
+   * chosen. They place the 2 starting shields on their own team.
    */
   readonly shieldRecipientId: string | null;
 }

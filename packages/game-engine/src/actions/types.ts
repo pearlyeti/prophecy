@@ -3,7 +3,6 @@
 
 export type Action =
   | { type: 'setup.choose-first-player'; playerId: string; firstPlayerId: string }
-  | { type: 'setup.choose-shield-recipient'; playerId: string; shieldRecipientId: string }
   | { type: 'setup.place-shield'; playerId: string; characterId: string }
   | { type: 'pass'; playerId: string }
   | { type: 'activate'; playerId: string; cardId: string }

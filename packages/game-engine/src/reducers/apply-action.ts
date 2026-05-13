@@ -4,11 +4,7 @@ import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
 import { applyPlayCard } from '../actions/play-card';
 import { applyResolveDice } from '../actions/resolve-dice';
-import {
-  applyChooseFirstPlayer,
-  applyChooseShieldRecipient,
-  applyPlaceShield,
-} from '../actions/setup';
+import { applyChooseFirstPlayer, applyPlaceShield } from '../actions/setup';
 import { IllegalActionError } from '../actions/illegal';
 import type { Action } from '../actions/types';
 import type { EngineEvent } from '../events';
@@ -30,8 +26,6 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
   switch (action.type) {
     case 'setup.choose-first-player':
       return applyChooseFirstPlayer(state, action.playerId, action.firstPlayerId);
-    case 'setup.choose-shield-recipient':
-      return applyChooseShieldRecipient(state, action.playerId, action.shieldRecipientId);
     case 'setup.place-shield':
       return applyPlaceShield(state, action.playerId, action.characterId);
     case 'pass':

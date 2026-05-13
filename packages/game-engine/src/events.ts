@@ -11,7 +11,6 @@ import type { DieFace } from './state/types';
 
 export type EngineEvent =
   | { readonly type: 'setup.first-player-chosen'; readonly payload: SetupFirstPlayerChosenPayload }
-  | { readonly type: 'setup.shield-recipient-chosen'; readonly payload: SetupShieldRecipientChosenPayload }
   | { readonly type: 'setup.shield-placed'; readonly payload: SetupShieldPlacedPayload }
   | { readonly type: 'setup.completed'; readonly payload: SetupCompletedPayload }
   | { readonly type: 'player.passed'; readonly payload: PlayerPassedPayload }
@@ -54,11 +53,6 @@ export interface BattlefieldClaimedPayload {
 export interface SetupFirstPlayerChosenPayload {
   readonly chosenByPlayerId: string;
   readonly firstPlayerId: string;
-}
-
-export interface SetupShieldRecipientChosenPayload {
-  readonly chosenByPlayerId: string;
-  readonly shieldRecipientId: string;
 }
 
 export interface SetupShieldPlacedPayload {
