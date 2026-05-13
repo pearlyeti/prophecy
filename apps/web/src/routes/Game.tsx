@@ -771,7 +771,7 @@ function canSelectDie(d: DieInPool, lockedSymbol: DieSymbol | null): boolean {
   return d.face.symbol === lockedSymbol;
 }
 
-function ResolveActionBar({
+function SelectionActionBar({
   game,
   playerId,
   send,
@@ -780,25 +780,71 @@ function ResolveActionBar({
   playerId: string;
   send: (a: Action) => void;
 }) {
-  const resolveMode = useApp((s) => s.resolveMode);
-  const exitResolveMode = useApp((s) => s.exitResolveMode);
+  const selectionMode = useApp((s) => s.selectionMode);
+  const exitSelectionMode = useApp((s) => s.exitSelectionMode);
   const [pickingTarget, setPickingTarget] = useState(false);
-  const [pickingReroll, setPickingReroll] = useState(false);
 
   const me = game.players[playerId];
-  if (!resolveMode || !me) return null;
+  if (!selectionMode || !me) return null;
 
-  const selectedDice = resolveMode.selectedDieIds
+  const selectedDice = selectionMode.selectedDieIds
     .map((id) => me.diceInPool.find((d) => d.instanceId === id))
     .filter((d): d is DieInPool => Boolean(d));
 
+  const cancel = () => {
+    setPickingTarget(false);
+    exitSelectionMode();
+  };
+
+  if (selectionMode.kind === 'reroll') {
+    const dispatchReroll = () => {
+      send({
+        type: 'reroll-dice',
+        playerId,
+        discardCardId: selectionMode.discardCardId,
+        dieInstanceIds: selectedDice.map((d) => d.instanceId),
+      });
+      exitSelectionMode();
+    };
+    const discardLabel = selectionMode.discardCardId.replace(/^.*\./, '');
+    return (
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-800 bg-neutral-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2 px-4 py-3">
+          <div className="text-sm">
+            <span className="text-neutral-400">Discarding</span>{' '}
+            <span className="font-mono text-neutral-100">{discardLabel}</span>
+            <span className="ml-2 text-xs text-neutral-500">
+              · rerolling {selectedDice.length} die{selectedDice.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={cancel}
+              className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={dispatchReroll}
+              className="min-h-[44px] rounded-lg border border-amber-700 bg-amber-900 px-4 py-2 text-sm text-amber-50 hover:bg-amber-800"
+            >
+              Reroll selected dice
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // selectionMode.kind === 'resolve'
   const totalValue = selectedDice.reduce((s, d) => s + d.face.value, 0);
   const totalCost = selectedDice.reduce((s, d) => s + d.face.cost, 0);
   const lockedSymbol = selectedDice[0]?.face.symbol ?? null;
   const hasNonModifier = selectedDice.some((d) => !d.face.modifier);
   const affordable = me.resources >= totalCost;
   const canResolve = selectedDice.length > 0 && hasNonModifier && affordable;
-  const canReroll = selectedDice.length > 0 && me.hand.length > 0;
   const needsTarget =
     lockedSymbol === 'melee' || lockedSymbol === 'ranged' || lockedSymbol === 'shield';
 
@@ -810,24 +856,7 @@ function ResolveActionBar({
       ...(targetCharacterId ? { targetCharacterId } : {}),
     });
     setPickingTarget(false);
-    exitResolveMode();
-  };
-
-  const dispatchReroll = (discardCardId: string) => {
-    send({
-      type: 'reroll-dice',
-      playerId,
-      discardCardId,
-      dieInstanceIds: selectedDice.map((d) => d.instanceId),
-    });
-    setPickingReroll(false);
-    exitResolveMode();
-  };
-
-  const cancel = () => {
-    setPickingTarget(false);
-    setPickingReroll(false);
-    exitResolveMode();
+    exitSelectionMode();
   };
 
   const opponent = game.playerOrder
@@ -869,14 +898,6 @@ function ResolveActionBar({
               className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500"
             >
               Cancel
-            </button>
-            <button
-              type="button"
-              disabled={!canReroll}
-              onClick={() => setPickingReroll(true)}
-              className="min-h-[44px] rounded-lg border border-amber-700 bg-amber-950/40 px-4 py-2 text-sm text-amber-100 hover:border-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Reroll
             </button>
             <button
               type="button"
@@ -932,33 +953,6 @@ function ResolveActionBar({
                     </TargetButton>
                   );
                 })}
-          </TargetGrid>
-        </ActionOverlay>
-      )}
-
-      {pickingReroll && (
-        <ActionOverlay
-          title="Discard which card to reroll?"
-          onClose={() => setPickingReroll(false)}
-          backLabel="Back to dice"
-        >
-          <div className="mb-2 text-[11px] text-neutral-500">
-            Rerolling {selectedDice.length} die{selectedDice.length === 1 ? '' : 's'}.
-            Discard one card from your hand to pay for it.
-          </div>
-          <TargetGrid>
-            {me.hand.map((cardId) => (
-              <TargetButton
-                key={cardId}
-                enabled
-                onClick={() => dispatchReroll(cardId)}
-              >
-                <div className="font-mono text-sm">{cardId.replace(/^.*\./, '')}</div>
-                <div className="text-[11px] text-neutral-400">
-                  cost {game.cardCosts[cardId] ?? 0}
-                </div>
-              </TargetButton>
-            ))}
           </TargetGrid>
         </ActionOverlay>
       )}
