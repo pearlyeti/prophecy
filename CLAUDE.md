@@ -29,8 +29,9 @@ When the user hands you a task code (e.g. `ENGINE-2`, `WEB-1`), follow this prot
 3. **Load only the listed files.** The card's "Context to load" section is the contract for context — load those, plus what they transitively reveal. Don't grep the codebase for general "understanding" outside the card's scope.
 4. **Stay strictly in scope.** If you find related work that doesn't fit, surface it to the user and propose a new card — don't bundle it in. Scope creep is the #1 way a fresh context burns tokens for no value.
 5. **Run the listed checks.** "Done when" gates completion. Don't claim done if anything's red. For UI cards, "manual smoke" means actually run the dev server and verify in a browser — typecheck does not prove a feature works.
-6. **Close out in the README.** Move the card from "In progress" to "Done" with today's date, a one-line summary, and the commit hash if you committed. Don't leave stale "In progress" entries behind.
-7. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
+6. **Close out in the README.** Move the card from "In progress" to "Done" with today's date and a one-line summary. Don't leave stale "In progress" entries behind.
+7. **Commit, then backfill the hash.** Stage everything (including the README close-out) and commit. Then edit the Done entry to append the resulting short hash in backticks at the end of the line — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. The hash is non-negotiable for traceability; every Done entry must end up with one.
+8. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
 
 Cards are sized for one focused session — roughly 200–500 lines of changes including tests. If a card feels much bigger than that once you've loaded the files, that's a signal: flag it and propose splitting before you start writing code.
 
