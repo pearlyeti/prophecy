@@ -110,7 +110,9 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     canReroll: isMyTurn && player.hand.length > 0 && player.diceInPool.length > 0,
     activatableCharacterIds: activatable,
     resolvableSymbols: [...resolvable],
-    canPlayCard: isMyTurn && player.hand.length > 0,
+    canPlayCard:
+      isMyTurn &&
+      player.hand.some((cid) => (state.cardCosts[cid] ?? 0) <= player.resources),
     canChooseFirstPlayer: false,
     canChooseShieldRecipient: false,
     canPlaceShield: false,

@@ -176,4 +176,11 @@ export interface GameState {
   /** Setup substate; null when phase !== 'setup'. */
   readonly setup: SetupContext | null;
   readonly winnerId: string | null;
+  /**
+   * Per-card-instance cost lookup keyed by instance id. Cards whose id
+   * is not present here are treated as cost 0. This will grow into a
+   * fuller per-instance card-data map (kind, ability AST, etc.) when
+   * the AST resolver lands.
+   */
+  readonly cardCosts: Readonly<Record<string, number>>;
 }

@@ -19,6 +19,7 @@ export type EngineEvent =
   | { readonly type: 'battlefield.claimed'; readonly payload: BattlefieldClaimedPayload }
   | { readonly type: 'character.activated'; readonly payload: CharacterActivatedPayload }
   | { readonly type: 'character.defeated'; readonly payload: CharacterDefeatedPayload }
+  | { readonly type: 'card.played'; readonly payload: CardPlayedPayload }
   | { readonly type: 'dice.resolved'; readonly payload: DiceResolvedPayload }
   | { readonly type: 'damage.dealt'; readonly payload: DamageDealtPayload }
   | { readonly type: 'shields.placed'; readonly payload: ShieldsPlacedPayload }
@@ -102,6 +103,12 @@ export interface GameEndedPayload {
 export interface CharacterDefeatedPayload {
   readonly playerId: string;
   readonly characterId: string;
+}
+
+export interface CardPlayedPayload {
+  readonly playerId: string;
+  readonly cardId: string;
+  readonly costPaid: number;
 }
 
 export interface DiceResolvedPayload {

@@ -36,6 +36,13 @@ export interface NewGameInput {
   readonly playerBattlefieldCardIds: Readonly<Record<string, string>>;
   /** Per-player overrides for testing (starting resources, hand, etc.). */
   readonly playerOverrides?: Readonly<Record<string, Partial<PlayerState>>>;
+  /**
+   * Optional per-instance card cost map. Cards not listed default to
+   * cost 0 inside the engine. Production callers (newGameFromDecks)
+   * will eventually populate this from catalog data; tests pass it
+   * directly.
+   */
+  readonly cardCosts?: Readonly<Record<string, number>>;
 }
 
 const DEFAULT_HAND_SIZE = 5;
@@ -71,7 +78,14 @@ export const DEFAULT_TEST_FACES: readonly [DieFace, DieFace, DieFace, DieFace, D
  * character's actual starting dice — that lands when card data flows in.
  */
 export function newGame(input: NewGameInput): GameState {
-  const { seed, playerIds, playerCharacters, playerBattlefieldCardIds, playerOverrides } = input;
+  const {
+    seed,
+    playerIds,
+    playerCharacters,
+    playerBattlefieldCardIds,
+    playerOverrides,
+    cardCosts,
+  } = input;
 
   for (const id of playerIds) {
     const team = playerCharacters[id];
@@ -161,6 +175,7 @@ export function newGame(input: NewGameInput): GameState {
     playerWhoClaimedThisRound: null,
     setup,
     winnerId: null,
+    cardCosts: cardCosts ?? {},
   };
 }
 

@@ -456,32 +456,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ### Up next — task cards
 
-#### ENGINE-2 — `applyPlayCard` (vanilla cost-only)
-**Why now.** First real card-from-hand action. Lands cost payment and hand→discard plumbing without yet entangling with the ability AST.
-
-**Scope.**
-- Implement `applyPlayCard(state, playerId, cardId)` and dispatch from `applyAction`.
-- Validate: active player, in `action` phase, card is in that player's hand, player can pay the cost (resources only for v1 — defer dice-cost payment).
-- Pay cost (decrement `resources`), move card hand → discard, emit `card.played` event.
-- Reset `consecutivePasses` and rotate the turn (use the existing `rotateAndCascade` helper).
-- Card abilities **do not fire** in this card. Cards that play with no ongoing effect are fine for now; the AST resolver is a separate, later card.
-- Update `legal-actions.canPlayCard` to also check the player has at least one card whose cost ≤ resources.
-
-**Context to load.**
-- `packages/game-engine/src/actions/types.ts` (Action union — add the new action shape if missing)
-- `packages/game-engine/src/reducers/apply-action.ts`
-- `packages/game-engine/src/actions/activate.ts` (good reference for turn rotation + events)
-- `packages/game-engine/src/events.ts`
-- `packages/game-engine/src/__tests__/fixtures.ts` (basicGameInput helper)
-
-**Out of scope.** Ability resolution (ongoing effects, triggered abilities, special-die abilities). Dice-cost payment. Targeting. Just play-for-cost → discard.
-
-**Depends on.** ENGINE-1.
-
-**Done when.** Typecheck clean. New `play-card.test.ts` covering: legal play, illegal when not your turn, illegal when not in hand, illegal when can't afford, hand→discard, resources decremented, turn rotates, `card.played` event emitted.
-
----
-
 #### ENGINE-3 — `applyRerollDice`
 **Why now.** Players need a way to fix bad rolls. Already in the Action union; needs a handler.
 
@@ -696,6 +670,7 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
 ### Done
+- **2026-05-13 — ENGINE-2 — `applyPlayCard` (vanilla cost-only).** New `actions/play-card.ts` handler: validates active player + action phase + card in hand + affordable, pays the resource cost, moves the instance from `hand` → `discard`, emits `card.played` event, resets `consecutivePasses` and rotates the turn via `rotateAndCascade`. Card abilities do not fire — that's the AST resolver's job in a later card. `GameState` gains `cardCosts: Readonly<Record<string, number>>` (missing entries default to cost 0); `NewGameInput` accepts an optional `cardCosts` to seed it. `legal-actions.canPlayCard` now requires at least one card in hand to satisfy `cost ≤ resources`. 105 engine tests green (8 new in `play-card.test.ts`).
 - **2026-05-12 — ENGINE-1 — Per-card hand & deck tracking** (`8d4526f`). `PlayerState` now carries `hand: readonly string[]`, `deck: readonly string[]`, and `discard: readonly string[]` (renamed from `discardIds` for symmetry). `newGame` builds each player's 30-card deck as `${playerId}.deck.${index}` ids, Fisher-Yates-shuffles it with a per-player seeded RNG fork (`shuffle:${playerId}`), and deals the top 5 into hand. New `state/draw.ts` exposes `drawCards(state, playerId, n)`; wired into the upkeep transition so each player redraws up to `handSize`. `upkeep.player` event payload now reports `cardsDrawn`. `legal-actions.canReroll` / `canPlayCard` and the end-of-round loss check switched to `hand.length` / `deck.length`. 97 engine tests green (5 new: deterministic deal, different-seed shuffles differ, hand/deck disjoint, upkeep draws to handSize, upkeep doesn't draw past an empty deck).
 - **2026-05-12 — Engine: split setup into independent first-player + shield-recipient choices** (`27b3667`). Diverges from SWD's single-choice setup: the roll-off winner now makes two separate decisions — who goes first (= battlefield controller) and who receives the 2 starting shields. The recipient distributes shields freely (1+1 or 2+0). `SetupStep` reworked, three new actions (`setup.choose-first-player`, `setup.choose-shield-recipient`, `setup.place-shield`), events renamed, legal-actions inspector and web SetupPanel rewired, rules-reference updated. 92 engine tests passing.
 - **2026-05-12 — Engine: `resolve-dice` + character defeat** (`c186d6c`). Resolves melee / ranged / shield / resource / disrupt. Shields block damage 1-for-1 (capped at 3). Damage ≥ remaining health defeats the character: removed from `characterOrder`, dice removed from pool. Win condition: opponent has no characters → game ends. Optional `targetCharacterId` on the action shape for damage / shields; ignored for resource / disrupt.

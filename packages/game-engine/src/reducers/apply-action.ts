@@ -2,6 +2,7 @@ import { applyActivate } from '../actions/activate';
 import { applyClaim } from '../actions/claim';
 import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
+import { applyPlayCard } from '../actions/play-card';
 import { applyResolveDice } from '../actions/resolve-dice';
 import {
   applyChooseFirstPlayer,
@@ -48,8 +49,9 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
         action.dieInstanceIds,
         action.targetCharacterId,
       );
-    case 'reroll-dice':
     case 'play-card':
+      return applyPlayCard(state, action.playerId, action.cardId);
+    case 'reroll-dice':
     case 'use-card-action':
       throw new IllegalActionError(`action type "${action.type}" not yet implemented`);
   }
