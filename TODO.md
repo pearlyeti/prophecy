@@ -65,41 +65,54 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
-#### ENGINE-6 — Ability AST Resolver Dispatch
-**Why now.** Cards currently cost resources to play but have no effects. The game requires reading the JSON AST in `card_abilities` and turning it into state changes.
+#### ENGINE-6 — Ability AST: schema, first effects, immediate-event dispatcher
+**Why now.** Cards currently cost resources to play but have no effects. Before card content can land, we need a structured ability AST and a dispatcher that interprets it. The Zod schema in `@prophecy/protocol` is intentionally `.passthrough()` today (only `kind` required); this card replaces it with concrete shapes for the first wave of effects.
 
 **Scope.**
-- Create an `abilities/dispatcher.ts` that takes an AST node and executes it against the `GameState`.
-- Implement the foundational effect ops: `deal_damage`, `heal`, `gain_resources`, `draw_cards`, `give_shields`.
-- Wire this dispatcher into the engine so that when a card is played (if it's an Event), its effect is immediately evaluated.
+- Tighten `abilityAstSchema` in `packages/protocol/src/schemas.ts` from passthrough to a discriminated union of concrete `kind` values (start with `immediate` for play-then-discard events).
+- Define the `Effect` AST shape (discriminated on `op`) covering the first wave of effect ops — pick names that fit existing engine helpers (`actions/resolve-dice.ts`: `dealDamage`, `addShields`, `adjustResources`; `state/draw.ts`: `drawCards`). The dispatcher composes those helpers rather than re-implementing them.
+- Create `packages/game-engine/src/abilities/` (new directory): `types.ts` mirroring the protocol types and `dispatch.ts` exposing `applyEffect(state, ctx, effect) → { state, events }`.
+- Wire dispatcher invocation into `applyPlayCard` — when an event-type card resolves, run its `effect[]` array sequentially.
+- Author ability ASTs on a few synthetic-set `EVT_*` fixtures (current `abilities: []` arrays are all empty) so an end-to-end "play event → damage lands" test can run.
 
 **Context to load.**
-- `packages/game-engine/src/abilities/*`
+- `packages/protocol/src/schemas.ts` (`abilityAstSchema`, currently passthrough)
+- `packages/db/src/schema/cards.ts` (`card_abilities` table uses `AbilityAst`)
 - `packages/game-engine/src/actions/play-card.ts`
-- `packages/db/schema.ts` (for the AST type shapes)
+- `packages/game-engine/src/actions/resolve-dice.ts` (`dealDamage`, `addShields`, `adjustResources` helpers to compose)
+- `packages/game-engine/src/state/draw.ts` (`drawCards`)
+- `packages/game-engine/src/__fixtures__/synthetic-set/cards.json` (current ASTs are `[]`; fill in a handful)
 
-**Out of scope.** The Queue, triggered abilities (before/after), and complex modifiers. Focus purely on immediate, one-shot events.
+**Out of scope.** The queue, triggered abilities (before / after), replacement effects ("instead"), targeting prompts that need a follow-up user interaction. Immediate, fully-resolved-on-play events only — that gates ENGINE-7's queue work cleanly.
 
-**Done when.** Typecheck clean. Tests demonstrate an Event card being played, costing resources, and correctly executing its AST to deal damage or draw cards.
+**Depends on.** ENGINE-2.
+
+**Done when.** Typecheck clean. New `dispatch.test.ts` covers each first-wave op against a synthesized state. New integration test: play an `EVT_*` fixture whose AST deals damage and assert the damage lands on the target. Protocol schema drift test passes (`packages/db` mirror still matches).
 
 ---
 
-#### ENGINE-7 — The Queue & Triggered Abilities
-**Why now.** The most complex part of the engine. "After" and "Before" triggers are what make the game interactive. We must build this before writing more cards.
+#### ENGINE-7 — The queue, after-triggers, before-triggers
+**Why now.** "After" and "Before" triggers make the game interactive — events fire when other events resolve, characters react when activated, damage is interrupted by Guardian, etc. The queue is what orders all of this. The scaffolding (`packages/game-engine/src/queue/types.ts`) is in place but nothing reads or writes it yet.
 
 **Scope.**
-- Implement the `Queue` data structure in `GameState`.
-- Create the interceptor hooks in the action reducers. When an action occurs (e.g., `deal_damage`), the engine must scan active cards in play for `before` triggers, resolve them, apply the action, then queue `after` triggers.
-- Implement the "Simultaneous-ability tiebreak" (battlefield controller chooses order).
+- Wire the existing `Queue` type into `GameState` (currently absent — `state/types.ts` has no queue field).
+- Identify the canonical engine events that can trigger abilities — character activation, damage dealt, card played, etc. — and add `before` / `after` interception points in their handlers (`activate.ts`, `resolve-dice.ts`, `play-card.ts`). Each interception scans cards in play whose ability AST matches the trigger.
+- After-abilities enter the queue at the tail; before-abilities resolve inline and interrupt; both share the same matching logic.
+- Implement simultaneous-ability tiebreak per [README → Engine implementation notes](../README.md#engine-implementation-notes) and [rules-reference §Part 7 → Triggered abilities](../docs/rules-reference.md): if multiple triggers fire at the same instant, the player resolving orders their own; if multiple players have simultaneous triggers, the battlefield controller orders them.
+- Sequencing: only run the queue between actions — within a single action, after-triggers buffer; once the action's effects finish, drain the queue.
 
 **Context to load.**
-- `packages/game-engine/src/queue/*`
-- `packages/game-engine/src/reducers/*`
-- `docs/rules-reference.md` (Part 7: The Queue)
+- `packages/game-engine/src/queue/types.ts` (existing `Queue`, `QueueEntry`)
+- `packages/game-engine/src/state/types.ts` (`GameState` — needs `queue` field)
+- `packages/game-engine/src/actions/activate.ts`, `resolve-dice.ts`, `play-card.ts` (where interception lands)
+- `docs/rules-reference.md` Part 7 → "The queue" (§p. 526) and "Triggered abilities" (§p. 598+)
+- README → "Engine implementation notes" (queue / before / after / simultaneous tiebreak)
 
-**Out of scope.** Replacement effects ("instead"). We will handle standard after/before triggers first.
+**Out of scope.** Replacement effects ("instead" / "would be") — those interceptors run *before the event commits at all* and are their own card. Additional-action handling (Ambush) — see ENGINE-4. AST shape for triggered abilities is assumed defined by ENGINE-6.
 
-**Done when.** Typecheck clean. Tests show a `before` trigger preventing or modifying an action, and an `after` trigger firing sequentially via the queue.
+**Depends on.** ENGINE-6 (needs trigger / effect AST shape), ENGINE-4 (additional-actions outside the queue must already work).
+
+**Done when.** Typecheck clean. Tests: (a) a before-trigger interrupts and modifies a damage event; (b) two after-triggers from the same player resolve in the order the player chose; (c) two after-triggers from different players resolve in the order the battlefield controller chose; (d) an after-trigger spawned mid-resolution still resolves at the queue's tail.
 
 ---
 
@@ -123,41 +136,49 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
-#### SERVER-2 — Basic Matchmaking Queue (MVP)
-**Why now.** Hardcoded test decks are limiting. We need a way for clients to say "I want to play using Deck X" and have the server pair them up.
+#### SERVER-2 — FIFO matchmaking queue (corpus-deck MVP)
+**Why now.** Every match today requires one player to host a lobby and the other to type the invite code. To exercise the engine across more sessions per minute (and to validate the queue plumbing before MMR work lands), we want a "Find Match" button that pairs two players automatically.
 
 **Scope.**
-- Add a rudimentary memory or Redis-backed queue in `apps/game-server`.
-- Accept a `join_queue` socket event containing `{ deckId }`.
-- When 2 players are in the queue, pop them, fetch their decks via the API (or DB), instantiate a new room via `newGameFromDecks`, and send them the `match_found` event with the roomId.
+- In-memory FIFO queue inside `apps/game-server` (a `Map<playerId, { joinedAt, deckId }>`); Redis-backed durability is out of scope until multi-instance.
+- Accept a `lobby.findMatch` socket event with `{ playerId, displayName, deckId }`. Two players in the queue → pop, create a room (re-use `createRoom` + `startRoom`), and emit `lobby.matchFound` to both.
+- For now `deckId` is one of the corpus deck ids exposed by `corpus.ts` (`DECK_A` or `DECK_B`). The DB / `apps/api`-served deck path lands once API-1 unblocks and a real deck-fetch endpoint exists (separate card).
+- A matching `lobby.leaveQueue` event (and a disconnect handler) for the impatient player.
 
 **Context to load.**
-- `apps/game-server/src/rooms.ts`
-- `apps/game-server/src/index.ts`
+- `apps/game-server/src/rooms.ts` (`createRoom`, `startRoom`, `newGameFromDecks` wiring already in place)
+- `apps/game-server/src/corpus.ts` (`TESTING_DECKS` — the available `deckId` values)
+- `apps/game-server/src/index.ts` (socket lifecycle hooks)
+- `packages/protocol/src/events.ts` (add `lobby.findMatch` / `lobby.leaveQueue` / `lobby.matchFound` to the client↔server event types)
 
-**Out of scope.** Elo/MMR matching. For this MVP, first-in-first-out (FIFO) is fine to unblock testing.
+**Out of scope.** Elo / MMR. Deck fetch from DB or `apps/api`. Real-currency deck restrictions. Reconnect semantics for queued players (closing the tab pops them from the queue — see disconnect handler).
 
-**Done when.** Typecheck clean. You can connect two different browser sessions, hit "Join Queue", and they are automatically placed into a newly generated game room together.
+**Depends on.** None blocking (uses corpus decks, not the DB). The DB-backed deck path comes after API-1.
+
+**Done when.** Typecheck clean. Manual smoke: two browser sessions both hit Find Match → both land in a single newly-generated room → game state is dealt. Closing one tab before pairing pops that player from the queue and the other keeps waiting.
 
 ---
 
-#### WEB-3 — Lobby Deck Selection & Matchmaking UI
-**Why now.** The frontend needs to let the user pick their deck and join the queue we built in SERVER-2.
+#### WEB-3 — Find Match flow on the splash screen
+**Why now.** SERVER-2 ships a matchmaking queue but no UI hits it. The existing `Lobby.tsx` is the invite-code flow and stays as-is; matchmaking is a parallel entry point on the splash screen.
 
 **Scope.**
-- Create a simple `Lobby` screen.
-- Fetch the user's available decks via tRPC (`api`).
-- Provide a dropdown/list to select a deck.
-- A "Find Match" button that emits the `join_queue` event via socket.io.
-- A "Searching..." state that transitions to the Game Board when `match_found` is received.
+- Add a "Find Match" button to `apps/web/src/routes/Splash.tsx` alongside the existing Create / Join Lobby affordances. For v1, the button pairs the player using a default corpus deck (no deck-picker yet — that lands once a real deck source exists).
+- On click, emit `lobby.findMatch` and transition to a `searching` state (spinner + Cancel button that emits `lobby.leaveQueue`).
+- On `lobby.matchFound`, populate the local lobby + game state the same way the existing rejoin flow does and route to `Game.tsx`.
+- Cache the queued state in the same `lobbyCache` slot that invite-code lobbies use, so a refresh during searching cancels the queue rather than dangling it.
 
 **Context to load.**
-- `apps/web/src/socket.ts`
-- `apps/web/src/pages/Lobby.tsx` (new)
+- `apps/web/src/routes/Splash.tsx`, `Lobby.tsx` (existing invite-code flow — reference, do not modify)
+- `apps/web/src/lib/socket.ts`, `lib/lobbyCache.ts`
+- `apps/web/src/store.ts` (where lobby + game state lives)
+- `apps/web/src/App.tsx` (rejoin hook for the matchFound shape)
 
-**Out of scope.** Full deckbuilder UI. Just fetching existing/seeded decks for selection.
+**Out of scope.** Deck picker UI (no deck source to pick from yet). Full deckbuilder. Ranked / Casual / Tournament queue selection. Animations / spinners beyond a basic text-only "searching" state.
 
-**Done when.** Typecheck clean. Manual smoke test: The UI cleanly transitions from Lobby -> Searching -> Game Board when a match connects.
+**Depends on.** SERVER-2.
+
+**Done when.** Typecheck clean. Manual smoke: two browser sessions both hit Find Match on the splash → both transition to the game board with a real match. Hitting Cancel during searching returns to splash and the server-side queue is empty.
 
 ---
 
