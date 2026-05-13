@@ -620,9 +620,9 @@ function EndedBanner({ game, playerId }: { game: GameState; playerId: string }) 
       <button
         type="button"
         onClick={() => useApp.getState().reset()}
-        className="mt-3 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500"
+        className="mt-3 min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500"
       >
-        Back to splash
+        Leave game
       </button>
     </section>
   );

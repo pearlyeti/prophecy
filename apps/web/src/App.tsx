@@ -88,7 +88,12 @@ function SocketBridge() {
 
     const onLobby: Parameters<typeof socket.on<'lobby.state'>>[1] = (state) => {
       setLobby(state);
-      if (state.phase === 'ended') setGame(null);
+      // Don't null `game` when phase === 'ended'. The server broadcasts
+      // lobby.state on every rejoin and immediately after the final
+      // action; nulling here would kick both clients back to the
+      // lobby route mid-victory screen and cause a toggle bug on
+      // refresh. The end banner stays mounted until the player clicks
+      // "Leave game" explicitly.
     };
     const onGameState: Parameters<typeof socket.on<'game.state'>>[1] = ({ state }) => {
       setGame(state);
