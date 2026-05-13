@@ -88,14 +88,41 @@ describe('applyAction({ type: "activate" })', () => {
     const initial = setup();
     const playerId = initial.activePlayerId!;
     const characterId = initial.players[playerId]!.characterOrder[0]!;
-    const once = applyAction(initial, {
-      type: 'activate',
-      playerId,
-      cardId: characterId,
-    }).state;
+    // Synthesize an "exhausted character, still my turn" state directly —
+    // chaining two activates by the same player would now fail the
+    // not-your-turn guard first (activate rotates the turn).
+    const exhausted = {
+      ...initial,
+      players: {
+        ...initial.players,
+        [playerId]: {
+          ...initial.players[playerId]!,
+          characters: {
+            ...initial.players[playerId]!.characters,
+            [characterId]: {
+              ...initial.players[playerId]!.characters[characterId]!,
+              exhausted: true,
+            },
+          },
+        },
+      },
+    };
     expect(() =>
-      applyAction(once, { type: 'activate', playerId, cardId: characterId }),
+      applyAction(exhausted, { type: 'activate', playerId, cardId: characterId }),
     ).toThrow(/exhausted/);
+  });
+
+  it('rotates the turn to the opponent (activate is an action, not a free pass)', () => {
+    const initial = setup();
+    const active = initial.activePlayerId!;
+    const opponent = initial.playerOrder.find((id) => id !== active)!;
+    const characterId = initial.players[active]!.characterOrder[0]!;
+    const { state } = applyAction(initial, {
+      type: 'activate',
+      playerId: active,
+      cardId: characterId,
+    });
+    expect(state.activePlayerId).toBe(opponent);
   });
 
   it('throws when the character does not belong to the player', () => {
