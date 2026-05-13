@@ -99,6 +99,88 @@ describe('applyAction({ type: "pass" })', () => {
     expect((upkeepAlice?.payload as { diceReturned: number }).diceReturned).toBe(2);
   });
 
+  it('upkeep draws each player back up to handSize', () => {
+    // Start each player at 2 cards in hand so upkeep has to draw 3.
+    const initial = newGameInActionPhase(
+      basicGameInput({
+        seed: 'upkeep-draw',
+        playerOverrides: {
+          alice: {
+            hand: ['alice.deck.0', 'alice.deck.1'],
+            deck: [
+              'alice.deck.2',
+              'alice.deck.3',
+              'alice.deck.4',
+              'alice.deck.5',
+              'alice.deck.6',
+            ],
+          },
+          bob: {
+            hand: ['bob.deck.0', 'bob.deck.1'],
+            deck: ['bob.deck.2', 'bob.deck.3', 'bob.deck.4'],
+          },
+        },
+      }),
+    );
+
+    const first = initial.activePlayerId!;
+    const second = initial.playerOrder.find((id) => id !== first)!;
+    const after = applyAction(
+      applyAction(initial, { type: 'pass', playerId: first }).state,
+      { type: 'pass', playerId: second },
+    );
+
+    expect(after.state.players.alice?.hand).toEqual([
+      'alice.deck.0',
+      'alice.deck.1',
+      'alice.deck.2',
+      'alice.deck.3',
+      'alice.deck.4',
+    ]);
+    expect(after.state.players.alice?.deck).toEqual(['alice.deck.5', 'alice.deck.6']);
+    expect(after.state.players.bob?.hand).toEqual([
+      'bob.deck.0',
+      'bob.deck.1',
+      'bob.deck.2',
+      'bob.deck.3',
+      'bob.deck.4',
+    ]);
+    expect(after.state.players.bob?.deck).toEqual([]);
+
+    const upkeepAlice = after.events.find(
+      (e) => e.type === 'upkeep.player' && (e.payload as { playerId: string }).playerId === 'alice',
+    );
+    expect((upkeepAlice?.payload as { cardsDrawn: number }).cardsDrawn).toBe(3);
+  });
+
+  it('upkeep does not draw past an empty deck', () => {
+    const initial = newGameInActionPhase(
+      basicGameInput({
+        seed: 'upkeep-short-deck',
+        playerOverrides: {
+          alice: {
+            hand: ['alice.deck.0'],
+            deck: ['alice.deck.1', 'alice.deck.2'],
+          },
+        },
+      }),
+    );
+
+    const first = initial.activePlayerId!;
+    const second = initial.playerOrder.find((id) => id !== first)!;
+    const after = applyAction(
+      applyAction(initial, { type: 'pass', playerId: first }).state,
+      { type: 'pass', playerId: second },
+    );
+
+    expect(after.state.players.alice?.hand).toEqual([
+      'alice.deck.0',
+      'alice.deck.1',
+      'alice.deck.2',
+    ]);
+    expect(after.state.players.alice?.deck).toEqual([]);
+  });
+
   it("throws IllegalActionError when it is not the player's turn", () => {
     const initial = setup();
     const inactive = initial.playerOrder.find((id) => id !== initial.activePlayerId)!;

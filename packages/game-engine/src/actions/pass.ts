@@ -1,4 +1,5 @@
 import type { EngineEvent } from '../events';
+import { drawCards } from '../state/draw';
 import { rotateAndCascade } from '../state/turn';
 import type { GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
@@ -65,6 +66,13 @@ export function runUpkeepAndStartRound(
 ): ApplyResult {
   const events: EngineEvent[] = [...prefixEvents, { type: 'upkeep.begin', payload: {} }];
 
+  // First apply the deterministic per-player changes (ready, pool clear,
+  // resource gain) into a working state. Then draw up to handSize off
+  // each deck using the shared drawCards helper. Doing it in two passes
+  // keeps the draw step pure (it just reads/writes deck and hand) and
+  // mirrors the wording in the rules.
+  let working: GameState = state;
+  const diceReturnedBefore: Record<string, number> = {};
   const players: Record<string, PlayerState> = {};
   for (const id of state.playerOrder) {
     const p = state.players[id];
@@ -74,18 +82,29 @@ export function runUpkeepAndStartRound(
     // 1. Ready exhausted cards — no-op until we model exhaustion.
     // 2. Return dice in pool to matching cards (clear pool).
     // 3. Gain 2 resources.
-    // 4. Discard then draw to hand size — deferred until card-level state.
+    // 4. Discard then draw to hand size — discard step deferred until
+    //    play-card lands; draw step active.
+    diceReturnedBefore[id] = p.diceInPool.length;
     players[id] = {
       ...p,
       diceInPool: [],
       resources: p.resources + UPKEEP_RESOURCES,
     };
+  }
+  working = { ...state, players };
+
+  for (const id of state.playerOrder) {
+    const p = working.players[id]!;
+    const want = Math.max(0, p.handSize - p.hand.length);
+    const drawResult = drawCards(working, id, want);
+    working = drawResult.state;
     events.push({
       type: 'upkeep.player',
       payload: {
         playerId: id,
         resourcesGained: UPKEEP_RESOURCES,
-        diceReturned: p.diceInPool.length,
+        diceReturned: diceReturnedBefore[id] ?? 0,
+        cardsDrawn: drawResult.drawn,
       },
     });
   }
@@ -96,8 +115,8 @@ export function runUpkeepAndStartRound(
   // deck at the end of a round loses). All-lose tiebreak goes to the
   // battlefield controller.
   const losers = state.playerOrder.filter((id) => {
-    const p = players[id];
-    return p !== undefined && p.handCount === 0 && p.deckCount === 0;
+    const p = working.players[id];
+    return p !== undefined && p.hand.length === 0 && p.deck.length === 0;
   });
 
   if (losers.length > 0) {
@@ -120,10 +139,9 @@ export function runUpkeepAndStartRound(
       });
       return {
         state: {
-          ...state,
+          ...working,
           phase: 'ended',
           winnerId,
-          players,
           consecutivePasses: 0,
           playerWhoClaimedThisRound: null,
           turnIndex: state.turnIndex + 1,
@@ -147,14 +165,13 @@ export function runUpkeepAndStartRound(
 
   return {
     state: {
-      ...state,
+      ...working,
       phase: 'action',
       activePlayerId: nextActive,
       roundNumber: nextRound,
       consecutivePasses: 0,
       playerWhoClaimedThisRound: null,
       turnIndex: state.turnIndex + 1,
-      players,
     },
     events,
   };

@@ -93,9 +93,12 @@ export interface CharacterState {
 
 export interface PlayerState {
   readonly id: string;
-  readonly handCount: number;
-  readonly deckCount: number;
-  readonly discardIds: readonly string[];
+  /** Card instance ids currently in the player's hand, in seating order. */
+  readonly hand: readonly string[];
+  /** Card instance ids remaining in the deck. Index 0 is the top of the deck (next to be drawn). */
+  readonly deck: readonly string[];
+  /** Card instance ids in the discard pile. */
+  readonly discard: readonly string[];
   readonly resources: number;
   readonly handSize: number;
   readonly characters: Readonly<Record<string, CharacterState>>;

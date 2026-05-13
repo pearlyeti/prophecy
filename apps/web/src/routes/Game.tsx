@@ -276,10 +276,10 @@ function PlayerSummaries({ game, playerId }: { game: GameState; playerId: string
             </div>
             <dl className="grid grid-cols-3 gap-2 text-xs">
               <Stat label="Resources" value={p.resources} />
-              <Stat label="Hand" value={p.handCount} />
-              <Stat label="Deck" value={p.deckCount} />
+              <Stat label="Hand" value={p.hand.length} />
+              <Stat label="Deck" value={p.deck.length} />
               <Stat label="Pool" value={p.diceInPool.length} />
-              <Stat label="Discard" value={p.discardIds.length} />
+              <Stat label="Discard" value={p.discard.length} />
               <Stat label="Characters" value={p.characterOrder.length} />
             </dl>
             <div className="mt-3 space-y-1">

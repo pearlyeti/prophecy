@@ -36,12 +36,18 @@ describe('newGame', () => {
       const p = state.players[id];
       expect(p, `player ${id} should exist`).toBeDefined();
       if (!p) return;
-      expect(p.handCount).toBe(5);
+      expect(p.hand).toHaveLength(5);
       expect(p.handSize).toBe(5);
-      expect(p.deckCount).toBe(25);
+      expect(p.deck).toHaveLength(25);
+      // Every dealt id should be unique and drawn from the player's deck pool.
+      const all = new Set([...p.hand, ...p.deck]);
+      expect(all.size).toBe(30);
+      for (const cid of all) {
+        expect(cid.startsWith(`${id}.deck.`)).toBe(true);
+      }
       expect(p.resources).toBe(2);
       expect(p.diceInPool).toEqual([]);
-      expect(p.discardIds).toEqual([]);
+      expect(p.discard).toEqual([]);
       expect(p.characterOrder).toHaveLength(1);
       const charId = p.characterOrder[0]!;
       expect(p.characters[charId]).toMatchObject({
@@ -81,13 +87,43 @@ describe('newGame', () => {
       basicGameInput({
         seed: 'seed-3',
         playerOverrides: {
-          bob: { resources: 7, handCount: 3 },
+          bob: { resources: 7, hand: ['custom.1', 'custom.2', 'custom.3'] },
         },
       }),
     );
     expect(state.players.bob?.resources).toBe(7);
-    expect(state.players.bob?.handCount).toBe(3);
+    expect(state.players.bob?.hand).toEqual(['custom.1', 'custom.2', 'custom.3']);
     expect(state.players.alice?.resources).toBe(2);
+  });
+
+  describe('initial deal', () => {
+    it('deals deterministically — same seed → same hand and deck order', () => {
+      const a = newGame(basicGameInput({ seed: 'deal-determinism' }));
+      const b = newGame(basicGameInput({ seed: 'deal-determinism' }));
+
+      for (const id of ['alice', 'bob']) {
+        expect(a.players[id]?.hand).toEqual(b.players[id]?.hand);
+        expect(a.players[id]?.deck).toEqual(b.players[id]?.deck);
+      }
+    });
+
+    it('a different seed shuffles to a different order', () => {
+      const a = newGame(basicGameInput({ seed: 'deal-a' }));
+      const b = newGame(basicGameInput({ seed: 'deal-b' }));
+      // It is theoretically possible for two seeds to land on the same
+      // permutation; the chance for a 30-card deck is vanishing.
+      expect(a.players.alice?.hand).not.toEqual(b.players.alice?.hand);
+    });
+
+    it("each player's hand and deck are disjoint and total the deck size", () => {
+      const state = newGame(basicGameInput({ seed: 'disjoint-check' }));
+      for (const id of ['alice', 'bob']) {
+        const p = state.players[id]!;
+        const intersect = p.hand.filter((c) => p.deck.includes(c));
+        expect(intersect).toEqual([]);
+        expect(p.hand.length + p.deck.length).toBe(30);
+      }
+    });
   });
 });
 

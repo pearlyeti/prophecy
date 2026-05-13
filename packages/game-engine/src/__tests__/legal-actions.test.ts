@@ -168,7 +168,7 @@ describe('getLegalActions', () => {
         ...withPool,
         players: {
           ...withPool.players,
-          [active]: { ...withPool.players[active]!, handCount: 0 },
+          [active]: { ...withPool.players[active]!, hand: [] },
         },
       };
       expect(getLegalActions(noHand, active).canReroll).toBe(false);

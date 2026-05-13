@@ -1,6 +1,6 @@
 import type { CardFixture, DeckFixture } from '../__fixtures__/synthetic-set/schema';
 import { applyAction } from '../reducers/apply-action';
-import { createRng } from '../rng/seeded-rng';
+import { createRng, type SeededRng } from '../rng/seeded-rng';
 import type {
   CardDie,
   CharacterState,
@@ -118,11 +118,24 @@ export function newGame(input: NewGameInput): GameState {
       order.push(c.id);
     }
 
+    // Build a deterministic deck of card instance ids, shuffle with a
+    // per-player RNG fork, then deal the starting hand off the top.
+    // Real card content lands once the deckbuilder + catalog flow does;
+    // for now these are opaque ids the engine can move around.
+    const fullDeck: string[] = [];
+    for (let i = 0; i < DEFAULT_DECK_SIZE; i++) {
+      fullDeck.push(`${id}.deck.${i}`);
+    }
+    const shuffleRng = createRng(seed).fork(`shuffle:${id}`);
+    const shuffled = shuffleInPlace(fullDeck, shuffleRng);
+    const hand = shuffled.slice(0, STARTING_HAND);
+    const deck = shuffled.slice(STARTING_HAND);
+
     const base: PlayerState = {
       id,
-      handCount: STARTING_HAND,
-      deckCount: DEFAULT_DECK_SIZE - STARTING_HAND,
-      discardIds: [],
+      hand,
+      deck,
+      discard: [],
       resources: STARTING_RESOURCES,
       handSize: DEFAULT_HAND_SIZE,
       characters,
@@ -149,6 +162,18 @@ export function newGame(input: NewGameInput): GameState {
     setup,
     winnerId: null,
   };
+}
+
+function shuffleInPlace<T>(items: T[], rng: SeededRng): T[] {
+  // Fisher-Yates with the seeded RNG. Determinism is preserved by always
+  // walking the array in the same order and pulling from the same RNG.
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = rng.rollDie(i + 1);
+    const tmp = items[i]!;
+    items[i] = items[j]!;
+    items[j] = tmp;
+  }
+  return items;
 }
 
 function runRollOff(

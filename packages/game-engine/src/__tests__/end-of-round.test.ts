@@ -13,7 +13,7 @@ describe('end-of-round loss check', () => {
       basicGameInput({
         seed: 'eor-1',
         playerOverrides: {
-          bob: { handCount: 0, deckCount: 0 },
+          bob: { hand: [], deck: [] },
         },
       }),
     );
@@ -41,8 +41,8 @@ describe('end-of-round loss check', () => {
       basicGameInput({
         seed: 'eor-2',
         playerOverrides: {
-          alice: { handCount: 0, deckCount: 0 },
-          bob: { handCount: 0, deckCount: 0 },
+          alice: { hand: [], deck: [] },
+          bob: { hand: [], deck: [] },
         },
       }),
     );

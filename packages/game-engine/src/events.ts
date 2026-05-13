@@ -86,6 +86,7 @@ export interface UpkeepPlayerPayload {
   readonly playerId: string;
   readonly resourcesGained: number;
   readonly diceReturned: number;
+  readonly cardsDrawn: number;
 }
 
 export interface RoundBeginPayload {

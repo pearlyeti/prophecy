@@ -456,29 +456,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ### Up next — task cards
 
-#### ENGINE-1 — Per-card hand & deck tracking
-**Why now.** Blocks every card-touching action (play-card, reroll-dice, upkeep draw). `PlayerState` currently tracks hand and deck as integer counts — we need actual instance ids to play or discard them.
-
-**Scope.**
-- Replace `handCount: number` and `deckCount: number` on `PlayerState` with `hand: readonly string[]` and `deck: readonly string[]` (card instance ids). Keep `handSize` as the per-game max and `discardIds` as is (or rename to `discard` for symmetry — your call, but be consistent).
-- Seeded shuffle + initial deal of 5 in `newGame`. Deck instance ids should be deterministic (e.g. `${playerId}.deck.${index}`).
-- Add a `drawCards(state, playerId, n)` helper. Wire it into the upkeep transition so each player draws up to `handSize` (currently the transition doesn't draw — verify and fix as part of this card).
-- Update `legal-actions.canReroll` / `canPlayCard` to use `hand.length`.
-- Update `reroll-dice` precheck (currently reads `handCount`).
-
-**Context to load.**
-- `packages/game-engine/src/state/types.ts` (PlayerState)
-- `packages/game-engine/src/state/new-game.ts`
-- `packages/game-engine/src/state/legal-actions.ts`
-- `packages/game-engine/src/actions/pass.ts` (upkeep transition lives here)
-- `packages/game-engine/src/__tests__/new-game.test.ts`, `pass.test.ts`
-
-**Out of scope.** Mulligan UX. Ability effects. `applyPlayCard` itself. Just the data model + initial deal + draw helper + tests.
-
-**Done when.** `pnpm typecheck` clean. `pnpm --filter @prophecy/game-engine test` green (existing tests adapted + new tests for deterministic deal, draw-on-upkeep, and that two games with the same seed deal the same hand). README Done section updated.
-
----
-
 #### ENGINE-2 — `applyPlayCard` (vanilla cost-only)
 **Why now.** First real card-from-hand action. Lands cost payment and hand→discard plumbing without yet entangling with the ability AST.
 
@@ -719,6 +696,7 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
 ### Done
+- **2026-05-12 — ENGINE-1 — Per-card hand & deck tracking.** `PlayerState` now carries `hand: readonly string[]`, `deck: readonly string[]`, and `discard: readonly string[]` (renamed from `discardIds` for symmetry). `newGame` builds each player's 30-card deck as `${playerId}.deck.${index}` ids, Fisher-Yates-shuffles it with a per-player seeded RNG fork (`shuffle:${playerId}`), and deals the top 5 into hand. New `state/draw.ts` exposes `drawCards(state, playerId, n)`; wired into the upkeep transition so each player redraws up to `handSize`. `upkeep.player` event payload now reports `cardsDrawn`. `legal-actions.canReroll` / `canPlayCard` and the end-of-round loss check switched to `hand.length` / `deck.length`. 97 engine tests green (5 new: deterministic deal, different-seed shuffles differ, hand/deck disjoint, upkeep draws to handSize, upkeep doesn't draw past an empty deck).
 - **2026-05-12 — Engine: split setup into independent first-player + shield-recipient choices** (`27b3667`). Diverges from SWD's single-choice setup: the roll-off winner now makes two separate decisions — who goes first (= battlefield controller) and who receives the 2 starting shields. The recipient distributes shields freely (1+1 or 2+0). `SetupStep` reworked, three new actions (`setup.choose-first-player`, `setup.choose-shield-recipient`, `setup.place-shield`), events renamed, legal-actions inspector and web SetupPanel rewired, rules-reference updated. 92 engine tests passing.
 - **2026-05-12 — Engine: `resolve-dice` + character defeat** (`c186d6c`). Resolves melee / ranged / shield / resource / disrupt. Shields block damage 1-for-1 (capped at 3). Damage ≥ remaining health defeats the character: removed from `characterOrder`, dice removed from pool. Win condition: opponent has no characters → game ends. Optional `targetCharacterId` on the action shape for damage / shields; ignored for resource / disrupt.
 - **2026-05-12 — Engine: `getLegalActions` inspector + `activate` rotates the turn** (`589fa62`). Pure read-only inspector returning the set of actions each player can take right now (driven by both the UI and tests). Surfaced a latent bug: `activate` wasn't rotating the turn — fixed. `RESOLVABLE_SYMBOLS_V1` excludes blank, special, focus, indirect until those land.
