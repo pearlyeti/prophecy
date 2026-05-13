@@ -121,9 +121,16 @@ describe('synthetic-set fixtures', () => {
 
     expect(result.state.players[activePlayerId]!.diceInPool).toHaveLength(1);
     const rolled = result.state.players[activePlayerId]!.diceInPool[0]!;
-    expect(rolled.cardId).toBe(a.id);
-    // The rolled face must be one of the six faces on the source die.
-    expect(a.dieFaces.some((f) => f.symbol === rolled.face.symbol && f.value === rolled.face.value)).toBe(true);
+    // Roll-off winner depends on the dice the engine actually rolled, so
+    // either player could be active. The rolled die just has to match
+    // whichever source character we activated.
+    const sourceCard = activePlayerId === 'alice' ? a : b;
+    expect(rolled.cardId).toBe(sourceCard.id);
+    expect(
+      sourceCard.dieFaces.some(
+        (f) => f.symbol === rolled.face.symbol && f.value === rolled.face.value,
+      ),
+    ).toBe(true);
   });
 
   it('special-face / special-ability coherence when abilities are populated', () => {

@@ -1,3 +1,4 @@
+import type { CardFixture, DeckFixture } from '../__fixtures__/synthetic-set/schema';
 import { applyAction } from '../reducers/apply-action';
 import { createRng } from '../rng/seeded-rng';
 import type {
@@ -151,15 +152,24 @@ function runRollOff(
   playerIds: readonly string[],
   playerCharacters: Readonly<Record<string, readonly CharacterInput[]>>,
 ): SetupContext {
+  // Per the rules document: each player rolls all of their starting
+  // character dice and sums the values (the "white numbers") on the
+  // faces that came up. Highest sum wins; ties re-roll.
   let attempt = 0;
   while (true) {
     const rng = createRng(seed).fork(`roll-off:${attempt}`);
     const values: Record<string, number> = {};
     for (const id of playerIds) {
       const team = playerCharacters[id]!;
-      const diceCount = team.reduce((n, c) => n + (c.elite ? 2 : 1), 0);
       let total = 0;
-      for (let i = 0; i < diceCount; i++) total += rng.rollDie(6) + 1;
+      for (const c of team) {
+        const diceCount = c.elite ? 2 : 1;
+        const faces = c.dieFaces ?? DEFAULT_TEST_FACES;
+        for (let i = 0; i < diceCount; i++) {
+          const faceIndex = rng.rollDie(6);
+          total += faces[faceIndex]?.value ?? 0;
+        }
+      }
       values[id] = total;
     }
 
@@ -179,6 +189,65 @@ function runRollOff(
       throw new Error(`roll-off failed to break after ${attempt} attempts`);
     }
   }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Deck-based game construction
+// ────────────────────────────────────────────────────────────────────
+
+export interface DeckAssignment {
+  readonly playerId: string;
+  readonly deck: DeckFixture;
+}
+
+export interface NewGameFromDecksInput {
+  readonly seed: string;
+  readonly catalog: readonly CardFixture[];
+  readonly assignments: readonly [DeckAssignment, DeckAssignment];
+}
+
+/**
+ * Compose a NewGameInput from two DeckFixtures resolved against the
+ * card catalog, then call newGame. This is the path the game-server
+ * uses to launch a real match: pick two decks, pair them with player
+ * IDs, the rest of the setup is automatic.
+ */
+export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
+  const { seed, catalog, assignments } = input;
+  const byId = new Map(catalog.map((c) => [c.id, c]));
+
+  const playerIds: [string, string] = [assignments[0].playerId, assignments[1].playerId];
+  const playerCharacters: Record<string, CharacterInput[]> = {};
+  const playerBattlefieldCardIds: Record<string, string> = {};
+
+  for (const a of assignments) {
+    const team: CharacterInput[] = [];
+    a.deck.characters.forEach((dc, i) => {
+      const card = byId.get(dc.cardId);
+      if (!card) throw new Error(`character ${dc.cardId} not in catalog`);
+      if (card.type !== 'character') {
+        throw new Error(`${dc.cardId} is type ${card.type}, not character`);
+      }
+      if (!card.dieFaces) {
+        throw new Error(`${dc.cardId} has no dieFaces`);
+      }
+      team.push({
+        id: `${a.playerId}.char.${i}`,
+        cardId: dc.cardId,
+        elite: dc.elite,
+        dieFaces: card.dieFaces,
+      });
+    });
+    playerCharacters[a.playerId] = team;
+    playerBattlefieldCardIds[a.playerId] = a.deck.battlefieldCardId;
+  }
+
+  return newGame({
+    seed,
+    playerIds,
+    playerCharacters,
+    playerBattlefieldCardIds,
+  });
 }
 
 /**
