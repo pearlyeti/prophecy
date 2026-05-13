@@ -7,13 +7,23 @@ import { getOrCreatePlayerId } from './lib/playerId';
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
 /**
- * Transient UI state for the resolve-dice flow. Stored centrally (not
- * in a component) so the dice tray, sticky action bar, and target
- * overlay can all read/write the same selection without prop-drilling.
+ * Transient UI state for the dice-selection flows (resolve and reroll).
+ * Stored centrally so the dice tray, sticky action bar, and any target
+ * overlay all read/write the same selection without prop-drilling.
+ *
+ *  - 'resolve' enforces symbol-lock at the tile level and dispatches a
+ *    `resolve-dice` action.
+ *  - 'reroll' has no symbol lock (you can rough up any dice you want to
+ *    reroll) and dispatches a `reroll-dice` action against the
+ *    pre-chosen discard card.
  */
-export interface ResolveMode {
-  readonly selectedDieIds: readonly string[];
-}
+export type SelectionMode =
+  | { readonly kind: 'resolve'; readonly selectedDieIds: readonly string[] }
+  | {
+      readonly kind: 'reroll';
+      readonly selectedDieIds: readonly string[];
+      readonly discardCardId: string;
+    };
 
 interface AppStore {
   readonly playerId: string;
@@ -35,10 +45,11 @@ interface AppStore {
   lastError: string | null;
   setError: (e: string | null) => void;
 
-  resolveMode: ResolveMode | null;
+  selectionMode: SelectionMode | null;
   enterResolveMode: () => void;
-  exitResolveMode: () => void;
-  toggleResolveDie: (instanceId: string) => void;
+  enterRerollMode: (discardCardId: string) => void;
+  exitSelectionMode: () => void;
+  toggleSelectedDie: (instanceId: string) => void;
 
   reset: () => void;
 }
@@ -69,17 +80,19 @@ export const useApp = create<AppStore>((set) => ({
   lastError: null,
   setError: (e) => set({ lastError: e }),
 
-  resolveMode: null,
-  enterResolveMode: () => set({ resolveMode: { selectedDieIds: [] } }),
-  exitResolveMode: () => set({ resolveMode: null }),
-  toggleResolveDie: (instanceId) =>
+  selectionMode: null,
+  enterResolveMode: () => set({ selectionMode: { kind: 'resolve', selectedDieIds: [] } }),
+  enterRerollMode: (discardCardId) =>
+    set({ selectionMode: { kind: 'reroll', selectedDieIds: [], discardCardId } }),
+  exitSelectionMode: () => set({ selectionMode: null }),
+  toggleSelectedDie: (instanceId) =>
     set((s) => {
-      if (!s.resolveMode) return {};
-      const current = s.resolveMode.selectedDieIds;
+      if (!s.selectionMode) return {};
+      const current = s.selectionMode.selectedDieIds;
       const next = current.includes(instanceId)
         ? current.filter((id) => id !== instanceId)
         : [...current, instanceId];
-      return { resolveMode: { selectedDieIds: next } };
+      return { selectionMode: { ...s.selectionMode, selectedDieIds: next } };
     }),
 
   reset: () => {
@@ -89,7 +102,7 @@ export const useApp = create<AppStore>((set) => ({
       game: null,
       recentEvents: [],
       lastError: null,
-      resolveMode: null,
+      selectionMode: null,
     });
   },
 }));

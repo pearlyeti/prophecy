@@ -15,7 +15,8 @@
       "Bash(pnpm --filter @prophecy/game-server test)",
       "Bash(pnpm --filter @prophecy/game-engine typecheck)",
       "Bash(pnpm --filter @prophecy/game-engine test)",
-      "Bash(pnpm --filter @prophecy/game-engine fixtures:generate)"
+      "Bash(pnpm --filter @prophecy/game-engine fixtures:generate)",
+      "Bash"
     ]
   }
 }

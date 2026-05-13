@@ -20,6 +20,7 @@ export type EngineEvent =
   | { readonly type: 'character.defeated'; readonly payload: CharacterDefeatedPayload }
   | { readonly type: 'card.played'; readonly payload: CardPlayedPayload }
   | { readonly type: 'dice.resolved'; readonly payload: DiceResolvedPayload }
+  | { readonly type: 'dice.rerolled'; readonly payload: DiceRerolledPayload }
   | { readonly type: 'damage.dealt'; readonly payload: DamageDealtPayload }
   | { readonly type: 'shields.placed'; readonly payload: ShieldsPlacedPayload }
   | { readonly type: 'resources.gained'; readonly payload: ResourcesGainedPayload }
@@ -111,6 +112,16 @@ export interface DiceResolvedPayload {
   readonly symbol: string;
   readonly totalValue: number;
   readonly totalCost: number;
+}
+
+export interface DiceRerolledPayload {
+  readonly playerId: string;
+  readonly discardCardId: string;
+  readonly rerolledDice: readonly {
+    readonly instanceId: string;
+    readonly faceIndex: number;
+    readonly face: DieFace;
+  }[];
 }
 
 export interface DamageDealtPayload {

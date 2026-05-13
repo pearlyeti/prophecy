@@ -3,6 +3,7 @@ import { applyClaim } from '../actions/claim';
 import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
 import { applyPlayCard } from '../actions/play-card';
+import { applyRerollDice } from '../actions/reroll-dice';
 import { applyResolveDice } from '../actions/resolve-dice';
 import { applyChooseFirstPlayer, applyPlaceShield } from '../actions/setup';
 import { IllegalActionError } from '../actions/illegal';
@@ -46,6 +47,12 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
     case 'play-card':
       return applyPlayCard(state, action.playerId, action.cardId);
     case 'reroll-dice':
+      return applyRerollDice(
+        state,
+        action.playerId,
+        action.discardCardId,
+        action.dieInstanceIds,
+      );
     case 'use-card-action':
       throw new IllegalActionError(`action type "${action.type}" not yet implemented`);
   }

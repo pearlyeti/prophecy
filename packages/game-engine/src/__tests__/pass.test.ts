@@ -265,10 +265,9 @@ describe('applyAction({ type: "pass" })', () => {
     const initial = setup();
     expect(() =>
       applyAction(initial, {
-        type: 'reroll-dice',
+        type: 'use-card-action',
         playerId: initial.activePlayerId!,
-        discardCardId: 'X',
-        dieInstanceIds: [],
+        cardId: 'X',
       }),
     ).toThrow(/not yet implemented/);
   });

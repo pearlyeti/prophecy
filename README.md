@@ -16,7 +16,8 @@ An online multiplayer platform for **Prophecy** — an original dice-and-card du
 
 **This README is the canonical description of Prophecy's product, architecture, tech stack, schema, and roadmap.**
 
-Whenever a decision is made — a new service is added, a library is swapped, a feature is scoped, a schema column is added, a TODO is opened or closed — update this file in the same change. Conversation transcripts and chat threads are not durable; the README is. See [Working agreements](#working-agreements).
+Whenever a decision is made — a new service is added, a library is swapped, a feature is scoped, a schema column is added — update this file in the same change. Conversation transcripts and chat threads are not durable; the README is. See [Working agreements](#working-agreements).
+*(Note: Task tracking has moved to [TODO.md](TODO.md))*
 
 ---
 
@@ -256,8 +257,11 @@ The fixture importer ([Reference data & test fixtures](#reference-data--test-fix
 ### Matchmaking *(v1: 1v1 only)*
 - **Ranked 1v1** — Elo/MMR system, seasonal ladder, placement matches at season start.
 - **Casual 1v1** — no rank impact, faster queue.
+- **Ranked 1v1** — Skill-based matchmaking driven by a hidden MMR (Matchmaking Rating, e.g., Glicko-2). Visible Season Ranks (Bronze → Champion) trail the hidden MMR to provide progression, but pairings are strictly skill-based.
+- **Casual 1v1** — Uses a looser, hidden MMR to protect new players, but search bounds expand rapidly to prioritize fast queue times over perfectly balanced skill. No impact on visible rank.
 - **Private lobby** — shareable invite code, custom rulesets for friendly 1v1 games.
 - *Post-v1:* **2v2** team queue, **free-for-all** 3–4 player queue. See [Backlog — post-v1.0](#backlog--post-v10).
+- **Tournaments** — Special event queues (Swiss or Elimination) where pairing is based strictly on current bracket standings (e.g., 2-0 plays 2-0), ignoring ladder MMR.
 
 ### Deck builder
 - Full card catalog browser with filtering (type, color, faction, set, rarity, dice symbols, keywords).
@@ -452,7 +456,7 @@ Dependencies between cards are noted under **Depends on**. If a card lists one, 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- _(none — claim a card from Up next.)_
+- **2026-05-13 — ENGINE-3 — `applyRerollDice`** (claude)
 
 ### Up next — task cards
 
@@ -558,6 +562,82 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 **Out of scope.** New schema. Seed data import. Just apply what's already generated and verify it lands cleanly.
 
 **Done when.** Migration applies without errors. `psql` confirms tables exist. README's setup instructions are accurate (fix them if not).
+
+---
+
+#### ENGINE-6 — Ability AST Resolver Dispatch
+**Why now.** Cards currently cost resources to play but have no effects. The game requires reading the JSON AST in `card_abilities` and turning it into state changes.
+
+**Scope.**
+- Create an `abilities/dispatcher.ts` that takes an AST node and executes it against the `GameState`.
+- Implement the foundational effect ops: `deal_damage`, `heal`, `gain_resources`, `draw_cards`, `give_shields`.
+- Wire this dispatcher into the engine so that when a card is played (if it's an Event), its effect is immediately evaluated.
+
+**Context to load.**
+- `packages/game-engine/src/abilities/*`
+- `packages/game-engine/src/actions/play-card.ts`
+- `packages/db/schema.ts` (for the AST type shapes)
+
+**Out of scope.** The Queue, triggered abilities (before/after), and complex modifiers. Focus purely on immediate, one-shot events.
+
+**Done when.** Typecheck clean. Tests demonstrate an Event card being played, costing resources, and correctly executing its AST to deal damage or draw cards.
+
+---
+
+#### ENGINE-7 — The Queue & Triggered Abilities
+**Why now.** The most complex part of the engine. "After" and "Before" triggers are what make the game interactive. We must build this before writing more cards.
+
+**Scope.**
+- Implement the `Queue` data structure in `GameState`.
+- Create the interceptor hooks in the action reducers. When an action occurs (e.g., `deal_damage`), the engine must scan active cards in play for `before` triggers, resolve them, apply the action, then queue `after` triggers.
+- Implement the "Simultaneous-ability tiebreak" (battlefield controller chooses order).
+
+**Context to load.**
+- `packages/game-engine/src/queue/*`
+- `packages/game-engine/src/reducers/*`
+- `docs/rules-reference.md` (Part 7: The Queue)
+
+**Out of scope.** Replacement effects ("instead"). We will handle standard after/before triggers first.
+
+**Done when.** Typecheck clean. Tests show a `before` trigger preventing or modifying an action, and an `after` trigger firing sequentially via the queue.
+
+---
+
+#### SERVER-2 — Basic Matchmaking Queue (MVP)
+**Why now.** Hardcoded test decks are limiting. We need a way for clients to say "I want to play using Deck X" and have the server pair them up.
+
+**Scope.**
+- Add a rudimentary memory or Redis-backed queue in `apps/game-server`.
+- Accept a `join_queue` socket event containing `{ deckId }`.
+- When 2 players are in the queue, pop them, fetch their decks via the API (or DB), instantiate a new room via `newGameFromDecks`, and send them the `match_found` event with the roomId.
+
+**Context to load.**
+- `apps/game-server/src/rooms.ts`
+- `apps/game-server/src/index.ts`
+
+**Out of scope.** Elo/MMR matching. For this MVP, first-in-first-out (FIFO) is fine to unblock testing.
+
+**Done when.** Typecheck clean. You can connect two different browser sessions, hit "Join Queue", and they are automatically placed into a newly generated game room together.
+
+---
+
+#### WEB-3 — Lobby Deck Selection & Matchmaking UI
+**Why now.** The frontend needs to let the user pick their deck and join the queue we built in SERVER-2.
+
+**Scope.**
+- Create a simple `Lobby` screen.
+- Fetch the user's available decks via tRPC (`api`).
+- Provide a dropdown/list to select a deck.
+- A "Find Match" button that emits the `join_queue` event via socket.io.
+- A "Searching..." state that transitions to the Game Board when `match_found` is received.
+
+**Context to load.**
+- `apps/web/src/socket.ts`
+- `apps/web/src/pages/Lobby.tsx` (new)
+
+**Out of scope.** Full deckbuilder UI. Just fetching existing/seeded decks for selection.
+
+**Done when.** Typecheck clean. Manual smoke test: The UI cleanly transitions from Lobby -> Searching -> Game Board when a match connects.
 
 ---
 
