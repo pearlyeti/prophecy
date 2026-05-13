@@ -22,6 +22,8 @@ export interface CharacterInput {
    * without authoring full card data yet.
    */
   readonly dieFaces?: readonly DieFace[];
+  /** Max damage before defeat. Defaults to DEFAULT_TEST_HEALTH if absent. */
+  readonly health?: number;
 }
 
 export interface NewGameInput {
@@ -41,6 +43,7 @@ const DEFAULT_DECK_SIZE = 30;
 const STARTING_HAND = 5;
 const STARTING_RESOURCES = 2;
 const SHIELDS_TO_DISTRIBUTE = 2;
+const DEFAULT_TEST_HEALTH = 10;
 
 /**
  * Stand-in die profile used when a character is created without an
@@ -105,6 +108,7 @@ export function newGame(input: NewGameInput): GameState {
         id: c.id,
         cardId: c.cardId,
         elite: c.elite,
+        health: c.health ?? DEFAULT_TEST_HEALTH,
         damage: 0,
         shields: 0,
         exhausted: false,
@@ -236,6 +240,7 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
         cardId: dc.cardId,
         elite: dc.elite,
         dieFaces: card.dieFaces,
+        health: card.health ?? DEFAULT_TEST_HEALTH,
       });
     });
     playerCharacters[a.playerId] = team;

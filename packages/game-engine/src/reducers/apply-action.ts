@@ -2,6 +2,7 @@ import { applyActivate } from '../actions/activate';
 import { applyClaim } from '../actions/claim';
 import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
+import { applyResolveDice } from '../actions/resolve-dice';
 import { applyChooseBattlefield, applyPlaceShield } from '../actions/setup';
 import { IllegalActionError } from '../actions/illegal';
 import type { Action } from '../actions/types';
@@ -35,6 +36,12 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
     case 'activate':
       return applyActivate(state, action.playerId, action.cardId);
     case 'resolve-dice':
+      return applyResolveDice(
+        state,
+        action.playerId,
+        action.dieInstanceIds,
+        action.targetCharacterId,
+      );
     case 'reroll-dice':
     case 'play-card':
     case 'use-card-action':

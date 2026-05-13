@@ -79,6 +79,8 @@ export interface CharacterState {
   /** Reference to the catalog row in the cards table. */
   readonly cardId: string;
   readonly elite: boolean;
+  /** Max damage the character can absorb before defeat. */
+  readonly health: number;
   readonly damage: number;
   /** 0..3 per the rules. */
   readonly shields: number;

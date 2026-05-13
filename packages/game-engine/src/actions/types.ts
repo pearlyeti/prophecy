@@ -6,7 +6,13 @@ export type Action =
   | { type: 'setup.place-shield'; playerId: string; characterId: string }
   | { type: 'pass'; playerId: string }
   | { type: 'activate'; playerId: string; cardId: string }
-  | { type: 'resolve-dice'; playerId: string; dieInstanceIds: readonly string[] }
+  | {
+      type: 'resolve-dice';
+      playerId: string;
+      dieInstanceIds: readonly string[];
+      /** Required when resolving damage / shields; ignored for resource / disrupt. */
+      targetCharacterId?: string;
+    }
   | { type: 'reroll-dice'; playerId: string; discardCardId: string; dieInstanceIds: readonly string[] }
   | { type: 'play-card'; playerId: string; cardId: string; targetId?: string }
   | { type: 'use-card-action'; playerId: string; cardId: string }

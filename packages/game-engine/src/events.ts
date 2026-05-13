@@ -17,6 +17,12 @@ export type EngineEvent =
   | { readonly type: 'turn.advanced'; readonly payload: TurnAdvancedPayload }
   | { readonly type: 'battlefield.claimed'; readonly payload: BattlefieldClaimedPayload }
   | { readonly type: 'character.activated'; readonly payload: CharacterActivatedPayload }
+  | { readonly type: 'character.defeated'; readonly payload: CharacterDefeatedPayload }
+  | { readonly type: 'dice.resolved'; readonly payload: DiceResolvedPayload }
+  | { readonly type: 'damage.dealt'; readonly payload: DamageDealtPayload }
+  | { readonly type: 'shields.placed'; readonly payload: ShieldsPlacedPayload }
+  | { readonly type: 'resources.gained'; readonly payload: ResourcesGainedPayload }
+  | { readonly type: 'resources.lost'; readonly payload: ResourcesLostPayload }
   | { readonly type: 'upkeep.begin'; readonly payload: Empty }
   | { readonly type: 'upkeep.player'; readonly payload: UpkeepPlayerPayload }
   | { readonly type: 'upkeep.end'; readonly payload: Empty }
@@ -85,4 +91,38 @@ export interface RoundBeginPayload {
 export interface GameEndedPayload {
   readonly winnerId: string | null;
   readonly reason: 'all-characters-defeated' | 'deck-and-hand-empty' | 'concede';
+}
+
+export interface CharacterDefeatedPayload {
+  readonly playerId: string;
+  readonly characterId: string;
+}
+
+export interface DiceResolvedPayload {
+  readonly playerId: string;
+  readonly dieInstanceIds: readonly string[];
+  readonly symbol: string;
+  readonly totalValue: number;
+  readonly totalCost: number;
+}
+
+export interface DamageDealtPayload {
+  readonly characterId: string;
+  readonly amount: number;
+  readonly shieldsBlocked: number;
+}
+
+export interface ShieldsPlacedPayload {
+  readonly characterId: string;
+  readonly amount: number;
+}
+
+export interface ResourcesGainedPayload {
+  readonly playerId: string;
+  readonly amount: number;
+}
+
+export interface ResourcesLostPayload {
+  readonly playerId: string;
+  readonly amount: number;
 }
