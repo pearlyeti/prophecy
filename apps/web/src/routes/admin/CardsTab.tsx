@@ -9,11 +9,15 @@ import {
   RARITIES,
   type Card,
   type Ability,
+  type DieFace,
 } from '@prophecy/protocol';
 import { useState } from 'react';
 
 import { AbilityBuilder } from './AbilityBuilder.js';
+import { DiceEditor, defaultDiceFaces } from './DiceEditor.js';
 import { saveCards } from './api.js';
+
+type SixFaces = [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
 
 const TYPE_DEFAULTS: Record<Card['type'], Partial<Card>> = {
   character: { cost: null, health: 8, pointValue: 10, elitePointValue: 14, plotPointValue: null },
@@ -21,7 +25,16 @@ const TYPE_DEFAULTS: Record<Card['type'], Partial<Card>> = {
   support: { cost: 2, health: null, pointValue: null, elitePointValue: null, plotPointValue: null },
   event: { cost: 1, health: null, pointValue: null, elitePointValue: null, plotPointValue: null },
   plot: { cost: null, health: null, pointValue: null, elitePointValue: null, plotPointValue: 0 },
-  battlefield: { cost: null, health: null, pointValue: null, elitePointValue: null, plotPointValue: null },
+  // Battlefields don't have a color — null it on type-switch so we
+  // don't carry a stale value forward through the form.
+  battlefield: {
+    cost: null,
+    health: null,
+    pointValue: null,
+    elitePointValue: null,
+    plotPointValue: null,
+    color: null,
+  },
 };
 
 function newCard(): Card {
@@ -250,21 +263,25 @@ export function CardsTab({
                   ))}
                 </select>
               </Field>
-              <Field label="Color">
-                <select
-                  value={draft.color}
-                  onChange={(e) =>
-                    updateDraft({ color: e.target.value as Card['color'] })
-                  }
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
-                >
-                  {COLORS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              {draft.type !== 'battlefield' && (
+                <Field label="Color">
+                  <select
+                    value={draft.color ?? ''}
+                    onChange={(e) =>
+                      updateDraft({
+                        color: (e.target.value || null) as Card['color'],
+                      })
+                    }
+                    className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  >
+                    {COLORS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
               <Field label="Rarity">
                 <select
                   value={draft.rarity}
@@ -349,32 +366,26 @@ export function CardsTab({
               />
             </div>
 
-            {draft.dieFaces && (
-              <div>
-                <div className="mb-2 text-xs uppercase tracking-wider text-neutral-500">
-                  Die faces (read-only for now)
-                </div>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                  {draft.dieFaces.map((f, i) => (
-                    <div
-                      key={i}
-                      className="rounded border border-neutral-800 bg-neutral-900/60 p-2 text-center"
-                    >
-                      <div className="font-mono text-base text-neutral-100">
-                        {f.modifier ? '+' : ''}
-                        {f.value || ''}
-                      </div>
-                      <div className="text-[10px] uppercase tracking-wider text-neutral-400">
-                        {f.symbol}
-                      </div>
-                      {f.cost > 0 && (
-                        <div className="text-[10px] text-amber-400">cost {f.cost}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-300">
+                <input
+                  type="checkbox"
+                  checked={draft.dieFaces !== null}
+                  onChange={(e) =>
+                    updateDraft({
+                      dieFaces: e.target.checked ? defaultDiceFaces() : null,
+                    })
+                  }
+                />
+                <span>Has dice</span>
+              </label>
+              {draft.dieFaces && (
+                <DiceEditor
+                  faces={draft.dieFaces}
+                  onChange={(dieFaces: SixFaces) => updateDraft({ dieFaces })}
+                />
+              )}
+            </div>
 
             <div className="flex flex-wrap gap-2 border-t border-neutral-800 pt-3">
               <button

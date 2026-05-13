@@ -142,7 +142,9 @@ export const cardSchema = z
     // (e.g., "Soldier, Vehicle"). The engine doesn't dispatch on this.
     subtype: z.string().max(80).nullable().default(null),
     faction: factionSchema,
-    color: colorSchema,
+    // Battlefields don't have a color (they're brought independently
+    // of the deck and don't go through color-gating).
+    color: colorSchema.nullable(),
     rarity: raritySchema,
     /** Play cost (events / upgrades / supports). null for characters / battlefields / plots. */
     cost: z.number().int().min(0).max(20).nullable().default(null),
