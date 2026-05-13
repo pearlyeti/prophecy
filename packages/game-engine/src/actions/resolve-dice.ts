@@ -51,18 +51,61 @@ export function applyResolveDice(
     return d;
   });
 
-  const symbol = dice[0]!.face.symbol;
-  if (!dice.every((d) => d.face.symbol === symbol)) {
-    throw new IllegalActionError('all resolved dice must share a symbol');
+  // Split modifiers from non-modifiers so we can enforce the rule
+  // explicitly: a symboled modifier needs a same-symbol non-modifier
+  // in the selection; a symbolless modifier ('modifier' symbol) needs
+  // ANY non-modifier with value > 0 (special and blank are value 0 and
+  // never qualify). Non-modifiers among themselves still have to share
+  // one symbol for v1 (card-routed mixed-symbol resolutions land later).
+  const nonModifiers = dice.filter((d) => !d.face.modifier);
+  const modifiers = dice.filter((d) => d.face.modifier);
+
+  if (nonModifiers.length === 0) {
+    throw new IllegalActionError(
+      'a modifier die cannot resolve without a non-modifier in the selection',
+    );
   }
-  if (dice.every((d) => d.face.modifier)) {
-    throw new IllegalActionError('a modifier die cannot resolve without a non-modifier of the same symbol');
+
+  const nonModSymbols = new Set(nonModifiers.map((d) => d.face.symbol));
+  if (nonModSymbols.size > 1) {
+    throw new IllegalActionError('all non-modifier dice resolved together must share a symbol');
   }
+  const symbol = nonModifiers[0]!.face.symbol;
+
   if (symbol === 'blank') {
     throw new IllegalActionError('blank dice cannot be resolved');
   }
-  if (symbol === 'special' || symbol === 'focus' || symbol === 'indirect' || symbol === 'discard') {
+  if (
+    symbol === 'special' ||
+    symbol === 'focus' ||
+    symbol === 'indirect' ||
+    symbol === 'discard' ||
+    symbol === 'draw'
+  ) {
     throw new IllegalActionError(`resolving "${symbol}" is not yet implemented`);
+  }
+  if (symbol === 'modifier') {
+    // A non-modifier face whose symbol claims it's a "modifier" face is
+    // a data-shape invariant violation, not a player-illegal action.
+    throw new Error(
+      `data invariant: a non-modifier die has symbol 'modifier' (instance ${nonModifiers[0]!.instanceId})`,
+    );
+  }
+
+  const valuedNonMods = nonModifiers.filter((d) => d.face.value > 0);
+  for (const m of modifiers) {
+    if (m.face.symbol === 'modifier') {
+      // Symbolless wild modifier — needs ANY valued non-modifier in selection.
+      if (valuedNonMods.length === 0) {
+        throw new IllegalActionError(
+          'a symbolless modifier needs a non-modifier with a value in the selection',
+        );
+      }
+    } else if (m.face.symbol !== symbol) {
+      throw new IllegalActionError(
+        `modifier (${m.face.symbol}) cannot resolve without a non-modifier of its symbol`,
+      );
+    }
   }
 
   const totalCost = dice.reduce((s, d) => s + d.face.cost, 0);

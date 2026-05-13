@@ -17,8 +17,14 @@ export type DieSymbol =
   | 'resource'
   | 'disrupt'
   | 'discard'
+  | 'draw'
   | 'focus'
   | 'special'
+  // Symbolless modifier face — a "wild" +N that resolves alongside any
+  // non-modifier die with a value (not blank, not special). Faces with
+  // this symbol MUST have modifier=true; the engine treats them as the
+  // symbolless case of the modifier-needs-parent rule.
+  | 'modifier'
   | 'blank';
 
 export type Keyword = 'ambush' | 'guardian' | 'modify' | 'redeploy';

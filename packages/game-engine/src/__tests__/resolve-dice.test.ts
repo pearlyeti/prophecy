@@ -116,10 +116,17 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     ).toThrow(/modifier/);
   });
 
-  it('rejects blank, special, focus, indirect, discard', () => {
+  it('rejects blank, special, focus, indirect, discard, draw', () => {
     const initial = setup();
     const active = initial.activePlayerId!;
-    for (const symbol of ['blank', 'special', 'focus', 'indirect', 'discard'] as const) {
+    for (const symbol of [
+      'blank',
+      'special',
+      'focus',
+      'indirect',
+      'discard',
+      'draw',
+    ] as const) {
       const state = withPool(initial, active, [
         { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face(symbol) },
       ]);
@@ -131,6 +138,109 @@ describe('applyAction({ type: "resolve-dice" })', () => {
         }),
       ).toThrow();
     }
+  });
+
+  describe('modifier-with-parent rule', () => {
+    it('resolves melee 2 + melee modifier +1 as combined value 3', () => {
+      const initial = setup();
+      const active = initial.activePlayerId!;
+      const opp = initial.playerOrder.find((id) => id !== active)!;
+      const targetId = initial.players[opp]!.characterOrder[0]!;
+      // Strip starting shields so damage.dealt reports the raw combined
+      // value rather than post-shield-block.
+      const noShields = clearShields(initial, opp, targetId);
+      const state = withPool(noShields, active, [
+        { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face('melee', 2) },
+        { instanceId: 'd2', cardId: 'X', faceIndex: 0, face: face('melee', 1, 0, true) },
+      ]);
+
+      const { state: out, events } = applyAction(state, {
+        type: 'resolve-dice',
+        playerId: active,
+        dieInstanceIds: ['d1', 'd2'],
+        targetCharacterId: targetId,
+      });
+
+      const resolved = events.find((e) => e.type === 'dice.resolved');
+      expect((resolved?.payload as { totalValue: number }).totalValue).toBe(3);
+      const damage = events.find((e) => e.type === 'damage.dealt');
+      expect((damage?.payload as { amount: number }).amount).toBe(3);
+      expect(out.players[opp]?.characters[targetId]?.damage).toBe(3);
+    });
+
+    it('rejects cross-symbol modifier (e.g., melee 2 + ranged modifier +1)', () => {
+      const initial = setup();
+      const active = initial.activePlayerId!;
+      const state = withPool(initial, active, [
+        { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face('melee', 2) },
+        { instanceId: 'd2', cardId: 'X', faceIndex: 0, face: face('ranged', 1, 0, true) },
+      ]);
+      expect(() =>
+        applyAction(state, {
+          type: 'resolve-dice',
+          playerId: active,
+          dieInstanceIds: ['d1', 'd2'],
+        }),
+      ).toThrow(/modifier/);
+    });
+
+    it('resolves a symbolless modifier alongside a valued non-modifier (any symbol)', () => {
+      const initial = setup();
+      const active = initial.activePlayerId!;
+      const opp = initial.playerOrder.find((id) => id !== active)!;
+      const targetId = initial.players[opp]!.characterOrder[0]!;
+      const noShields = clearShields(initial, opp, targetId);
+      const state = withPool(noShields, active, [
+        { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face('melee', 2) },
+        { instanceId: 'd2', cardId: 'X', faceIndex: 0, face: face('modifier', 1, 0, true) },
+      ]);
+
+      const { events } = applyAction(state, {
+        type: 'resolve-dice',
+        playerId: active,
+        dieInstanceIds: ['d1', 'd2'],
+        targetCharacterId: targetId,
+      });
+
+      const resolved = events.find((e) => e.type === 'dice.resolved');
+      expect((resolved?.payload as { totalValue: number }).totalValue).toBe(3);
+      const damage = events.find((e) => e.type === 'damage.dealt');
+      expect((damage?.payload as { amount: number }).amount).toBe(3);
+    });
+
+    it('rejects a lone symbolless modifier (no parent in selection)', () => {
+      const initial = setup();
+      const active = initial.activePlayerId!;
+      const state = withPool(initial, active, [
+        { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face('modifier', 1, 0, true) },
+      ]);
+      expect(() =>
+        applyAction(state, {
+          type: 'resolve-dice',
+          playerId: active,
+          dieInstanceIds: ['d1'],
+        }),
+      ).toThrow(/modifier/);
+    });
+
+    it('rejects a symbolless modifier paired with a special parent (value 0 doesn\'t qualify)', () => {
+      // Special is rejected with "not yet implemented" before the
+      // value-zero parent check even fires — either rejection is
+      // acceptable, and the engine throws.
+      const initial = setup();
+      const active = initial.activePlayerId!;
+      const state = withPool(initial, active, [
+        { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face('special', 0) },
+        { instanceId: 'd2', cardId: 'X', faceIndex: 0, face: face('modifier', 1, 0, true) },
+      ]);
+      expect(() =>
+        applyAction(state, {
+          type: 'resolve-dice',
+          playerId: active,
+          dieInstanceIds: ['d1', 'd2'],
+        }),
+      ).toThrow();
+    });
   });
 
   it('pays per-die resource cost from the player', () => {

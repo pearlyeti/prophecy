@@ -699,7 +699,7 @@ function DicePoolStrip({ game, playerId }: { game: GameState; playerId: string }
                         {d.face.modifier ? '+' : ''}
                         {d.face.value || ''}
                       </span>
-                      <span className="text-[9px]">{symbolGlyph(d.face.symbol)}</span>
+                      <span className="text-[9px] leading-tight">{symbolLabel(d.face.symbol)}</span>
                     </div>
                   );
                   if (interactive) {
@@ -759,16 +759,25 @@ function canRerollDie(d: DieInPool): boolean {
 
 function canSelectDie(d: DieInPool, lockedSymbol: DieSymbol | null): boolean {
   if (d.face.symbol === 'blank') return false;
+  // Engine doesn't resolve these yet — gate them out of v1 selection.
   if (
     d.face.symbol === 'special' ||
     d.face.symbol === 'focus' ||
     d.face.symbol === 'indirect' ||
-    d.face.symbol === 'discard'
+    d.face.symbol === 'discard' ||
+    d.face.symbol === 'draw'
   ) {
     return false;
   }
-  if (lockedSymbol === null) return !d.face.modifier;
-  return d.face.symbol === lockedSymbol;
+  if (lockedSymbol === null) {
+    // First tap: must be a non-modifier (modifier-only resolution is
+    // illegal). 'modifier'-symbol faces are always modifiers, so this
+    // implicitly bars them too.
+    return !d.face.modifier;
+  }
+  // Locked: same symbol always OK; symbolless modifiers ('modifier'
+  // symbol) join any locked-symbol resolution as wild +N.
+  return d.face.symbol === lockedSymbol || d.face.symbol === 'modifier';
 }
 
 function SelectionActionBar({
@@ -960,29 +969,33 @@ function SelectionActionBar({
   );
 }
 
-function symbolGlyph(symbol: string): string {
+function symbolLabel(symbol: string): string {
   switch (symbol) {
     case 'melee':
-      return 'MD';
+      return 'Melee';
     case 'ranged':
-      return 'RD';
+      return 'Ranged';
     case 'indirect':
-      return 'ID';
+      return 'Indirect';
     case 'shield':
-      return 'SH';
+      return 'Shield';
     case 'resource':
-      return 'R';
+      return 'Resource';
     case 'disrupt':
-      return 'DR';
+      return 'Disrupt';
     case 'discard':
-      return 'DC';
+      return 'Discard';
+    case 'draw':
+      return 'Draw';
     case 'focus':
-      return 'F';
+      return 'Focus';
     case 'special':
-      return 'S';
+      return 'Special';
+    case 'modifier':
+      return 'Modifier';
     case 'blank':
-      return '—';
+      return 'Blank';
     default:
-      return symbol.slice(0, 2).toUpperCase();
+      return symbol;
   }
 }

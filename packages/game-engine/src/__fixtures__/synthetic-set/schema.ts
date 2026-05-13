@@ -34,8 +34,10 @@ export const DieSymbolSchema = z.enum([
   'resource',
   'disrupt',
   'discard',
+  'draw',
   'focus',
   'special',
+  'modifier',
   'blank',
 ]);
 export const KeywordSchema = z.enum(['ambush', 'guardian', 'modify', 'redeploy']);

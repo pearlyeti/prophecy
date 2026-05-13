@@ -25,8 +25,10 @@ const DIE_SYMBOLS = [
   'resource',
   'disrupt',
   'discard',
+  'draw',
   'focus',
   'special',
+  'modifier',
   'blank',
 ] as const;
 const RARITIES = ['fixed', 'common', 'uncommon', 'rare', 'legendary'] as const;

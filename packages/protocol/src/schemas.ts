@@ -22,8 +22,11 @@ export const DIE_SYMBOLS = [
   'resource',
   'disrupt',
   'discard',
+  'draw',
   'focus',
   'special',
+  // Symbolless modifier — wild +N alongside any valued non-modifier.
+  'modifier',
   'blank',
 ] as const;
 export const RARITIES = ['fixed', 'common', 'uncommon', 'rare', 'legendary'] as const;

@@ -135,23 +135,23 @@ type SymbolProfile = 'damage-melee' | 'damage-ranged' | 'support' | 'mixed' | 'u
 const SYMBOL_WEIGHTS: Record<SymbolProfile, Record<DieFace['symbol'], number>> = {
   'damage-melee': {
     melee: 6, ranged: 1, indirect: 1, shield: 2, resource: 1, disrupt: 1,
-    discard: 0, focus: 1, special: 2, blank: 2,
+    discard: 0, draw: 0, focus: 1, special: 2, modifier: 1, blank: 2,
   },
   'damage-ranged': {
     melee: 1, ranged: 6, indirect: 1, shield: 2, resource: 1, disrupt: 1,
-    discard: 0, focus: 1, special: 2, blank: 2,
+    discard: 0, draw: 0, focus: 1, special: 2, modifier: 1, blank: 2,
   },
   support: {
     melee: 1, ranged: 1, indirect: 0, shield: 2, resource: 5, disrupt: 1,
-    discard: 1, focus: 2, special: 2, blank: 2,
+    discard: 1, draw: 1, focus: 2, special: 2, modifier: 1, blank: 2,
   },
   mixed: {
     melee: 3, ranged: 3, indirect: 1, shield: 2, resource: 2, disrupt: 1,
-    discard: 1, focus: 1, special: 2, blank: 2,
+    discard: 1, draw: 1, focus: 1, special: 2, modifier: 1, blank: 2,
   },
   utility: {
     melee: 1, ranged: 1, indirect: 1, shield: 1, resource: 1, disrupt: 2,
-    discard: 2, focus: 3, special: 3, blank: 2,
+    discard: 2, draw: 2, focus: 3, special: 3, modifier: 1, blank: 2,
   },
 };
 
