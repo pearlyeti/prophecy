@@ -7,7 +7,14 @@ let cached: GameSocket | null = null;
 
 export function getSocket(): GameSocket {
   if (cached) return cached;
-  const url = import.meta.env.VITE_GAME_SERVER_URL ?? 'http://localhost:3001';
+  // Resolve the game-server URL at runtime from the page's hostname so
+  // dev "just works" across localhost, LAN IPs, and IP changes — no
+  // .env editing or vite bounce when the machine's IP shifts. The env
+  // var stays as an explicit override for production deploys (or any
+  // setup where game-server lives on a different host than web).
+  const url =
+    import.meta.env.VITE_GAME_SERVER_URL ??
+    `${window.location.protocol}//${window.location.hostname}:3001`;
   // Default transports (polling → upgrade to websocket). Forcing
   // 'websocket' only made iOS Safari hang at CONNECTING when WS
   // couldn't open — polling fallback restores connectivity.
