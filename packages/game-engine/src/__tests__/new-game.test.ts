@@ -15,7 +15,9 @@ describe('newGame', () => {
     expect(state.winnerId).toBeNull();
 
     expect(state.setup).not.toBeNull();
-    expect(state.setup?.step).toBe('choose-battlefield');
+    expect(state.setup?.step).toBe('choose-first-player');
+    expect(state.setup?.firstPlayerId).toBeNull();
+    expect(state.setup?.shieldRecipientId).toBeNull();
     expect(['alice', 'bob']).toContain(state.setup?.rollOffWinnerId);
     expect(state.setup?.shieldsRemaining).toBe(2);
   });

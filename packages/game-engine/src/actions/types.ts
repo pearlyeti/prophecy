@@ -2,7 +2,8 @@
 // resolution happen entirely inside the engine.
 
 export type Action =
-  | { type: 'setup.choose-battlefield'; playerId: string; battlefieldOwnerId: string }
+  | { type: 'setup.choose-first-player'; playerId: string; firstPlayerId: string }
+  | { type: 'setup.choose-shield-recipient'; playerId: string; shieldRecipientId: string }
   | { type: 'setup.place-shield'; playerId: string; characterId: string }
   | { type: 'pass'; playerId: string }
   | { type: 'activate'; playerId: string; cardId: string }

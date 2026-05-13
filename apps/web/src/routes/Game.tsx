@@ -110,9 +110,9 @@ function SetupPanel({
         <span className="ml-2 text-neutral-500">→ winner: {winnerName}</span>
       </div>
 
-      {game.setup.step === 'choose-battlefield' && isWinner && (
+      {game.setup.step === 'choose-first-player' && isWinner && (
         <div className="space-y-2">
-          <div className="text-sm text-neutral-300">Choose which battlefield to use:</div>
+          <div className="text-sm text-neutral-300">Choose who goes first (their battlefield is in play):</div>
           <div className="flex flex-wrap gap-2">
             {lobby.members.map((m) => (
               <button
@@ -120,25 +120,50 @@ function SetupPanel({
                 type="button"
                 onClick={() =>
                   send({
-                    type: 'setup.choose-battlefield',
+                    type: 'setup.choose-first-player',
                     playerId,
-                    battlefieldOwnerId: m.playerId,
+                    firstPlayerId: m.playerId,
                   })
                 }
                 className="rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm hover:border-neutral-500"
               >
-                Use {m.displayName}'s battlefield
-                {m.playerId !== playerId && (
-                  <span className="ml-2 text-xs text-neutral-500">(you take 2 shields)</span>
-                )}
+                {m.playerId === playerId ? 'I go first' : `${m.displayName} goes first`}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {game.setup.step === 'choose-battlefield' && !isWinner && (
-        <div className="text-sm text-neutral-400">Waiting for {winnerName} to choose a battlefield…</div>
+      {game.setup.step === 'choose-first-player' && !isWinner && (
+        <div className="text-sm text-neutral-400">Waiting for {winnerName} to choose who goes first…</div>
+      )}
+
+      {game.setup.step === 'choose-shield-recipient' && isWinner && (
+        <div className="space-y-2">
+          <div className="text-sm text-neutral-300">Choose who receives the 2 starting shields:</div>
+          <div className="flex flex-wrap gap-2">
+            {lobby.members.map((m) => (
+              <button
+                key={m.playerId}
+                type="button"
+                onClick={() =>
+                  send({
+                    type: 'setup.choose-shield-recipient',
+                    playerId,
+                    shieldRecipientId: m.playerId,
+                  })
+                }
+                className="rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm hover:border-neutral-500"
+              >
+                {m.playerId === playerId ? 'I take the shields' : `${m.displayName} takes the shields`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {game.setup.step === 'choose-shield-recipient' && !isWinner && (
+        <div className="text-sm text-neutral-400">Waiting for {winnerName} to assign the shields…</div>
       )}
 
       {game.setup.step === 'place-shields' && isShieldRecipient && (

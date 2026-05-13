@@ -40,7 +40,8 @@ export interface LegalActions {
    */
   readonly canPlayCard: boolean;
   /** Setup-phase availability. */
-  readonly canChooseBattlefield: boolean;
+  readonly canChooseFirstPlayer: boolean;
+  readonly canChooseShieldRecipient: boolean;
   readonly canPlaceShield: boolean;
 }
 
@@ -69,7 +70,8 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     return {
       ...EMPTY,
       canConcede: true,
-      canChooseBattlefield: isWinner && state.setup.step === 'choose-battlefield',
+      canChooseFirstPlayer: isWinner && state.setup.step === 'choose-first-player',
+      canChooseShieldRecipient: isWinner && state.setup.step === 'choose-shield-recipient',
       canPlaceShield:
         isRecipient && state.setup.step === 'place-shields' && state.setup.shieldsRemaining > 0,
     };
@@ -109,7 +111,8 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     activatableCharacterIds: activatable,
     resolvableSymbols: [...resolvable],
     canPlayCard: isMyTurn && player.handCount > 0,
-    canChooseBattlefield: false,
+    canChooseFirstPlayer: false,
+    canChooseShieldRecipient: false,
     canPlaceShield: false,
   };
 }
@@ -122,6 +125,7 @@ const EMPTY: LegalActions = {
   activatableCharacterIds: [],
   resolvableSymbols: [],
   canPlayCard: false,
-  canChooseBattlefield: false,
+  canChooseFirstPlayer: false,
+  canChooseShieldRecipient: false,
   canPlaceShield: false,
 };

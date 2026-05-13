@@ -332,7 +332,12 @@ In addition to characters and a deck, each player selects one battlefield to bri
 4. Each player may shuffle any number of cards from their hand back into their deck and redraw until they have 5 cards.
    - Players should choose simultaneously. If there's a disagreement, randomly determine who chooses first.
 5. Sort game tokens (damage, shields, resources) into piles near the play area. Each player gains 2 resources from the supply.
-6. Each player rolls their starting character dice and adds the values (white numbers). Ties reroll. The player with the highest total chooses which battlefield to fight on. The chosen battlefield's owner controls it and places it next to their deck. The other player sets their battlefield aside and gives 2 shields to their characters, distributed as they wish. Then return all character dice to their cards.
+6. Each player rolls their starting character dice and adds the values (white numbers). Ties reroll. The winner of the roll-off makes two independent choices:
+   - **First player.** Who acts first each round. That player's battlefield is in play and they are its controller; the other battlefield is set aside.
+   - **Shield recipient.** Which player receives the 2 starting shields. The winner may give the shields to themselves or to their opponent — independent of the first-player choice.
+   The chosen shield recipient distributes their 2 shields freely across their own characters (1+1 across two, or 2 on a single character). Then return all character dice to their cards.
+
+   > Prophecy's setup diverges from the original Star Wars: Destiny rules. In SWD the roll-off winner makes a single choice — pick the battlefield, and the loser automatically gets shields. Prophecy splits these into two independent decisions, so the winner can trade initiative against defense as they see fit.
 7. "After setup" abilities trigger.
 
 #### Rounds

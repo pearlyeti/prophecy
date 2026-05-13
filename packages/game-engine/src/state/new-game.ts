@@ -181,10 +181,11 @@ function runRollOff(
     const winners = playerIds.filter((id) => values[id] === max);
     if (winners.length === 1) {
       return {
-        step: 'choose-battlefield',
+        step: 'choose-first-player',
         rollOffValues: values,
         rollOffWinnerId: winners[0]!,
         shieldsRemaining: SHIELDS_TO_DISTRIBUTE,
+        firstPlayerId: null,
         shieldRecipientId: null,
       };
     }
@@ -257,31 +258,37 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
 
 /**
  * Test helper: produce a state that's already past the setup phase by
- * running roll-off, having the winner pick their own battlefield, and
- * having the loser place both shields on their first character. Useful
- * for tests that exercise action-phase behaviour and don't want to
- * drive setup themselves.
+ * driving the deterministic choices the engine expects in order —
+ * winner picks self as first player, picks the loser as shield
+ * recipient, loser stacks both shields on their first character.
+ * Useful for tests that exercise action-phase behaviour and don't
+ * want to drive setup themselves.
  *
  * Not exported from the engine entry point — tests import it directly.
  */
 export function newGameInActionPhase(input: NewGameInput): GameState {
   let state = newGame(input);
   const winnerId = state.setup!.rollOffWinnerId;
+  const loserId = state.playerOrder.find((id) => id !== winnerId)!;
 
   state = applyAction(state, {
-    type: 'setup.choose-battlefield',
+    type: 'setup.choose-first-player',
     playerId: winnerId,
-    battlefieldOwnerId: winnerId,
+    firstPlayerId: winnerId,
   }).state;
 
-  const recipientId = state.setup!.shieldRecipientId!;
-  const recipient = state.players[recipientId]!;
-  const firstCharacterId = recipient.characterOrder[0]!;
+  state = applyAction(state, {
+    type: 'setup.choose-shield-recipient',
+    playerId: winnerId,
+    shieldRecipientId: loserId,
+  }).state;
 
+  const recipient = state.players[loserId]!;
+  const firstCharacterId = recipient.characterOrder[0]!;
   for (let i = 0; i < SHIELDS_TO_DISTRIBUTE; i++) {
     state = applyAction(state, {
       type: 'setup.place-shield',
-      playerId: recipientId,
+      playerId: loserId,
       characterId: firstCharacterId,
     }).state;
   }

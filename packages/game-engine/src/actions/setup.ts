@@ -4,24 +4,24 @@ import { IllegalActionError } from './illegal';
 import type { ApplyResult } from './pass';
 
 /**
- * setup.choose-battlefield
+ * setup.choose-first-player
  *
- * The roll-off winner picks which player's battlefield is in play. The
- * chosen player becomes the battlefield controller; the other becomes
- * the shield recipient and will distribute 2 shields among their
- * characters next.
+ * The roll-off winner picks which player acts first each round. That
+ * player is the battlefield controller; their brought-in battlefield
+ * card is the one in play. The shield-recipient choice happens in the
+ * next step and is independent of this one.
  */
-export function applyChooseBattlefield(
+export function applyChooseFirstPlayer(
   state: GameState,
   playerId: string,
-  battlefieldOwnerId: string,
+  firstPlayerId: string,
 ): ApplyResult {
   if (state.phase !== 'setup' || state.setup === null) {
-    throw new IllegalActionError(`cannot choose battlefield outside the setup phase`);
+    throw new IllegalActionError(`cannot choose first player outside the setup phase`);
   }
-  if (state.setup.step !== 'choose-battlefield') {
+  if (state.setup.step !== 'choose-first-player') {
     throw new IllegalActionError(
-      `setup is at step "${state.setup.step}"; choose-battlefield no longer applies`,
+      `setup is at step "${state.setup.step}"; choose-first-player no longer applies`,
     );
   }
   if (playerId !== state.setup.rollOffWinnerId) {
@@ -29,32 +29,70 @@ export function applyChooseBattlefield(
       `${playerId} did not win the roll-off (winner: ${state.setup.rollOffWinnerId})`,
     );
   }
-  if (!state.playerOrder.includes(battlefieldOwnerId)) {
-    throw new IllegalActionError(
-      `${battlefieldOwnerId} is not in this game`,
-    );
-  }
-
-  const shieldRecipientId = state.playerOrder.find((id) => id !== battlefieldOwnerId);
-  if (shieldRecipientId === undefined) {
-    throw new Error('1v1 setup: could not resolve shield recipient');
+  if (!state.playerOrder.includes(firstPlayerId)) {
+    throw new IllegalActionError(`${firstPlayerId} is not in this game`);
   }
 
   const events: EngineEvent[] = [
     {
-      type: 'setup.battlefield-chosen',
-      payload: {
-        chosenByPlayerId: playerId,
-        battlefieldOwnerId,
-        shieldRecipientId,
-      },
+      type: 'setup.first-player-chosen',
+      payload: { chosenByPlayerId: playerId, firstPlayerId },
     },
   ];
 
   return {
     state: {
       ...state,
-      battlefieldControllerId: battlefieldOwnerId,
+      battlefieldControllerId: firstPlayerId,
+      setup: {
+        ...state.setup,
+        step: 'choose-shield-recipient',
+        firstPlayerId,
+      },
+    },
+    events,
+  };
+}
+
+/**
+ * setup.choose-shield-recipient
+ *
+ * Independent of the first-player choice: the roll-off winner picks
+ * which player gets the two starting shields. Could be either player —
+ * the winner trades initiative against defense however they like.
+ */
+export function applyChooseShieldRecipient(
+  state: GameState,
+  playerId: string,
+  shieldRecipientId: string,
+): ApplyResult {
+  if (state.phase !== 'setup' || state.setup === null) {
+    throw new IllegalActionError(`cannot choose shield recipient outside the setup phase`);
+  }
+  if (state.setup.step !== 'choose-shield-recipient') {
+    throw new IllegalActionError(
+      `setup is at step "${state.setup.step}"; choose-shield-recipient no longer applies`,
+    );
+  }
+  if (playerId !== state.setup.rollOffWinnerId) {
+    throw new IllegalActionError(
+      `${playerId} did not win the roll-off (winner: ${state.setup.rollOffWinnerId})`,
+    );
+  }
+  if (!state.playerOrder.includes(shieldRecipientId)) {
+    throw new IllegalActionError(`${shieldRecipientId} is not in this game`);
+  }
+
+  const events: EngineEvent[] = [
+    {
+      type: 'setup.shield-recipient-chosen',
+      payload: { chosenByPlayerId: playerId, shieldRecipientId },
+    },
+  ];
+
+  return {
+    state: {
+      ...state,
       setup: {
         ...state.setup,
         step: 'place-shields',
@@ -71,7 +109,7 @@ export function applyChooseBattlefield(
  * The shield recipient places one shield onto one of their characters.
  * Repeated until shieldsRemaining reaches 0, at which point the engine
  * transitions to phase = 'action' and seats the battlefield controller
- * as the active player.
+ * (= the chosen first player) as the active player.
  */
 export function applyPlaceShield(
   state: GameState,

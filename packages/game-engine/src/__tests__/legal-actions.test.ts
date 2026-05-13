@@ -7,37 +7,60 @@ import { basicGameInput } from './fixtures';
 
 describe('getLegalActions', () => {
   describe('setup phase', () => {
-    it('roll-off winner can choose battlefield', () => {
+    it('roll-off winner can choose the first player', () => {
       const state = newGame(basicGameInput({ seed: 'la-1' }));
       const winner = state.setup!.rollOffWinnerId;
       const loser = state.playerOrder.find((id) => id !== winner)!;
 
       const winnerActions = getLegalActions(state, winner);
-      expect(winnerActions.canChooseBattlefield).toBe(true);
+      expect(winnerActions.canChooseFirstPlayer).toBe(true);
+      expect(winnerActions.canChooseShieldRecipient).toBe(false);
       expect(winnerActions.canConcede).toBe(true);
       expect(winnerActions.canPass).toBe(false);
       expect(winnerActions.activatableCharacterIds).toEqual([]);
 
       const loserActions = getLegalActions(state, loser);
-      expect(loserActions.canChooseBattlefield).toBe(false);
+      expect(loserActions.canChooseFirstPlayer).toBe(false);
+      expect(loserActions.canChooseShieldRecipient).toBe(false);
       expect(loserActions.canPlaceShield).toBe(false);
     });
 
-    it('shield recipient can place shields after battlefield chosen', () => {
-      const initial = newGame(basicGameInput({ seed: 'la-2' }));
+    it('after first-player chosen, only the winner can pick the shield recipient', () => {
+      const initial = newGame(basicGameInput({ seed: 'la-2a' }));
       const winner = initial.setup!.rollOffWinnerId;
+      const loser = initial.playerOrder.find((id) => id !== winner)!;
       const state = applyAction(initial, {
-        type: 'setup.choose-battlefield',
+        type: 'setup.choose-first-player',
         playerId: winner,
-        battlefieldOwnerId: winner,
+        firstPlayerId: winner,
       }).state;
 
-      const recipient = state.setup!.shieldRecipientId!;
-      const actions = getLegalActions(state, recipient);
-      expect(actions.canPlaceShield).toBe(true);
-      // Winner can't do anything in this step.
+      expect(getLegalActions(state, winner).canChooseShieldRecipient).toBe(true);
+      expect(getLegalActions(state, winner).canChooseFirstPlayer).toBe(false);
+      expect(getLegalActions(state, loser).canChooseShieldRecipient).toBe(false);
+      expect(getLegalActions(state, loser).canPlaceShield).toBe(false);
+    });
+
+    it('shield recipient can place shields after both setup choices are made', () => {
+      const initial = newGame(basicGameInput({ seed: 'la-2' }));
+      const winner = initial.setup!.rollOffWinnerId;
+      const loser = initial.playerOrder.find((id) => id !== winner)!;
+      const afterFirst = applyAction(initial, {
+        type: 'setup.choose-first-player',
+        playerId: winner,
+        firstPlayerId: winner,
+      }).state;
+      const state = applyAction(afterFirst, {
+        type: 'setup.choose-shield-recipient',
+        playerId: winner,
+        shieldRecipientId: loser,
+      }).state;
+
+      expect(getLegalActions(state, loser).canPlaceShield).toBe(true);
+      // Winner is not the recipient → can't place; can't re-issue earlier choices.
       expect(getLegalActions(state, winner).canPlaceShield).toBe(false);
-      expect(getLegalActions(state, winner).canChooseBattlefield).toBe(false);
+      expect(getLegalActions(state, winner).canChooseFirstPlayer).toBe(false);
+      expect(getLegalActions(state, winner).canChooseShieldRecipient).toBe(false);
     });
   });
 

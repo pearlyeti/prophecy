@@ -108,27 +108,42 @@ export interface PlayerState {
 
 export type Phase = 'setup' | 'action' | 'upkeep' | 'ended';
 
-export type SetupStep = 'choose-battlefield' | 'place-shields' | 'done';
+export type SetupStep =
+  | 'choose-first-player'
+  | 'choose-shield-recipient'
+  | 'place-shields'
+  | 'done';
 
 /**
  * Substate that exists only while phase === 'setup'. The roll-off has
- * already happened (deterministically, at newGame time); the winner now
- * needs to choose a battlefield, after which the player whose
- * battlefield was not chosen distributes 2 shields among their
- * characters. When `step` reaches 'done', the engine transitions to
- * phase = 'action'.
+ * already happened (deterministically, at newGame time). The winner
+ * then makes two independent decisions:
+ *
+ *   1. Who goes first. The chosen player's battlefield is in play and
+ *      they get the first turn each round (= battlefield controller).
+ *   2. Who gets shields. Independent of #1 — the winner can hand
+ *      shields to either themselves or the opponent.
+ *
+ * The shield recipient distributes 2 shields freely across their own
+ * characters (1+1 split or 2 on a single character). When `step`
+ * reaches 'done', the engine transitions to phase = 'action'.
  */
 export interface SetupContext {
   readonly step: SetupStep;
   /** Each player's roll-off total. */
   readonly rollOffValues: Readonly<Record<string, number>>;
-  /** Winner of the roll-off — the player who chooses the battlefield. */
+  /** Winner of the roll-off — the player who makes both setup choices. */
   readonly rollOffWinnerId: string;
   /** How many shields are still to be distributed. Starts at 2. */
   readonly shieldsRemaining: number;
   /**
-   * The player whose battlefield was NOT chosen — they distribute
-   * shields. Null until the battlefield has been chosen.
+   * Whichever player the winner chose to act first. Null until the
+   * choice has been made. Determines battlefield controller too.
+   */
+  readonly firstPlayerId: string | null;
+  /**
+   * Whichever player the winner chose to receive shields. Null until
+   * the choice has been made.
    */
   readonly shieldRecipientId: string | null;
 }

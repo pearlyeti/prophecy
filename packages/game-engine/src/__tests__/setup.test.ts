@@ -6,111 +6,166 @@ import { newGame } from '../state/new-game';
 import { basicGameInput } from './fixtures';
 
 describe('setup phase', () => {
-  describe('setup.choose-battlefield', () => {
-    it('lets the roll-off winner pick their own battlefield', () => {
-      const initial = newGame(basicGameInput({ seed: 'choose-1' }));
+  describe('setup.choose-first-player', () => {
+    it('winner picks themselves: battlefieldController is set, step advances', () => {
+      const initial = newGame(basicGameInput({ seed: 'first-1' }));
       const winner = initial.setup!.rollOffWinnerId;
-      const loser = initial.playerOrder.find((id) => id !== winner)!;
 
       const { state, events } = applyAction(initial, {
-        type: 'setup.choose-battlefield',
+        type: 'setup.choose-first-player',
         playerId: winner,
-        battlefieldOwnerId: winner,
+        firstPlayerId: winner,
       });
 
       expect(state.battlefieldControllerId).toBe(winner);
-      expect(state.setup?.step).toBe('place-shields');
-      expect(state.setup?.shieldRecipientId).toBe(loser);
-      expect(state.phase).toBe('setup');
+      expect(state.setup?.firstPlayerId).toBe(winner);
+      expect(state.setup?.step).toBe('choose-shield-recipient');
+      expect(state.setup?.shieldRecipientId).toBeNull();
 
-      const event = events.find((e) => e.type === 'setup.battlefield-chosen');
-      expect(event?.payload).toEqual({
-        chosenByPlayerId: winner,
-        battlefieldOwnerId: winner,
-        shieldRecipientId: loser,
-      });
+      const evt = events.find((e) => e.type === 'setup.first-player-chosen');
+      expect(evt?.payload).toEqual({ chosenByPlayerId: winner, firstPlayerId: winner });
     });
 
-    it('lets the roll-off winner pick the opponent\'s battlefield (winner takes shields)', () => {
-      const initial = newGame(basicGameInput({ seed: 'choose-2' }));
+    it('winner picks the opponent: opponent becomes the battlefield controller', () => {
+      const initial = newGame(basicGameInput({ seed: 'first-2' }));
       const winner = initial.setup!.rollOffWinnerId;
       const opponent = initial.playerOrder.find((id) => id !== winner)!;
-
       const { state } = applyAction(initial, {
-        type: 'setup.choose-battlefield',
+        type: 'setup.choose-first-player',
         playerId: winner,
-        battlefieldOwnerId: opponent,
+        firstPlayerId: opponent,
       });
-
       expect(state.battlefieldControllerId).toBe(opponent);
-      expect(state.setup?.shieldRecipientId).toBe(winner);
+      expect(state.setup?.firstPlayerId).toBe(opponent);
     });
 
     it('throws when called by the loser', () => {
-      const initial = newGame(basicGameInput({ seed: 'choose-3' }));
+      const initial = newGame(basicGameInput({ seed: 'first-3' }));
       const winner = initial.setup!.rollOffWinnerId;
       const loser = initial.playerOrder.find((id) => id !== winner)!;
-
       expect(() =>
         applyAction(initial, {
-          type: 'setup.choose-battlefield',
+          type: 'setup.choose-first-player',
           playerId: loser,
-          battlefieldOwnerId: loser,
+          firstPlayerId: loser,
         }),
       ).toThrow(/did not win the roll-off/);
     });
 
-    it('throws when called outside the choose-battlefield step', () => {
-      const initial = newGame(basicGameInput({ seed: 'choose-4' }));
+    it('throws when re-issued after the step has advanced', () => {
+      const initial = newGame(basicGameInput({ seed: 'first-4' }));
       const winner = initial.setup!.rollOffWinnerId;
-      const afterChoice = applyAction(initial, {
-        type: 'setup.choose-battlefield',
+      const after = applyAction(initial, {
+        type: 'setup.choose-first-player',
         playerId: winner,
-        battlefieldOwnerId: winner,
+        firstPlayerId: winner,
       }).state;
-
-      // Try to choose again — should fail because step is now 'place-shields'.
       expect(() =>
-        applyAction(afterChoice, {
-          type: 'setup.choose-battlefield',
+        applyAction(after, {
+          type: 'setup.choose-first-player',
           playerId: winner,
-          battlefieldOwnerId: winner,
+          firstPlayerId: winner,
         }),
       ).toThrow(/no longer applies/);
     });
   });
 
-  describe('setup.place-shield', () => {
-    it('places shields one at a time and transitions to action phase on the second', () => {
-      const initial = newGame(basicGameInput({ seed: 'shield-1' }));
+  describe('setup.choose-shield-recipient', () => {
+    it('winner picks either player; step advances to place-shields', () => {
+      const initial = newGame(basicGameInput({ seed: 'sr-1' }));
       const winner = initial.setup!.rollOffWinnerId;
       const opponent = initial.playerOrder.find((id) => id !== winner)!;
-
-      const afterChoice = applyAction(initial, {
-        type: 'setup.choose-battlefield',
+      const afterFirst = applyAction(initial, {
+        type: 'setup.choose-first-player',
         playerId: winner,
-        battlefieldOwnerId: winner,
+        firstPlayerId: winner,
       }).state;
 
-      const recipient = afterChoice.setup!.shieldRecipientId!;
-      expect(recipient).toBe(opponent);
-      const characterId = afterChoice.players[recipient]!.characterOrder[0]!;
+      const { state, events } = applyAction(afterFirst, {
+        type: 'setup.choose-shield-recipient',
+        playerId: winner,
+        shieldRecipientId: opponent,
+      });
 
-      const afterFirst = applyAction(afterChoice, {
+      expect(state.setup?.shieldRecipientId).toBe(opponent);
+      expect(state.setup?.step).toBe('place-shields');
+      const evt = events.find((e) => e.type === 'setup.shield-recipient-chosen');
+      expect(evt?.payload).toEqual({ chosenByPlayerId: winner, shieldRecipientId: opponent });
+    });
+
+    it('winner is allowed to hand shields to themselves', () => {
+      const initial = newGame(basicGameInput({ seed: 'sr-2' }));
+      const winner = initial.setup!.rollOffWinnerId;
+      const afterFirst = applyAction(initial, {
+        type: 'setup.choose-first-player',
+        playerId: winner,
+        firstPlayerId: winner,
+      }).state;
+      const { state } = applyAction(afterFirst, {
+        type: 'setup.choose-shield-recipient',
+        playerId: winner,
+        shieldRecipientId: winner,
+      });
+      expect(state.setup?.shieldRecipientId).toBe(winner);
+    });
+
+    it('throws when called by the loser', () => {
+      const initial = newGame(basicGameInput({ seed: 'sr-3' }));
+      const winner = initial.setup!.rollOffWinnerId;
+      const loser = initial.playerOrder.find((id) => id !== winner)!;
+      const afterFirst = applyAction(initial, {
+        type: 'setup.choose-first-player',
+        playerId: winner,
+        firstPlayerId: winner,
+      }).state;
+      expect(() =>
+        applyAction(afterFirst, {
+          type: 'setup.choose-shield-recipient',
+          playerId: loser,
+          shieldRecipientId: loser,
+        }),
+      ).toThrow(/did not win the roll-off/);
+    });
+  });
+
+  describe('setup.place-shield', () => {
+    function driveTo(seed: string, shieldRecipient: 'winner' | 'loser') {
+      const initial = newGame(basicGameInput({ seed }));
+      const winner = initial.setup!.rollOffWinnerId;
+      const loser = initial.playerOrder.find((id) => id !== winner)!;
+      const after1 = applyAction(initial, {
+        type: 'setup.choose-first-player',
+        playerId: winner,
+        firstPlayerId: winner,
+      }).state;
+      const recipientId = shieldRecipient === 'winner' ? winner : loser;
+      const after2 = applyAction(after1, {
+        type: 'setup.choose-shield-recipient',
+        playerId: winner,
+        shieldRecipientId: recipientId,
+      }).state;
+      return { state: after2, winner, loser, recipientId };
+    }
+
+    it('places shields one at a time and transitions to action phase on the second', () => {
+      const { state, recipientId } = driveTo('shield-1', 'loser');
+      const characterId = state.players[recipientId]!.characterOrder[0]!;
+
+      const after1 = applyAction(state, {
         type: 'setup.place-shield',
-        playerId: recipient,
+        playerId: recipientId,
         characterId,
       }).state;
-      expect(afterFirst.players[recipient]?.characters[characterId]?.shields).toBe(1);
-      expect(afterFirst.setup?.shieldsRemaining).toBe(1);
-      expect(afterFirst.phase).toBe('setup');
+      expect(after1.players[recipientId]?.characters[characterId]?.shields).toBe(1);
+      expect(after1.setup?.shieldsRemaining).toBe(1);
+      expect(after1.phase).toBe('setup');
 
-      const final = applyAction(afterFirst, {
+      const final = applyAction(after1, {
         type: 'setup.place-shield',
-        playerId: recipient,
+        playerId: recipientId,
         characterId,
       });
-      expect(final.state.players[recipient]?.characters[characterId]?.shields).toBe(2);
+      expect(final.state.players[recipientId]?.characters[characterId]?.shields).toBe(2);
       expect(final.state.phase).toBe('action');
       expect(final.state.setup).toBeNull();
       expect(final.state.activePlayerId).toBe(final.state.battlefieldControllerId);
@@ -121,60 +176,89 @@ describe('setup phase', () => {
       expect(eventTypes).toContain('round.begin');
     });
 
-    it('rejects placement on a non-recipient character', () => {
-      const initial = newGame(basicGameInput({ seed: 'shield-2' }));
+    it('allows splitting shields across two characters when the recipient has more than one', () => {
+      const initial = newGame(
+        basicGameInput({
+          seed: 'shield-split',
+          playerCharacters: {
+            alice: [
+              { id: 'alice.c1', cardId: 'CHAR_TEST_001', elite: false },
+              { id: 'alice.c2', cardId: 'CHAR_TEST_001', elite: false },
+            ],
+            bob: [{ id: 'bob.c1', cardId: 'CHAR_TEST_001', elite: false }],
+          },
+        }),
+      );
       const winner = initial.setup!.rollOffWinnerId;
-      const opponent = initial.playerOrder.find((id) => id !== winner)!;
-      const afterChoice = applyAction(initial, {
-        type: 'setup.choose-battlefield',
+      // Recipient is the player with two characters (whichever they are).
+      const alice = initial.players.alice!;
+      const recipientId = alice.characterOrder.length === 2 ? 'alice' : 'bob';
+
+      let state = applyAction(initial, {
+        type: 'setup.choose-first-player',
         playerId: winner,
-        battlefieldOwnerId: winner,
+        firstPlayerId: winner,
+      }).state;
+      state = applyAction(state, {
+        type: 'setup.choose-shield-recipient',
+        playerId: winner,
+        shieldRecipientId: recipientId,
       }).state;
 
-      // Try to place a shield on the winner's character instead.
-      const winnerCharId = afterChoice.players[winner]!.characterOrder[0]!;
+      const order = state.players[recipientId]!.characterOrder;
+      if (order.length < 2) return; // recipient doesn't have two characters; skip split assertion
+      state = applyAction(state, {
+        type: 'setup.place-shield',
+        playerId: recipientId,
+        characterId: order[0]!,
+      }).state;
+      const final = applyAction(state, {
+        type: 'setup.place-shield',
+        playerId: recipientId,
+        characterId: order[1]!,
+      });
+      expect(final.state.players[recipientId]?.characters[order[0]!]?.shields).toBe(1);
+      expect(final.state.players[recipientId]?.characters[order[1]!]?.shields).toBe(1);
+      expect(final.state.phase).toBe('action');
+    });
+
+    it('rejects placement on a non-recipient character', () => {
+      const { state, winner, recipientId } = driveTo('shield-2', 'loser');
+      // Try to place a shield on the winner's character when winner is not recipient.
+      if (winner === recipientId) return;
+      const winnerCharId = state.players[winner]!.characterOrder[0]!;
       expect(() =>
-        applyAction(afterChoice, {
+        applyAction(state, {
           type: 'setup.place-shield',
-          playerId: opponent,
+          playerId: recipientId,
           characterId: winnerCharId,
         }),
       ).toThrow(/does not belong/);
     });
 
     it('rejects placement onto a character with already 3 shields', () => {
-      const initial = newGame(basicGameInput({ seed: 'shield-3' }));
-      const winner = initial.setup!.rollOffWinnerId;
-      const opponent = initial.playerOrder.find((id) => id !== winner)!;
-      const afterChoice = applyAction(initial, {
-        type: 'setup.choose-battlefield',
-        playerId: winner,
-        battlefieldOwnerId: winner,
-      }).state;
-      const characterId = afterChoice.players[opponent]!.characterOrder[0]!;
-
-      // Synthesize a state with the character already maxed.
+      const { state, recipientId } = driveTo('shield-3', 'loser');
+      const characterId = state.players[recipientId]!.characterOrder[0]!;
       const maxed = {
-        ...afterChoice,
+        ...state,
         players: {
-          ...afterChoice.players,
-          [opponent]: {
-            ...afterChoice.players[opponent]!,
+          ...state.players,
+          [recipientId]: {
+            ...state.players[recipientId]!,
             characters: {
-              ...afterChoice.players[opponent]!.characters,
+              ...state.players[recipientId]!.characters,
               [characterId]: {
-                ...afterChoice.players[opponent]!.characters[characterId]!,
+                ...state.players[recipientId]!.characters[characterId]!,
                 shields: 3,
               },
             },
           },
         },
       };
-
       expect(() =>
         applyAction(maxed, {
           type: 'setup.place-shield',
-          playerId: opponent,
+          playerId: recipientId,
           characterId,
         }),
       ).toThrow(/already has the maximum/);
@@ -183,13 +267,13 @@ describe('setup phase', () => {
     it('rejects place-shield outside the place-shields step', () => {
       const initial = newGame(basicGameInput({ seed: 'shield-4' }));
       const winner = initial.setup!.rollOffWinnerId;
-      const opponentCharId = initial.players[winner]!.characterOrder[0]!;
-      // We're still at choose-battlefield step.
+      const winnerCharId = initial.players[winner]!.characterOrder[0]!;
+      // We're still at choose-first-player step.
       expect(() =>
         applyAction(initial, {
           type: 'setup.place-shield',
           playerId: winner,
-          characterId: opponentCharId,
+          characterId: winnerCharId,
         }),
       ).toThrow(IllegalActionError);
     });
