@@ -20,32 +20,9 @@ Dependencies between cards are noted under **Depends on**. If a card lists one, 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- **2026-05-13 — ENGINE-3 — `applyRerollDice`** (claude)
+- _(none — claim a card from Up next.)_
 
 ### Up next — task cards
-
-#### ENGINE-3 — `applyRerollDice`
-**Why now.** Players need a way to fix bad rolls. Already in the Action union; needs a handler.
-
-**Scope.**
-- Implement `applyRerollDice(state, playerId, discardCardId, dieInstanceIds)` and dispatch.
-- Validate: active player, action phase, discard card in hand, every die id in the player's pool.
-- Move the discard card hand → discard. Reroll the listed dice using the deterministic seeded RNG (use the same per-action fork pattern as `applyActivate`).
-- Emit `dice.rerolled` event with the new face indexes.
-- Counts as a turn action: reset `consecutivePasses`, rotate.
-
-**Context to load.**
-- `packages/game-engine/src/actions/activate.ts` (RNG fork pattern, die roll helper)
-- `packages/game-engine/src/state/rng.ts` (or wherever Mulberry32 + FNV lives)
-- `packages/game-engine/src/__tests__/activate.test.ts` (deterministic-roll pattern to mirror)
-
-**Out of scope.** Card effects that grant free rerolls. Multiple dice rerolled from different sources. Just the canonical "discard 1 card, reroll N dice" action.
-
-**Depends on.** ENGINE-1.
-
-**Done when.** Typecheck clean. New `reroll.test.ts` for determinism (same seed → same new faces), illegal-when-card-not-in-hand, illegal-when-die-not-in-pool, turn rotation.
-
----
 
 #### ENGINE-4 — Ambush + extra-turn plumbing
 **Why now.** Ambush is a core keyword; the rules say "after this character activates, they may take an additional action this turn" — and other effects grant extra turns too. Without this, the turn loop is structurally wrong even if no card uses it yet.
@@ -273,6 +250,7 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
 ### Done
+- **2026-05-13 — ENGINE-3 — `applyRerollDice` + discard-first UI** (`ffce0f1`, `7ba508f`). New `applyRerollDice(state, playerId, discardCardId, dieInstanceIds)` handler: validates active player + card-in-hand + dice-in-pool, discards the card, rerolls each listed die via a per-action seeded RNG fork (`reroll:${turnIndex}:${discardCardId}`), emits `dice.rerolled`, resets `consecutivePasses`, rotates. Zero dice is legal (the player cycles a card without rerolling anything). 109 engine tests green (6 new in `reroll.test.ts`). UI: the Zustand `resolveMode` slice generalised to `selectionMode` (discriminated union of `resolve` / `reroll`); a new top-level "Discard to reroll" action button opens a hand-card picker → `enterRerollMode(cardId)` → dice tray becomes interactive with no symbol-lock → sticky action bar shows "Reroll selected dice" (zero or more allowed).
 - **2026-05-13 — WEB-2 — Resolve mode: symbol-locked die selection** (`31a15d4`). Tap "Resolve dice" in the action panel → the panel hides, the player's own dice tiles in `DicePoolStrip` become tap targets, and a sticky bottom bar (cost / total / warnings / Cancel / Resolve) drives the dispatch. First die tap locks the symbol; subsequent taps enable only same-symbol dice (modifiers of the locked symbol included); tap a selected die to deselect. Resolve dispatches directly for resource / disrupt; opens a target overlay first for melee / ranged (opponent characters) and shield (own characters). New `resolveMode` slice on the Zustand store keeps the selection in one place. Resolve mode auto-exits when the turn rotates away or the phase changes.
 - **2026-05-13 — Engine: ready exhausted characters at upkeep** (`fcf4920`). Plugs a placeholder in `runUpkeepAndStartRound` — exhausted characters now flip back to ready at start-of-round per rules-reference §Upkeep step 1. Without this, a new round started with no activatable characters and the game stalled. +1 test in `pass.test.ts`.
 - **2026-05-13 — WEB-1 — ActionPanel: action → target two-step** (`1767a5d`). ActionPanel now drives every action through `getLegalActions`. Activate / Resolve / Play-card / Claim / Concede open a bottom-sheet (≤ sm) or centered modal (≥ sm) instead of relying on flat buttons; tap targets ≥ 44×44, disabled actions stay dimmed-but-visible, backdrop tap or Escape closes. Claim and Concede route through a dedicated `ConfirmOverlay` (no more `window.confirm`). Resolve is single-die-at-a-time for now — the symbol-locked multi-die UX is WEB-2. Added `@prophecy/game-engine` as a direct web dep so the client can call `getLegalActions` against live state. Manual smoke verified by user on desktop + phone-portrait viewport.
