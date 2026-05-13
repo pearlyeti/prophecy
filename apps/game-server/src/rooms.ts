@@ -1,13 +1,15 @@
 import {
   applyAction,
-  newGame,
+  createRng,
+  newGameFromDecks,
   type Action,
   type ApplyResult,
   type GameState,
-  type NewGameInput,
 } from '@prophecy/game-engine';
 import type { LobbyMember, LobbyPhase, LobbyState } from '@prophecy/protocol';
 import { randomBytes, randomUUID } from 'node:crypto';
+
+import { TESTING_CARDS, TESTING_DECKS } from './corpus.js';
 
 // Two-player limit per the v1 scope (1v1 only).
 const ROOM_CAPACITY = 2;
@@ -109,24 +111,30 @@ export function startRoom(roomId: string, playerId: string, seed: string): Room 
     throw new LobbyError('lobby-full', 'lobby needs exactly two players to start');
   }
 
-  // Build a synthetic newGame input — one placeholder character per player.
-  // Real character/deck selection comes when the deck-builder lands.
+  // Random-but-deterministic deck assignment from the seed: pick the
+  // first two committed test decks and 50/50 swap which player gets
+  // which. This is the stand-in until the deckbuilder lands and players
+  // bring their own.
   const playerIds = [...room.members.keys()] as [string, string];
-  const input: NewGameInput = {
-    seed,
-    playerIds,
-    playerCharacters: Object.fromEntries(
-      playerIds.map((id) => [
-        id,
-        [{ id: `${id}.c1`, cardId: 'CHAR_TEST_001', elite: false }],
-      ]),
-    ),
-    playerBattlefieldCardIds: Object.fromEntries(
-      playerIds.map((id) => [id, `BF_TEST_${id}`]),
-    ),
-  };
+  const deckA = TESTING_DECKS[0];
+  const deckB = TESTING_DECKS[1];
+  if (!deckA || !deckB) {
+    throw new Error('corpus must expose at least two test decks');
+  }
+  const swap = createRng(seed).fork('deck-assignment').next() < 0.5;
+  const [firstDeck, secondDeck] = swap ? [deckB, deckA] : [deckA, deckB];
 
-  room.game = newGame(input);
+  type GameDeck = Parameters<typeof newGameFromDecks>[0]['assignments'][number]['deck'];
+  type GameCatalog = Parameters<typeof newGameFromDecks>[0]['catalog'];
+
+  room.game = newGameFromDecks({
+    seed,
+    catalog: TESTING_CARDS as unknown as GameCatalog,
+    assignments: [
+      { playerId: playerIds[0], deck: firstDeck as unknown as GameDeck },
+      { playerId: playerIds[1], deck: secondDeck as unknown as GameDeck },
+    ],
+  });
   room.phase = 'in-game';
   return room;
 }
