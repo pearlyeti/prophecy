@@ -368,6 +368,7 @@ export function CardsTab({
                   draggable
                   onDragStart={(e) => {
                     setDragKey(tab.key);
+                    setActiveTabKey(tab.key);
                     setDragOriginalTabs([...tabs]);
                     lastDragOverKey.current = null;
                     e.dataTransfer.effectAllowed = 'move';
