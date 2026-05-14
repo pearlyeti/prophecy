@@ -9,7 +9,7 @@ import {
   type Ability,
   type DieFace,
 } from '@prophecy/protocol';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { AbilityBuilder } from './AbilityBuilder.js';
 import { DiceEditor, defaultDiceFaces } from './DiceEditor.js';
@@ -760,39 +760,93 @@ function SubtypePicker({
   options: string[];
   onChange: (next: string[]) => void;
 }) {
-  const toggle = (val: string) =>
-    onChange(selected.includes(val) ? selected.filter((s) => s !== val) : [...selected, val]);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  if (options.length === 0) {
-    return (
-      <div className="col-span-full text-[11px] text-neutral-600">
-        No subtypes defined — add some in the Attributes tab first.
-      </div>
-    );
-  }
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const available = options.filter(
+    (o) => !selected.includes(o) && (!search || o.toLowerCase().includes(search.toLowerCase())),
+  );
+
+  const add = (val: string) => {
+    onChange([...selected, val]);
+    setSearch('');
+  };
+
+  const remove = (val: string) => onChange(selected.filter((s) => s !== val));
 
   return (
     <div className="col-span-full flex flex-col gap-1 text-[11px] text-neutral-400">
       <span>Subtypes</span>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((s) => {
-          const active = selected.includes(s);
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => toggle(s)}
-              className={`min-h-[32px] rounded border px-2 py-0.5 text-xs transition ${
-                active
-                  ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
-                  : 'border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200'
-              }`}
-            >
-              {active && <span className="mr-1 text-emerald-400">✓</span>}
-              {s}
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {selected.map((s) => (
+          <span key={s} className="flex items-center gap-1 rounded border border-emerald-700 bg-emerald-950/40 px-2 py-0.5 text-xs text-emerald-100">
+            {s}
+            <button type="button" onClick={() => remove(s)} className="text-emerald-500 hover:text-red-400" aria-label={`Remove ${s}`}>×</button>
+          </span>
+        ))}
+
+        <div ref={containerRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            disabled={options.length === 0}
+            className="min-h-[28px] rounded border border-dashed border-neutral-600 px-2 py-0.5 text-xs text-neutral-400 hover:border-neutral-400 hover:text-neutral-200 disabled:opacity-40"
+          >
+            + Subtype
+          </button>
+
+          {open && (
+            <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
+              <div className="p-2">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-100 outline-none"
+                />
+              </div>
+              <ul className="max-h-48 overflow-y-auto pb-1">
+                {available.length === 0 ? (
+                  <li className="px-3 py-2 text-xs text-neutral-600">
+                    {search ? 'No matches' : 'All subtypes selected'}
+                  </li>
+                ) : (
+                  available.map((s) => (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onClick={() => add(s)}
+                        className="w-full px-3 py-1.5 text-left text-xs text-neutral-200 hover:bg-neutral-800"
+                      >
+                        {s}
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {options.length === 0 && (
+          <span className="text-[10px] text-neutral-600">Add subtypes in the Attributes tab first.</span>
+        )}
       </div>
     </div>
   );
