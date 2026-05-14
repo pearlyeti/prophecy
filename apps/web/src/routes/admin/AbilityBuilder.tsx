@@ -45,12 +45,18 @@ type KnownOp = (typeof KNOWN_OPS)[number];
 type StubOp = (typeof STUB_OPS)[number];
 type OpKind = KnownOp | StubOp | 'new';
 
-const TRIGGER_KINDS = [
-  'afterActivateCharacter', 'afterActivateSupport', 'afterPlayCard', 'afterPlayUpgrade',
-  'afterCharacterDefeated', 'afterDieRolledSymbol', 'afterResolveDie',
-  'afterClaimBattlefield', 'afterRemoveDice', 'afterDealDamage', 'afterTakeDamage',
-  'beforeCharacterDefeated', 'beforeTakeDamage', 'beforeActivate', 'beforeResolve', 'setup',
+const TRIGGER_KINDS_WIRED = [
+  'afterActivateCharacter', 'afterDealDamage', 'afterTakeDamage',
+  'afterCharacterDefeated', 'afterPlayCard', 'afterClaimBattlefield', 'afterResolveDie',
+  'beforeActivate', 'beforeTakeDamage',
 ] as const;
+
+const TRIGGER_KINDS_STUB = [
+  'afterActivateSupport', 'afterPlayUpgrade', 'afterDieRolledSymbol', 'afterRemoveDice',
+  'beforeCharacterDefeated', 'beforeResolve', 'setup',
+] as const;
+
+const TRIGGER_KINDS = [...TRIGGER_KINDS_WIRED, ...TRIGGER_KINDS_STUB] as const;
 
 const CONDITION_KINDS = [
   'controlsBattlefield', 'spotCharacter', 'spotCard', 'moreReadyCharacters',
@@ -398,11 +404,24 @@ function TriggerEventEditor({ value, onChange }: {
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <SelectField
-        value={value.kind}
-        options={TRIGGER_KINDS.map((k) => ({ value: k, label: k }))}
-        onChange={(k) => onChange(defaultTrigger(k as TriggerEvent['kind']))}
-      />
+      <label className="flex flex-col text-[11px] text-neutral-400">
+        <select
+          value={value.kind}
+          onChange={(e) => onChange(defaultTrigger(e.target.value as TriggerEvent['kind']))}
+          className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+        >
+          <optgroup label="Wired — engine fires these">
+            {TRIGGER_KINDS_WIRED.map((k) => (
+              <option key={k} value={k}>{k}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Schema-only — not yet wired, won't fire">
+            {TRIGGER_KINDS_STUB.map((k) => (
+              <option key={k} value={k}>{k}</option>
+            ))}
+          </optgroup>
+        </select>
+      </label>
       <TriggerEventFields value={value} onChange={onChange} />
     </div>
   );
