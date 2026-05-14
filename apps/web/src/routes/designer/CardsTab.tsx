@@ -215,14 +215,33 @@ export function CardsTab({
                           <button
                             type="button"
                             onClick={() => select(c.id)}
-                            className={`min-h-[44px] w-full rounded border px-2 py-1 text-left text-xs ${
+                            className={`flex min-h-[44px] w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs ${
                               isSelected
                                 ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
                                 : 'border-neutral-800 bg-neutral-900 text-neutral-200 hover:border-neutral-600'
                             }`}
                           >
-                            <div className="font-medium leading-tight">{c.name}</div>
-                            <div className="font-mono text-[10px] text-neutral-500">{c.id}</div>
+                            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded">
+                              {c.artUrl ? (
+                                <img
+                                  src={c.artUrl}
+                                  alt=""
+                                  aria-hidden
+                                  style={{
+                                    width: '100%', height: '100%', objectFit: 'cover',
+                                    objectPosition: `${c.artFrameX ?? 50}% ${c.artFrameY ?? 50}%`,
+                                    transform: (c.artFrameZoom ?? 1) > 1 ? `scale(${c.artFrameZoom})` : undefined,
+                                    transformOrigin: `${c.artFrameX ?? 50}% ${c.artFrameY ?? 50}%`,
+                                  }}
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-neutral-800" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium leading-tight">{c.name}</div>
+                              <div className="font-mono text-[10px] text-neutral-500">{c.id}</div>
+                            </div>
                           </button>
                         </li>
                       );
