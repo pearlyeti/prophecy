@@ -363,13 +363,11 @@ export function CardsTab({
               const isActive = tab.key === activeTabKey;
               const isDragging = tab.key === dragKey;
               return (
-                <motion.div
-                  key={tab.key}
-                  layout
-                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                <motion.div key={tab.key} layout transition={{ duration: 0.25, ease: 'easeInOut' }}>
+                <div
                   data-tabkey={tab.key}
                   draggable
-                  onDragStart={(e) => {
+                  onDragStart={(e: React.DragEvent) => {
                     setDragKey(tab.key);
                     setActiveTabKey(tab.key);
                     setDragOriginalTabs([...tabs]);
@@ -377,7 +375,6 @@ export function CardsTab({
                     e.dataTransfer.effectAllowed = 'move';
                   }}
                   onDragEnd={() => {
-                    // Restore original order if dropped outside (cancelled).
                     if (dragOriginalTabs) setTabs(dragOriginalTabs);
                     setDragKey(null);
                     setDragOriginalTabs(null);
@@ -407,6 +404,7 @@ export function CardsTab({
                   >
                     ×
                   </button>
+                </div>
                 </motion.div>
               );
             })}
