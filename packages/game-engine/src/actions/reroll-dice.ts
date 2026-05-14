@@ -71,7 +71,13 @@ export function applyRerollDice(
     const faceIndex = rng.rollDie(6);
     const face = faces[faceIndex]!;
     rolled.push({ instanceId: d.instanceId, faceIndex, face });
-    return { instanceId: d.instanceId, cardId: d.cardId, faceIndex, face, ownerInstanceId: d.ownerInstanceId };
+    return {
+      instanceId: d.instanceId,
+      cardId: d.cardId,
+      faceIndex,
+      face,
+      ...(d.ownerInstanceId !== undefined ? { ownerInstanceId: d.ownerInstanceId } : {}),
+    };
   });
 
   const updatedPlayer: PlayerState = {
