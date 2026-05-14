@@ -1040,7 +1040,7 @@ function DragArtifact({
           {card.cost}
         </span>
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-3">
-          <span className="line-clamp-2 text-[9px] leading-tight text-white">{card.name}</span>
+          <span className="line-clamp-2 text-center text-[9px] leading-tight text-white">{card.name}</span>
         </div>
       </div>
     </div>,
@@ -1146,7 +1146,7 @@ function HandCardTile({
       </span>
       {/* name scrim — bottom of art */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-3">
-        <span className="line-clamp-2 text-[9px] leading-tight text-white">
+        <span className="line-clamp-2 text-center text-[9px] leading-tight text-white">
           {card?.name ?? '—'}
         </span>
       </div>
@@ -1643,7 +1643,7 @@ function CharacterCard({
         <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} />
         {/* name scrim — only useful when card is upright */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-5">
-          <span className="line-clamp-2 text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
+          <span className="line-clamp-2 text-center text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
         </div>
       </button>
 
