@@ -336,7 +336,7 @@ export function CardsTab({
                     className="flex flex-col items-start text-left"
                   >
                     <span className="max-w-[140px] truncate leading-tight">{tab.draft.name || 'New Card'}</span>
-                    <span className={`mt-0.5 rounded px-1.5 py-0 text-[11px] font-medium capitalize text-white ${TYPE_BADGE[tab.draft.type]}`}>
+                    <span className={`mt-1.5 rounded px-1.5 py-0 text-[11px] font-medium capitalize text-white ${TYPE_BADGE[tab.draft.type]}`}>
                       {tab.draft.type}
                     </span>
                   </button>
