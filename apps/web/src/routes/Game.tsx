@@ -1177,7 +1177,7 @@ function DragArtifact({
 }: {
   card: DragCardInfo;
   overZone: boolean;
-  artifactRef: React.RefObject<HTMLDivElement>;
+  artifactRef: React.RefObject<HTMLDivElement | null>;
 }) {
   return createPortal(
     <div
@@ -1343,7 +1343,7 @@ function HandStrip({
                   catalogById={catalogById}
                   eligible={eligible}
                   onTap={() => onTap(id)}
-                  dragHandlers={dragHandlers}
+                  {...(dragHandlers ? { dragHandlers } : {})}
                 />
               );
             })}
