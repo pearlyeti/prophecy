@@ -860,6 +860,9 @@ interface DragCardInfo {
   type: string;
   cost: number;
   artUrl?: string | null | undefined;
+  artFrameX?: number | null | undefined;
+  artFrameY?: number | null | undefined;
+  artFrameZoom?: number | null | undefined;
 }
 
 type DragHandlers = Pick<React.HTMLAttributes<HTMLButtonElement>, 'onTouchStart' | 'onMouseDown'>;
@@ -1035,7 +1038,7 @@ function DragArtifact({
       <div className={`relative flex h-[96px] w-[72px] overflow-hidden rounded-lg border shadow-2xl ${
         overZone ? 'border-emerald-400' : 'border-neutral-500'
       }`}>
-        <CardArtBg artUrl={card.artUrl} type={card.type} />
+        <CardArtBg artUrl={card.artUrl} type={card.type} frameX={card.artFrameX} frameY={card.artFrameY} frameZoom={card.artFrameZoom} />
         <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">
           {card.cost}
         </span>
@@ -1053,9 +1056,33 @@ function DragArtifact({
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Fills its parent with card art if available, or falls back to the type-color gradient. */
-function CardArtBg({ artUrl, type, className = '' }: { artUrl?: string | null | undefined; type: string; className?: string }) {
+function CardArtBg({
+  artUrl, type, frameX, frameY, frameZoom, className = '',
+}: {
+  artUrl?: string | null | undefined;
+  type: string;
+  frameX?: number | null | undefined;
+  frameY?: number | null | undefined;
+  frameZoom?: number | null | undefined;
+  className?: string;
+}) {
   if (artUrl) {
-    return <img src={artUrl} alt="" aria-hidden className={`absolute inset-0 h-full w-full object-cover ${className}`} />;
+    const x = frameX ?? 50;
+    const y = frameY ?? 50;
+    const zoom = frameZoom ?? 1;
+    return (
+      <img
+        src={artUrl}
+        alt=""
+        aria-hidden
+        className={`absolute inset-0 h-full w-full object-cover ${className}`}
+        style={{
+          objectPosition: `${x}% ${y}%`,
+          transform: zoom > 1 ? `scale(${zoom})` : undefined,
+          transformOrigin: `${x}% ${y}%`,
+        }}
+      />
+    );
   }
   return <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(type)} ${className}`} />;
 }
@@ -1139,7 +1166,7 @@ function HandCardTile({
           : 'border-neutral-700'
       }`}
     >
-      <CardArtBg artUrl={card?.artUrl} type={card?.type ?? ''} />
+      <CardArtBg artUrl={card?.artUrl} type={card?.type ?? ''} frameX={card?.artFrameX} frameY={card?.artFrameY} frameZoom={card?.artFrameZoom} />
       {/* cost badge — top-right */}
       <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">
         {cost}
@@ -1188,7 +1215,7 @@ function HandStrip({
               const catalogId = game.cardCatalogIds[id];
               const card = catalogId ? catalogById.get(catalogId) : undefined;
               const dragHandlers = eligible
-                ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost, artUrl: card?.artUrl })
+                ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost, artUrl: card?.artUrl, artFrameX: card?.artFrameX, artFrameY: card?.artFrameY, artFrameZoom: card?.artFrameZoom })
                 : undefined;
               return (
                 <HandCardTile
@@ -1292,7 +1319,7 @@ function HandOverlay({
 
         {/* art area */}
         <div className="relative mx-4 aspect-square shrink-0 overflow-hidden rounded-xl">
-          <CardArtBg artUrl={card?.artUrl} type={card?.type ?? ''} />
+          <CardArtBg artUrl={card?.artUrl} type={card?.type ?? ''} frameX={card?.artFrameX} frameY={card?.artFrameY} frameZoom={card?.artFrameZoom} />
         </div>
 
         {/* card info + text, scrollable */}
@@ -1640,7 +1667,7 @@ function CharacterCard({
         }}
         aria-label={`${card?.name ?? 'Character'} — ${char.health - char.damage} HP${char.exhausted ? ' (exhausted)' : ''}`}
       >
-        <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} />
+        <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} frameX={card?.artFrameX} frameY={card?.artFrameY} frameZoom={card?.artFrameZoom} />
         {/* name scrim — only useful when card is upright */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-5">
           <span className="line-clamp-2 text-center text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
@@ -1653,9 +1680,9 @@ function CharacterCard({
           {char.upgradeIds.map((uid) => {
             const upCatalogId = game.cardCatalogIds[uid];
             const upCard = upCatalogId ? catalogById.get(upCatalogId) : undefined;
-            const fx = upCard?.artFrameX ?? 50;
-            const fy = upCard?.artFrameY ?? 50;
-            const fz = upCard?.artFrameZoom ?? 1;
+            const fx = upCard?.badgeFrameX ?? 50;
+            const fy = upCard?.badgeFrameY ?? 50;
+            const fz = upCard?.badgeFrameZoom ?? 1;
             return (
               <button
                 key={uid}
@@ -1822,7 +1849,7 @@ function CardDetailOverlay({
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
           {/* art */}
           <div className="relative aspect-square shrink-0 overflow-hidden rounded-xl">
-            <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} />
+            <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} frameX={card?.artFrameX} frameY={card?.artFrameY} frameZoom={card?.artFrameZoom} />
           </div>
 
           {/* type / faction row */}
@@ -1904,7 +1931,7 @@ function UpgradeDetailOverlay({
         </div>
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
           <div className="relative aspect-square shrink-0 overflow-hidden rounded-xl">
-            <CardArtBg artUrl={card.artUrl} type={card.type} />
+            <CardArtBg artUrl={card.artUrl} type={card.type} frameX={card.artFrameX} frameY={card.artFrameY} frameZoom={card.artFrameZoom} />
           </div>
           <div className="flex flex-wrap gap-1">
             <span className={`rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(card.type)}`}>

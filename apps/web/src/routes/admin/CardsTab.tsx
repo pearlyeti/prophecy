@@ -60,6 +60,9 @@ function newCard(): Card {
     artFrameX: null,
     artFrameY: null,
     artFrameZoom: null,
+    badgeFrameX: null,
+    badgeFrameY: null,
+    badgeFrameZoom: null,
   };
 }
 
@@ -357,14 +360,26 @@ export function CardsTab({
               onUploaded={(artUrl) => updateDraft({ artUrl })}
             />
 
-            {draft.type === 'upgrade' && draft.artUrl && (
-              <BadgeFrameEditor
+            {draft.artUrl && (
+              <CardArtFrameEditor
                 artUrl={draft.artUrl}
                 frameX={draft.artFrameX ?? null}
                 frameY={draft.artFrameY ?? null}
                 frameZoom={draft.artFrameZoom ?? null}
                 onChange={(x, y, zoom) =>
                   updateDraft({ artFrameX: x, artFrameY: y, artFrameZoom: zoom })
+                }
+              />
+            )}
+
+            {draft.type === 'upgrade' && draft.artUrl && (
+              <BadgeFrameEditor
+                artUrl={draft.artUrl}
+                frameX={draft.badgeFrameX ?? null}
+                frameY={draft.badgeFrameY ?? null}
+                frameZoom={draft.badgeFrameZoom ?? null}
+                onChange={(x, y, zoom) =>
+                  updateDraft({ badgeFrameX: x, badgeFrameY: y, badgeFrameZoom: zoom })
                 }
               />
             )}
@@ -588,6 +603,141 @@ function ArtUploader({
   );
 }
 
+// ─── Shared frame editor logic ────────────────────────────────────────────────
+
+function useFrameDrag(
+  snap: React.MutableRefObject<{ x: number; y: number; zoom: number }>,
+  previewSize: number,
+  onChange: (x: number, y: number, zoom: number) => void,
+) {
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const onMove = (me: MouseEvent) => {
+      const { x, y, zoom } = snap.current;
+      const s = 100 / (previewSize * zoom);
+      onChange(
+        Math.max(0, Math.min(100, x - me.movementX * s)),
+        Math.max(0, Math.min(100, y - me.movementY * s)),
+        zoom,
+      );
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  const lastTouch = useRef<{ x: number; y: number } | null>(null);
+  const startTouchDrag = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (t) lastTouch.current = { x: t.clientX, y: t.clientY };
+  };
+  const moveTouchDrag = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    if (!t || !lastTouch.current) return;
+    const { x, y, zoom } = snap.current;
+    const s = 100 / (previewSize * zoom);
+    const dx = t.clientX - lastTouch.current.x;
+    const dy = t.clientY - lastTouch.current.y;
+    lastTouch.current = { x: t.clientX, y: t.clientY };
+    onChange(Math.max(0, Math.min(100, x - dx * s)), Math.max(0, Math.min(100, y - dy * s)), zoom);
+  };
+  const endTouchDrag = () => { lastTouch.current = null; };
+
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const { x, y, zoom } = snap.current;
+    const nz = Math.max(1, Math.min(4, Math.round((zoom + (e.deltaY < 0 ? 0.1 : -0.1)) * 10) / 10));
+    onChange(x, y, nz);
+  };
+
+  return { startDrag, startTouchDrag, moveTouchDrag, endTouchDrag, onWheel };
+}
+
+// ─── Card art frame editor (square crop) ──────────────────────────────────────
+
+const ART_PREVIEW_SIZE = 240;
+
+function CardArtFrameEditor({
+  artUrl,
+  frameX,
+  frameY,
+  frameZoom,
+  onChange,
+}: {
+  artUrl: string;
+  frameX: number | null;
+  frameY: number | null;
+  frameZoom: number | null;
+  onChange: (x: number, y: number, zoom: number) => void;
+}) {
+  const x = frameX ?? 50;
+  const y = frameY ?? 50;
+  const zoom = frameZoom ?? 1;
+  const snap = useRef({ x, y, zoom });
+  snap.current = { x, y, zoom };
+  const { startDrag, startTouchDrag, moveTouchDrag, endTouchDrag, onWheel } =
+    useFrameDrag(snap, ART_PREVIEW_SIZE, onChange);
+
+  return (
+    <div className="col-span-full">
+      <div className="mb-2 text-[11px] text-neutral-400">Card art frame · drag to reposition, scroll or slider to zoom</div>
+      <div className="flex flex-wrap items-center gap-6">
+        <div
+          onMouseDown={startDrag}
+          onTouchStart={startTouchDrag}
+          onTouchMove={moveTouchDrag}
+          onTouchEnd={endTouchDrag}
+          onWheel={onWheel}
+          style={{ width: ART_PREVIEW_SIZE, height: ART_PREVIEW_SIZE, touchAction: 'none' }}
+          className="relative shrink-0 cursor-grab overflow-hidden rounded-lg border border-neutral-500 active:cursor-grabbing"
+        >
+          <img
+            src={artUrl}
+            alt=""
+            aria-hidden
+            draggable={false}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: `${x}% ${y}%`,
+              transform: zoom > 1 ? `scale(${zoom})` : undefined,
+              transformOrigin: `${x}% ${y}%`,
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          />
+        </div>
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-[11px] text-neutral-400">
+            <span>Zoom — {zoom.toFixed(1)}×</span>
+            <input
+              type="range"
+              min={1}
+              max={4}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => onChange(x, y, Number(e.target.value))}
+              className="w-36 accent-emerald-500"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => onChange(50, 50, 1)}
+            className="w-fit rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] hover:border-neutral-500"
+          >
+            Reset frame
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Badge frame editor (upgrade circle crop) ─────────────────────────────────
 
 const BADGE_SIZE = 96; // preview circle diameter in px
@@ -610,62 +760,11 @@ function BadgeFrameEditor({
   const zoom = frameZoom ?? 1;
 
   const circleRef = useRef<HTMLDivElement>(null);
-  // Stable mutable snapshot — the document-level listeners close over this.
+  void circleRef;
   const snap = useRef({ x, y, zoom });
   snap.current = { x, y, zoom };
-
-  const startDrag = (startX: number, startY: number, getPos: (e: MouseEvent | Touch) => { cx: number; cy: number }) => {
-    void startX; void startY; // anchors not needed for movementX path
-    const onMove = (e: MouseEvent) => {
-      if (!circleRef.current) return;
-      const { x: sx, y: sy, zoom: sz } = snap.current;
-      const sensitivity = 100 / (BADGE_SIZE * sz);
-      const nx = Math.max(0, Math.min(100, sx - e.movementX * sensitivity));
-      const ny = Math.max(0, Math.min(100, sy - e.movementY * sensitivity));
-      onChange(nx, ny, sz);
-    };
-    void getPos;
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    startDrag(e.clientX, e.clientY, (ev) => ({ cx: (ev as MouseEvent).clientX, cy: (ev as MouseEvent).clientY }));
-  };
-
-  // Touch: track previous position manually (no movementX on touch events).
-  const lastTouch = useRef<{ x: number; y: number } | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    if (t) lastTouch.current = { x: t.clientX, y: t.clientY };
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
-    const t = e.touches[0];
-    if (!t || !lastTouch.current) return;
-    const { x: sx, y: sy, zoom: sz } = snap.current;
-    const sensitivity = 100 / (BADGE_SIZE * sz);
-    const dx = t.clientX - lastTouch.current.x;
-    const dy = t.clientY - lastTouch.current.y;
-    lastTouch.current = { x: t.clientX, y: t.clientY };
-    const nx = Math.max(0, Math.min(100, sx - dx * sensitivity));
-    const ny = Math.max(0, Math.min(100, sy - dy * sensitivity));
-    onChange(nx, ny, sz);
-  };
-  const handleTouchEnd = () => { lastTouch.current = null; };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const { x: sx, y: sy, zoom: sz } = snap.current;
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    const nz = Math.max(1, Math.min(4, Math.round((sz + delta) * 10) / 10));
-    onChange(sx, sy, nz);
-  };
+  const { startDrag: handleMouseDown, startTouchDrag: handleTouchStart, moveTouchDrag: handleTouchMove, endTouchDrag: handleTouchEnd, onWheel: handleWheel } =
+    useFrameDrag(snap, BADGE_SIZE, onChange);
 
   return (
     <div className="col-span-full">
