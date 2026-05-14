@@ -238,11 +238,14 @@ io.on('connection', (socket) => {
 
       if (waiting) {
         // Pair found — create room, join both players, start immediately.
+        console.log(`[game-server] pairing ${waiting.playerId} + ${req.playerId}`);
         const seed = randomUUID();
         const room = createRoom(waiting.playerId, waiting.displayName);
+        console.log(`[game-server] room created: ${room.id} code=${room.code}`);
 
         // Wire the waiting player's socket into the room.
         const waitingSocket = io.sockets.sockets.get(waiting.socketId);
+        console.log(`[game-server] waiting socket found: ${!!waitingSocket}`);
         if (waitingSocket) {
           waitingSocket.join(room.id);
           trackConnection(room.id, waiting.playerId, 1);
@@ -254,6 +257,7 @@ io.on('connection', (socket) => {
         }
 
         // Wire the current player's socket.
+        console.log(`[game-server] joining ${req.playerId} to room`);
         joinRoom(room.code, req.playerId, req.displayName);
         socket.join(room.id);
         trackConnection(room.id, req.playerId, 1);
@@ -261,8 +265,10 @@ io.on('connection', (socket) => {
         state.roomId = room.id;
 
         // Start the game.
+        console.log(`[game-server] starting room, members: ${room.members.size}`);
         const started = startRoom(room.id, waiting.playerId, seed);
         const payload = { lobby: lobbyStateOf(started), game: started.game ?? null };
+        console.log(`[game-server] game started, phase: ${started.phase}`);
 
         // Unicast to both — they're now in the socket.io room.
         io.to(room.id).emit('lobby.matchFound', payload);
@@ -318,8 +324,10 @@ function toError(e: unknown): ErrorPayload {
   if (e instanceof IllegalActionError) {
     return { code: 'illegal-action', message: e.reason };
   }
-  console.error('[game-server] unexpected error', e);
-  return { code: 'internal', message: 'unexpected server error' };
+  const msg = e instanceof Error ? e.message : String(e);
+  console.error('[game-server] unexpected error:', msg, e);
+  // Pass the real message through in dev so it's visible in the browser.
+  return { code: 'internal', message: msg };
 }
 
 const port = Number(process.env.GAME_SERVER_PORT ?? 3001);
