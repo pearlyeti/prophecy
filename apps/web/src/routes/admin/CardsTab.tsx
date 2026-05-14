@@ -542,7 +542,7 @@ function ArtUploader({
           const file = e.dataTransfer.files[0];
           if (file) void handleFile(file);
         }}
-        className={`relative flex min-h-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition ${
+        className={`relative aspect-square w-full cursor-pointer overflow-hidden rounded-lg border-2 border-dashed transition ${
           dragOver
             ? 'border-emerald-500 bg-emerald-950/20'
             : 'border-neutral-700 bg-neutral-900 hover:border-neutral-500'
@@ -553,14 +553,14 @@ function ArtUploader({
             <img
               src={artUrl}
               alt="Card art preview"
-              className="h-[120px] w-full object-cover"
+              className="h-full w-full object-cover"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition">
               <span className="text-xs text-white">Click or drop to replace</span>
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-1 text-neutral-500">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-neutral-500">
             <span className="text-2xl">🖼</span>
             <span className="text-xs">{uploading ? 'Uploading…' : 'Drop art here or click to browse'}</span>
             <span className="text-[10px] text-neutral-600">JPEG · PNG · WebP · up to 20 MB · converted to WebP 1024 × 1024</span>

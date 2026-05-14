@@ -46,7 +46,7 @@ export function Admin() {
   return (
     <main className="min-h-dvh bg-neutral-950 px-4 py-6 sm:px-6">
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold text-neutral-100">Prophecy / Admin</h1>
+        <h1 className="text-xl font-semibold text-neutral-100">Prophecy Designer</h1>
         <a
           href="/"
           className="min-h-[36px] rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs text-neutral-300 hover:border-neutral-500"
