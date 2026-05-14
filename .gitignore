@@ -24,3 +24,4 @@ test-results
 prometheus.json
 testing-cards.json
 *.local.json
+.claude/
