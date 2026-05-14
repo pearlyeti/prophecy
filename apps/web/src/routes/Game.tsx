@@ -1,7 +1,8 @@
 import { getLegalActions, type DieSymbol, type DieInPool, type DieFace } from '@prophecy/game-engine';
 import type { Action, Card, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 import { fetchCards } from './admin/api.js';
 
@@ -86,8 +87,17 @@ export function Game() {
     closeHand();
   };
 
+  const dragEnabled = isMyTurn && inActionPhase && selectionMode === null && handMode === null;
+  const drag = useDragToPlay(
+    (instanceId) => send({ type: 'play-card', playerId, cardId: instanceId }),
+    dragEnabled,
+  );
+
   return (
-    <main className={`min-h-dvh px-4 py-6 sm:px-6 ${showHandStrip ? 'pb-[124px]' : ''}`}>
+    <main
+      data-droptarget="play"
+      className={`min-h-dvh px-4 py-6 sm:px-6 ${showHandStrip ? 'pb-[124px]' : ''} ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
+    >
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">
           {me?.displayName ?? 'You'}{' '}
@@ -147,6 +157,15 @@ export function Game() {
           catalogById={catalogById}
           isMyTurn={isMyTurn}
           onTap={(id) => openHand(isMyTurn ? 'play' : 'browse', id)}
+          getDragHandlers={drag.getHandlers}
+        />
+      )}
+
+      {drag.dragging && (
+        <DragArtifact
+          card={drag.dragging}
+          overZone={drag.overZone}
+          artifactRef={drag.artifactRef}
         />
       )}
 
@@ -985,6 +1004,203 @@ function SelectionActionBar({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Drag-to-play (WEB-8)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface DragCardInfo {
+  instanceId: string;
+  name: string;
+  type: string;
+  cost: number;
+}
+
+type DragHandlers = Pick<React.HTMLAttributes<HTMLButtonElement>, 'onTouchStart' | 'onMouseDown'>;
+
+function useDragToPlay(onPlay: (id: string) => void, enabled: boolean) {
+  const [dragging, setDragging] = useState<DragCardInfo | null>(null);
+  const [overZone, setOverZone] = useState(false);
+
+  const artifactRef = useRef<HTMLDivElement>(null);
+  const onPlayRef = useRef(onPlay);
+  onPlayRef.current = onPlay;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+
+  // All mutable drag state lives here so effect listeners never go stale.
+  const s = useRef({
+    active: false,
+    instanceId: null as string | null,
+    over: false,
+    pending: null as null | {
+      instanceId: string;
+      info: DragCardInfo;
+      x: number;
+      y: number;
+      timer: ReturnType<typeof setTimeout>;
+    },
+  });
+
+  const moveArtifact = (x: number, y: number) => {
+    if (artifactRef.current) {
+      // Position the artifact centered horizontally, lifted above the finger.
+      artifactRef.current.style.transform = `translate(${x - 36}px, ${y - 90}px)`;
+    }
+  };
+
+  const setOver = (over: boolean) => {
+    if (over === s.current.over) return;
+    s.current.over = over;
+    setOverZone(over);
+  };
+
+  const hitTest = (x: number, y: number) => {
+    // Hide artifact briefly so it doesn't block elementFromPoint.
+    if (artifactRef.current) artifactRef.current.style.pointerEvents = 'none';
+    const el = document.elementFromPoint(x, y);
+    if (artifactRef.current) artifactRef.current.style.pointerEvents = '';
+    setOver(!!el?.closest('[data-droptarget="play"]'));
+  };
+
+  const begin = (info: DragCardInfo, x: number, y: number) => {
+    s.current.active = true;
+    s.current.instanceId = info.instanceId;
+    setDragging(info);
+    requestAnimationFrame(() => moveArtifact(x, y));
+  };
+
+  const finish = (commit: boolean, suppressClick = false) => {
+    const id = s.current.instanceId;
+    const over = s.current.over;
+    s.current.active = false;
+    s.current.instanceId = null;
+    setOver(false);
+    setDragging(null);
+    if (suppressClick) {
+      // Prevent the mouseup from also firing a click on the card button.
+      const absorb = (e: Event) => { e.stopPropagation(); document.removeEventListener('click', absorb, true); };
+      document.addEventListener('click', absorb, true);
+    }
+    if (commit && over && id) onPlayRef.current(id);
+  };
+
+  const clearPending = () => {
+    if (s.current.pending) { clearTimeout(s.current.pending.timer); s.current.pending = null; }
+  };
+
+  useEffect(() => {
+    const onTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      const { clientX: x, clientY: y } = touch;
+      const p = s.current.pending;
+      if (p && Math.hypot(x - p.x, y - p.y) > 8) {
+        clearTimeout(p.timer);
+        s.current.pending = null;
+        begin(p.info, x, y);
+      }
+      if (s.current.active) {
+        e.preventDefault(); // stop page scroll during drag
+        moveArtifact(x, y);
+        hitTest(x, y);
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      const wasActive = s.current.active;
+      clearPending();
+      if (wasActive) { e.preventDefault(); finish(true); }
+    };
+
+    const onTouchCancel = () => { clearPending(); if (s.current.active) finish(false); };
+
+    const onMouseMove = (e: MouseEvent) => {
+      const { clientX: x, clientY: y } = e;
+      const p = s.current.pending;
+      if (p && Math.hypot(x - p.x, y - p.y) > 8) {
+        clearTimeout(p.timer);
+        s.current.pending = null;
+        begin(p.info, x, y);
+      }
+      if (s.current.active) { moveArtifact(x, y); hitTest(x, y); }
+    };
+
+    const onMouseUp = () => { clearPending(); if (s.current.active) finish(true, true); };
+
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+    document.addEventListener('touchcancel', onTouchCancel);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('touchcancel', onTouchCancel);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []); // all mutable state via refs — no stale closures
+
+  const getHandlers = useCallback((info: DragCardInfo): DragHandlers => ({
+    onTouchStart: (e: React.TouchEvent) => {
+      if (!enabledRef.current) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+      const { clientX: x, clientY: y } = touch;
+      const timer = setTimeout(() => {
+        if (s.current.pending?.instanceId === info.instanceId) {
+          s.current.pending = null;
+          begin(info, x, y);
+        }
+      }, 120);
+      s.current.pending = { instanceId: info.instanceId, info, x, y, timer };
+    },
+    onMouseDown: (e: React.MouseEvent) => {
+      if (!enabledRef.current || e.button !== 0) return;
+      const { clientX: x, clientY: y } = e;
+      const timer = setTimeout(() => {
+        if (s.current.pending?.instanceId === info.instanceId) {
+          s.current.pending = null;
+          begin(info, x, y);
+        }
+      }, 120);
+      s.current.pending = { instanceId: info.instanceId, info, x, y, timer };
+    },
+  }), []); // stable — closes over refs only
+
+  return { dragging, overZone, artifactRef, getHandlers };
+}
+
+function DragArtifact({
+  card,
+  overZone,
+  artifactRef,
+}: {
+  card: DragCardInfo;
+  overZone: boolean;
+  artifactRef: React.RefObject<HTMLDivElement>;
+}) {
+  return createPortal(
+    <div
+      ref={artifactRef}
+      style={{ position: 'fixed', left: 0, top: 0, zIndex: 100, pointerEvents: 'none', willChange: 'transform' }}
+    >
+      <div className={`relative flex h-[96px] w-[72px] overflow-hidden rounded-lg border shadow-2xl ${
+        overZone ? 'border-emerald-400' : 'border-neutral-500'
+      }`}>
+        <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card.type)}`} />
+        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">
+          {card.cost}
+        </span>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-3">
+          <span className="line-clamp-2 text-[9px] leading-tight text-white">{card.name}</span>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Hand strip + expanded overlay (WEB-4)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1043,12 +1259,14 @@ function HandCardTile({
   catalogById,
   eligible,
   onTap,
+  dragHandlers,
 }: {
   instanceId: string;
   game: GameState;
   catalogById: Map<string, Card>;
   eligible: boolean;
   onTap: () => void;
+  dragHandlers?: DragHandlers;
 }) {
   const catalogId = game.cardCatalogIds[instanceId];
   const card = catalogId ? catalogById.get(catalogId) : undefined;
@@ -1058,6 +1276,7 @@ function HandCardTile({
     <button
       type="button"
       onClick={onTap}
+      {...dragHandlers}
       className={`relative flex h-[96px] min-w-0 flex-1 overflow-hidden rounded-lg border text-left transition active:scale-95 ${
         eligible
           ? 'border-emerald-500 shadow-[0_0_8px_1px_rgba(16,185,129,0.3)]'
@@ -1087,6 +1306,7 @@ function HandStrip({
   catalogById,
   isMyTurn,
   onTap,
+  getDragHandlers,
 }: {
   hand: readonly string[];
   game: GameState;
@@ -1094,6 +1314,7 @@ function HandStrip({
   catalogById: Map<string, Card>;
   isMyTurn: boolean;
   onTap: (instanceId: string) => void;
+  getDragHandlers: (info: DragCardInfo) => DragHandlers;
 }) {
   const me = game.players[playerId];
   const legal = isMyTurn ? getLegalActions(game, playerId) : null;
@@ -1109,6 +1330,11 @@ function HandStrip({
               const cost = game.cardCosts[id] ?? 0;
               const affordable = (me?.resources ?? 0) >= cost;
               const eligible = isMyTurn && affordable && (legal?.canPlayCard ?? false);
+              const catalogId = game.cardCatalogIds[id];
+              const card = catalogId ? catalogById.get(catalogId) : undefined;
+              const dragHandlers = eligible
+                ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost })
+                : undefined;
               return (
                 <HandCardTile
                   key={id}
@@ -1117,6 +1343,7 @@ function HandStrip({
                   catalogById={catalogById}
                   eligible={eligible}
                   onTap={() => onTap(id)}
+                  dragHandlers={dragHandlers}
                 />
               );
             })}

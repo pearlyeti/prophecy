@@ -20,7 +20,7 @@ Dependencies between cards are noted under **Depends on**. If a card lists one, 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- _(none — claim a card from Up next.)_
+- **WEB-8** — Drag-to-play Pass 1 (2026-05-14, pearlyeti)
 
 ### Up next — task cards
 
