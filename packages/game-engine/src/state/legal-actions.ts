@@ -9,6 +9,11 @@
 import type { DieSymbol, GameState } from './types';
 
 export interface LegalActions {
+  /**
+   * The player must submit a trigger ordering before normal actions resume.
+   * When true, only 'order-triggers' is legal for this player.
+   */
+  readonly canOrderTriggers: boolean;
   /** The player can press "Pass" (active player's turn in action phase). */
   readonly canPass: boolean;
   /** The player can press "Claim battlefield". */
@@ -62,6 +67,14 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
   const player = state.players[playerId];
   if (!player) return EMPTY;
 
+  // ---- Pending trigger ordering ----
+  // While simultaneous triggers are waiting for ordering, only the
+  // designated player can act, and only via 'order-triggers'.
+  if (state.pendingTriggers) {
+    const isWaiting = state.pendingTriggers.waitingForPlayerId === playerId;
+    return { ...EMPTY, canOrderTriggers: isWaiting, canConcede: true };
+  }
+
   // ---- Setup phase ----
   if (state.phase === 'setup' && state.setup) {
     const isWinner = playerId === state.setup.rollOffWinnerId;
@@ -102,6 +115,7 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
   }
 
   return {
+    canOrderTriggers: false,
     canPass: isMyTurn,
     canClaim: isMyTurn && !claimedThisRound,
     canConcede: true,
@@ -117,6 +131,7 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
 }
 
 const EMPTY: LegalActions = {
+  canOrderTriggers: false,
   canPass: false,
   canClaim: false,
   canConcede: false,

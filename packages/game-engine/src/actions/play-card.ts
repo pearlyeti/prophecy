@@ -1,5 +1,7 @@
 import { applyEffects } from '../abilities/dispatch';
 import type { EngineEvent } from '../events';
+import { drainQueue } from '../queue/drain';
+import { collectAfterTriggers, commitTriggers } from '../queue/scan';
 import { endTurn } from '../state/turn';
 import type { GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
@@ -81,6 +83,20 @@ export function applyPlayCard(
     if (working.winnerId !== null) {
       return { state: working, events };
     }
+  }
+
+  // After triggers: scan for afterPlayCard triggers.
+  const afterCandidates = collectAfterTriggers(working, events);
+  working = commitTriggers(working, afterCandidates);
+
+  if (!working.pendingTriggers) {
+    const drained = drainQueue(working);
+    working = drained.state;
+    events.push(...drained.events);
+  }
+
+  if (working.winnerId !== null) {
+    return { state: working, events };
   }
 
   const rotated = endTurn(working, playerId, events);

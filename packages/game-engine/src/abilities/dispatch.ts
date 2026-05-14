@@ -49,6 +49,12 @@ export interface DispatchContext {
    * from this list. Effects needing ownCharacter / opponentCharacter /
    * anyCharacter consume one entry in order. */
   readonly characterTargets: readonly string[];
+  /**
+   * The card instance that carries the ability being dispatched. Used to
+   * resolve 'thisCharacter' and 'attachedCharacter' target specs without
+   * requiring an extra entry in characterTargets.
+   */
+  readonly sourceCharacterId?: string;
 }
 
 export interface EffectResult {
@@ -280,8 +286,8 @@ function resolveCharacterTargets(
     }
     case 'attachedCharacter':
     case 'thisCharacter': {
-      // Context-dependent targets: the caller must provide the character ID.
-      const characterId = ctx.characterTargets[targetOffset];
+      // Resolved from sourceCharacterId if available, otherwise from characterTargets.
+      const characterId = ctx.sourceCharacterId ?? ctx.characterTargets[targetOffset];
       if (!characterId) throw new Error(`effect needs an attached/this-character target at index ${targetOffset}`);
       const ownerId = ownerOf(state, characterId);
       if (!ownerId) throw new Error(`character ${characterId} is not in play`);

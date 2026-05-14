@@ -1,4 +1,7 @@
+import { applyEffects } from '../abilities/dispatch';
 import type { EngineEvent } from '../events';
+import { drainQueue } from '../queue/drain';
+import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan';
 import { createRng } from '../rng/seeded-rng';
 import { endTurn } from '../state/turn';
 import { guardCanAct, runUpkeepAndStartRound } from './pass';
@@ -9,11 +12,10 @@ import { IllegalActionError } from './illegal';
 /**
  * Activate action.
  *
- * Exhausts the chosen character and rolls all of its dice (plus its
- * attached upgrade dice — not yet modeled) into the active player's
- * dice pool. The roll happens server-side via the seeded RNG; the
- * client never computes random outcomes. Any of the character's dice
- * already in the pool are not rerolled, per the rules document.
+ * Trigger interception:
+ * - Before: 'beforeActivate' triggers run inline before exhausting + rolling.
+ * - After: 'afterActivateCharacter' triggers enter the queue (or pendingTriggers
+ *   for simultaneous ordering), then the queue drains.
  */
 export function applyActivate(
   state: GameState,
@@ -27,69 +29,93 @@ export function applyActivate(
 
   const character = player.characters[characterId];
   if (!character) {
-    throw new IllegalActionError(
-      `character ${characterId} does not belong to ${playerId}`,
-    );
+    throw new IllegalActionError(`character ${characterId} does not belong to ${playerId}`);
   }
   if (character.exhausted) {
     throw new IllegalActionError(`character ${characterId} is exhausted`);
   }
 
-  // RNG forked from the action stream so replays are deterministic even
-  // across many activations within a game.
-  const rng = createRng(state.seed).fork(
-    `activate:${state.turnIndex}:${characterId}`,
+  // ── Before triggers ──────────────────────────────────────────────
+  let working: GameState = state;
+  const allEvents: EngineEvent[] = [];
+
+  const beforeCandidates = collectBeforeTriggers(state, 'beforeActivate', {
+    activatingPlayerId: playerId,
+    activatingCharacterId: characterId,
+  });
+
+  // Deterministic auto-order for before-triggers (by source card id).
+  const sorted = [...beforeCandidates].sort((a, b) =>
+    a.sourceCardInstanceId.localeCompare(b.sourceCardInstanceId),
   );
+  for (const candidate of sorted) {
+    const ctx = {
+      playerId: candidate.playerId,
+      characterTargets: [],
+      sourceCharacterId: candidate.sourceCardInstanceId,
+    };
+    const result = applyEffects(working, ctx, candidate.ability.effects);
+    working = result.state;
+    allEvents.push(...result.events);
+  }
+
+  // ── Activation ───────────────────────────────────────────────────
+  const rng = createRng(working.seed).fork(`activate:${working.turnIndex}:${characterId}`);
+
+  const currentPlayer = working.players[playerId]!;
+  const currentChar = currentPlayer.characters[characterId]!;
 
   const alreadyInPool = new Set(
-    player.diceInPool
-      .filter((d) => character.dice.some((cd) => cd.instanceId === d.instanceId))
+    currentPlayer.diceInPool
+      .filter((d) => currentChar.dice.some((cd) => cd.instanceId === d.instanceId))
       .map((d) => d.instanceId),
   );
 
   const newDice: DieInPool[] = [];
   const rolledFaces: { instanceId: string; faceIndex: number; face: DieFace }[] = [];
-  for (const die of character.dice) {
+  for (const die of currentChar.dice) {
     if (alreadyInPool.has(die.instanceId)) continue;
     const faceIndex = rng.rollDie(6);
     const face = die.faces[faceIndex]!;
-    newDice.push({
-      instanceId: die.instanceId,
-      cardId: die.cardId,
-      faceIndex,
-      face,
-    });
+    newDice.push({ instanceId: die.instanceId, cardId: die.cardId, faceIndex, face });
     rolledFaces.push({ instanceId: die.instanceId, faceIndex, face });
   }
 
-  const updatedCharacter: CharacterState = { ...character, exhausted: true };
+  const updatedCharacter: CharacterState = { ...currentChar, exhausted: true };
   const updatedPlayer: PlayerState = {
-    ...player,
-    characters: { ...player.characters, [characterId]: updatedCharacter },
-    diceInPool: [...player.diceInPool, ...newDice],
+    ...currentPlayer,
+    characters: { ...currentPlayer.characters, [characterId]: updatedCharacter },
+    diceInPool: [...currentPlayer.diceInPool, ...newDice],
   };
 
-  const events: EngineEvent[] = [
-    {
-      type: 'character.activated',
-      payload: {
-        playerId,
-        characterId,
-        rolledDice: rolledFaces,
-      },
-    },
-  ];
+  const activateEvent: EngineEvent = {
+    type: 'character.activated',
+    payload: { playerId, characterId, rolledDice: rolledFaces },
+  };
+  allEvents.push(activateEvent);
 
-  // Activate is an action, not a pass — reset consecutivePasses and end
-  // this player's turn. endTurn consumes an extra-turn slot (Ambush)
-  // before rotating, and rotateAndCascade handles the auto-pass case
-  // if the next seat has already claimed this round.
-  const stateAfterActivate: GameState = {
-    ...state,
-    players: { ...state.players, [playerId]: updatedPlayer },
+  let stateAfterActivate: GameState = {
+    ...working,
+    players: { ...working.players, [playerId]: updatedPlayer },
     consecutivePasses: 0,
   };
-  const rotated = endTurn(stateAfterActivate, playerId, events);
+
+  // ── After triggers ───────────────────────────────────────────────
+  const afterCandidates = collectAfterTriggers(stateAfterActivate, [activateEvent]);
+  stateAfterActivate = commitTriggers(stateAfterActivate, afterCandidates);
+
+  // ── Drain queue (skip if pending ordering is waiting) ────────────
+  if (!stateAfterActivate.pendingTriggers) {
+    const drained = drainQueue(stateAfterActivate);
+    stateAfterActivate = drained.state;
+    allEvents.push(...drained.events);
+  }
+
+  if (stateAfterActivate.winnerId !== null) {
+    return { state: stateAfterActivate, events: allEvents };
+  }
+
+  const rotated = endTurn(stateAfterActivate, playerId, allEvents);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }

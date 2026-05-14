@@ -23,4 +23,14 @@ export type Action =
     }
   | { type: 'use-card-action'; playerId: string; cardId: string }
   | { type: 'claim-battlefield'; playerId: string }
-  | { type: 'concede'; playerId: string };
+  | { type: 'concede'; playerId: string }
+  | {
+      /**
+       * Submit an ordering for pending simultaneous triggers.
+       * phase 'orderPlayers': `order` is a list of player IDs (BC ordering groups).
+       * phase 'orderEntries': `order` is a list of queue entry IDs (player ordering their own).
+       */
+      type: 'order-triggers';
+      playerId: string;
+      order: readonly string[];
+    };

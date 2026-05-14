@@ -1,4 +1,5 @@
 import { applyActivate } from '../actions/activate';
+import { applyOrderTriggersAction } from '../actions/order-triggers';
 import { applyClaim } from '../actions/claim';
 import { applyConcede } from '../actions/concede';
 import { applyPass } from '../actions/pass';
@@ -55,5 +56,7 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
       );
     case 'use-card-action':
       throw new IllegalActionError(`action type "${action.type}" not yet implemented`);
+    case 'order-triggers':
+      return applyOrderTriggersAction(state, action.playerId, action.order);
   }
 }

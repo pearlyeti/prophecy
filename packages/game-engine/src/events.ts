@@ -32,7 +32,10 @@ export type EngineEvent =
   | { readonly type: 'upkeep.player'; readonly payload: UpkeepPlayerPayload }
   | { readonly type: 'upkeep.end'; readonly payload: Empty }
   | { readonly type: 'round.begin'; readonly payload: RoundBeginPayload }
-  | { readonly type: 'game.ended'; readonly payload: GameEndedPayload };
+  | { readonly type: 'game.ended'; readonly payload: GameEndedPayload }
+  | { readonly type: 'trigger.queued'; readonly payload: TriggerQueuedPayload }
+  | { readonly type: 'trigger.resolved'; readonly payload: TriggerResolvedPayload }
+  | { readonly type: 'triggers.ordering-required'; readonly payload: TriggersOrderingRequiredPayload };
 
 export type EngineEventType = EngineEvent['type'];
 
@@ -151,6 +154,22 @@ export interface DamageHealedPayload {
 export interface CardsDrawnPayload {
   readonly playerId: string;
   readonly count: number;
+}
+
+export interface TriggerQueuedPayload {
+  readonly entryId: string;
+  readonly playerId: string;
+  readonly sourceCardInstanceId: string;
+}
+
+export interface TriggerResolvedPayload {
+  readonly entryId: string;
+  readonly playerId: string;
+}
+
+export interface TriggersOrderingRequiredPayload {
+  readonly waitingForPlayerId: string;
+  readonly phase: 'orderPlayers' | 'orderEntries';
 }
 
 export interface ResourcesGainedPayload {

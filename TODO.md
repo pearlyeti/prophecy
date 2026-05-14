@@ -20,7 +20,7 @@ Dependencies between cards are noted under **Depends on**. If a card lists one, 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- **2026-05-13 — ENGINE-7 — The queue, after-triggers, before-triggers**
+- _(none — claim a card from Up next.)_
 
 ### Up next — task cards
 
@@ -272,7 +272,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 
 #### Ability kinds
 - [x] `immediate` — event plays, effects fire, card is discarded/set aside · _ENGINE-6_
-- [ ] `triggered` — before/after a game event fires this automatically · _ENGINE-7_
+- [x] `triggered` — before/after a game event fires this automatically · _ENGINE-7_
 - [ ] `action` — player activates (exhaust/remove-die/spend cost) · _future_
 - [ ] `powerAction` — same, once per round · _future_
 - [ ] `special` — fires when this card's special die face is resolved · _future_
@@ -334,6 +334,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-13 — ENGINE-7 — The queue, after-triggers, before-triggers**. `GameState` gains `queue`, `pendingTriggers`, `nextQueueEntryId`. `QueueEntry` fully typed. Trigger scanner (`queue/scan.ts`) maps engine events to `TriggeredAbility` matches; `collectAfterTriggers` + `collectBeforeTriggers` + `commitTriggers` + `applyOrderTriggers`. Queue drain (`queue/drain.ts`) FIFO loop with tail-append for drain-spawned triggers. Before-triggers wired inline in `activate.ts` and `resolve-dice.ts` (beforeActivate, beforeTakeDamage). After-triggers wired in `activate.ts`, `resolve-dice.ts`, `play-card.ts` via `commitTriggers` + drain. Simultaneous trigger ordering via new `order-triggers` action and `PendingTriggers` state machine. `LegalActions` gains `canOrderTriggers`. 152 tests green; workspace typecheck clean.
 - **2026-05-13 — ENGINE-6 — Ability AST framework + first-wave event dispatcher** (`2676a51`). Full `Ability`/`Effect` TypeScript type system in `game-engine/src/abilities/types.ts` (6 ability kinds, 7 first-wave ops + 28 stubs). Matching Zod schemas in `@prophecy/protocol/src/catalog.ts`. Shared combat helpers extracted to `state/combat.ts`; `applyResolveDice` updated to import from there. `applyEffect` / `applyEffects` dispatcher in `abilities/dispatch.ts` — first-wave ops implemented (`dealDamage`, `addShields`, `removeShields`, `drawCards`, `gainResources`, `loseResources`, `healDamage`); all other ops throw `NotImplementedError`. `applyPlayCard` wired to fire `immediate` abilities; `GameState` gains `cardAbilities` map; `play-card` action gains `characterTargets`. Op names migrated to camelCase in `packages/db/seed/cards.json`; admin `AbilityBuilder.tsx` updated. 3 new engine events (`shields.removed`, `damage.healed`, `cards.drawn`). 147 tests green; workspace typecheck clean.
 - **2026-05-13 — ADMIN-1 — Original-card / deck admin UX + JSON-backed catalog** (`a8abde9`). New canonical catalog at `packages/db/seed/cards.json` + `decks.json` (37 cards + 2 decks, mechanically ported from `synthetic-set` with rewritten original-IP names + ability text). Shared Zod schemas (`cardSchema`, `deckSchema`, `effectSchema`, `abilitySchema`) in `@prophecy/protocol`. Game-server loads + validates the catalog at boot via `corpus.ts`; `startRoom` now plays from `packages/db/seed/` instead of `synthetic-set` (which stays test-only). New REST endpoints on game-server: `GET/PUT /admin/cards`, `GET/PUT /admin/decks` — dev-only, no auth. Admin UX at `/admin/cards` and `/admin/decks` in `apps/web`: per-tab table + edit form, character / battlefield / plot pickers driven by card type, ability builder with a form per known op plus a `(new)` placeholder that doubles as the running TODO list of unimplemented effect ops. Deck-build rule enforcement (color / faction / 30-card / 2-copy) intentionally out of scope — author manually for now. Die-face editor deferred — characters keep their seeded faces read-only. 121 engine tests still green; workspace typecheck clean.
 - **2026-05-13 — ENGINE-5 — Modifier-with-parent enforcement + symbolless modifiers + Draw symbol** (`ac1d50d`). `DieSymbol` union extended with `'draw'` (new card-draw resolve path, currently rejected as "not yet implemented") and `'modifier'` (symbolless wild +N face). Mirrored in `@prophecy/protocol`, `@prophecy/db`, and the synthetic-set Zod schema. `applyResolveDice` replaces the implicit "all dice share a symbol + not all are modifiers" check with an explicit two-case rule: non-modifiers must share a symbol; each symboled modifier needs a same-symbol non-modifier; each symbolless `'modifier'` die needs any non-modifier with `value > 0` (special and blank are value 0 and never qualify). UI: `symbolGlyph` → `symbolLabel`, full words on the dice tiles (Melee, Ranged, Indirect, Shield, Resource, Disrupt, Discard, Draw, Focus, Special, Modifier, Blank); `canSelectDie` admits symbolless modifiers once a locked symbol is set. 121 engine tests green (5 new in `resolve-dice.test.ts`).

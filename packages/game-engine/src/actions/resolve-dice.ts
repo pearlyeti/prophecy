@@ -1,4 +1,7 @@
+import { applyEffects } from '../abilities/dispatch';
 import type { EngineEvent } from '../events';
+import { drainQueue } from '../queue/drain';
+import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan';
 import { addShields, adjustResources, dealDamage, ownerOf } from '../state/combat';
 import { endTurn } from '../state/turn';
 import type { DieInPool, GameState, PlayerState } from '../state/types';
@@ -136,6 +139,24 @@ export function applyResolveDice(
       if (!ownerId) {
         throw new IllegalActionError(`character ${targetCharacterId} is not in play`);
       }
+      // Before triggers: run inline before damage lands.
+      const beforeCandidates = collectBeforeTriggers(working, 'beforeTakeDamage', {
+        targetCharacterId,
+        targetOwnerId: ownerId,
+      });
+      const sortedBefore = [...beforeCandidates].sort((a, b) =>
+        a.sourceCardInstanceId.localeCompare(b.sourceCardInstanceId),
+      );
+      for (const candidate of sortedBefore) {
+        const ctx = {
+          playerId: candidate.playerId,
+          characterTargets: [],
+          sourceCharacterId: candidate.sourceCardInstanceId,
+        };
+        const r = applyEffects(working, ctx, candidate.ability.effects);
+        working = r.state;
+        events.push(...r.events);
+      }
       working = dealDamage(working, ownerId, targetCharacterId, totalValue, events);
       break;
     }
@@ -184,7 +205,21 @@ export function applyResolveDice(
     consecutivePasses: 0,
   };
 
-  // If dealing damage already ended the game, skip the turn rotation.
+  // If dealing damage already ended the game, skip triggers + rotation.
+  if (finalState.winnerId !== null) {
+    return { state: finalState, events };
+  }
+
+  // After triggers: scan the emitted events for after-trigger matches.
+  const afterCandidates = collectAfterTriggers(finalState, events);
+  finalState = commitTriggers(finalState, afterCandidates);
+
+  if (!finalState.pendingTriggers) {
+    const drained = drainQueue(finalState);
+    finalState = drained.state;
+    events.push(...drained.events);
+  }
+
   if (finalState.winnerId !== null) {
     return { state: finalState, events };
   }

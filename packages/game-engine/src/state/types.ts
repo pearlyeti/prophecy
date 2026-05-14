@@ -1,5 +1,6 @@
 // Core type definitions for the rules engine.
 import type { Ability } from '../abilities/types';
+import type { Queue, PendingTriggers } from '../queue/types';
 // These mirror the abstract game system in docs/rules-reference.md.
 // Implementation comes incrementally; this file exists so dependent
 // packages can refer to the public surface.
@@ -185,6 +186,16 @@ export interface GameState {
    * is not present here are treated as cost 0.
    */
   readonly cardCosts: Readonly<Record<string, number>>;
+  /** After-ability queue. Drained after each action resolves. */
+  readonly queue: Queue;
+  /**
+   * Non-null when simultaneous after-triggers are waiting for player
+   * ordering before they enter the queue. While this is set, only the
+   * 'order-triggers' action is legal for the waitingForPlayerId.
+   */
+  readonly pendingTriggers: PendingTriggers | null;
+  /** Monotonic counter for generating stable queue entry IDs. */
+  readonly nextQueueEntryId: number;
   /**
    * Per-card-instance ability AST keyed by instance id. Cards not listed
    * here have no abilities. Populated by newGameFromDecks (game-server

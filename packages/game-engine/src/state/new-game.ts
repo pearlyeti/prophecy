@@ -1,5 +1,6 @@
 import type { Ability } from '../abilities/types';
 import type { CardFixture, DeckFixture } from '../__fixtures__/synthetic-set/schema';
+import { emptyQueue } from '../queue/types';
 import { applyAction } from '../reducers/apply-action';
 import { createRng, type SeededRng } from '../rng/seeded-rng';
 import type {
@@ -185,6 +186,9 @@ export function newGame(input: NewGameInput): GameState {
     winnerId: null,
     cardCosts: cardCosts ?? {},
     cardAbilities: cardAbilities ?? {},
+    queue: emptyQueue,
+    pendingTriggers: null,
+    nextQueueEntryId: 0,
     extraTurnsPending: {},
     ambushGrantedThisTurn: false,
   };
