@@ -7,6 +7,7 @@ import {
   type ServerToClientEvents,
 } from '@prophecy/protocol';
 import { createReadStream, existsSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import sharp from 'sharp';
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { basename, extname, resolve } from 'node:path';
@@ -97,15 +98,19 @@ const httpServer = createServer(async (req, res) => {
     let size = 0;
     for await (const chunk of req) {
       size += (chunk as Buffer).length;
-      if (size > 4 * 1024 * 1024) {
+      if (size > 20 * 1024 * 1024) {
         res.writeHead(413, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'file too large (max 4 MB)' }));
+        res.end(JSON.stringify({ ok: false, error: 'file too large (max 20 MB source)' }));
         return;
       }
       chunks.push(chunk as Buffer);
     }
-    const body = Buffer.concat(chunks);
-    const key = `card-art/${cardId}.${ext}`;
+    // Convert to WebP (max 1024×1024) regardless of source format.
+    const body = await sharp(Buffer.concat(chunks))
+      .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 85 })
+      .toBuffer();
+    const key = `card-art/${cardId}.webp`;
     let artUrl: string;
     if (isStorageConfigured()) {
       artUrl = await uploadFile(key, body, contentType);

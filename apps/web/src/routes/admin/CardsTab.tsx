@@ -563,7 +563,7 @@ function ArtUploader({
           <div className="flex flex-col items-center gap-1 text-neutral-500">
             <span className="text-2xl">🖼</span>
             <span className="text-xs">{uploading ? 'Uploading…' : 'Drop art here or click to browse'}</span>
-            <span className="text-[10px] text-neutral-600">JPEG · PNG · WebP · 512 × 512 recommended</span>
+            <span className="text-[10px] text-neutral-600">JPEG · PNG · WebP · up to 20 MB · converted to WebP 1024 × 1024</span>
           </div>
         )}
         {uploading && (
