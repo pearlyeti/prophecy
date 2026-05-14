@@ -1,7 +1,9 @@
-import { getLegalActions, type DieSymbol, type DieInPool } from '@prophecy/game-engine';
-import type { Action, EngineEvent, GameState } from '@prophecy/protocol';
+import { getLegalActions, type DieSymbol, type DieInPool, type DieFace } from '@prophecy/game-engine';
+import type { Action, Card, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+
+import { fetchCards } from './admin/api.js';
 
 import { getSocket } from '../lib/socket.js';
 import { useApp } from '../store.js';
@@ -9,6 +11,8 @@ import { useApp } from '../store.js';
 // Bare-bones in-game UI. Renders the public game state and exposes the
 // implemented actions as buttons. Pretty UI comes later — first goal is
 // proving end-to-end multiplayer with two real clients.
+type HandMode = 'browse' | 'play' | 'reroll';
+
 export function Game() {
   const playerId = useApp((s) => s.playerId);
   const lobby = useApp((s) => s.lobby);
@@ -17,6 +21,17 @@ export function Game() {
   const setError = useApp((s) => s.setError);
   const selectionMode = useApp((s) => s.selectionMode);
   const exitSelectionMode = useApp((s) => s.exitSelectionMode);
+  const enterRerollMode = useApp((s) => s.enterRerollMode);
+
+  const [catalog, setCatalog] = useState<Card[]>([]);
+  const [handMode, setHandMode] = useState<HandMode | null>(null);
+  const [handFocusId, setHandFocusId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCards().then(setCatalog).catch(() => {});
+  }, []);
+
+  const catalogById = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
 
   // Drop selection-mode state if the turn rotates away or the game
   // leaves the action phase. Without this, a lingering selection from
@@ -27,6 +42,11 @@ export function Game() {
   useEffect(() => {
     if (!isMyTurn || !inActionPhase) exitSelectionMode();
   }, [isMyTurn, inActionPhase, exitSelectionMode]);
+
+  // Close hand overlay on turn rotation too.
+  useEffect(() => {
+    if (!inActionPhase) { setHandMode(null); setHandFocusId(null); }
+  }, [inActionPhase]);
 
   if (!lobby || !game) return null;
 
@@ -43,9 +63,31 @@ export function Game() {
   const me = lobby.members.find((m) => m.playerId === playerId);
   const opponent = lobby.members.find((m) => m.playerId !== playerId);
   const ended = game.phase === 'ended';
+  const myPlayer = game.players[playerId];
+  const showHandStrip =
+    !ended &&
+    (game.phase === 'action' || game.phase === 'upkeep') &&
+    selectionMode === null &&
+    handMode === null;
+
+  const openHand = (mode: HandMode, focusId?: string) => {
+    const firstCard = myPlayer?.hand[0] ?? null;
+    setHandMode(mode);
+    setHandFocusId(focusId ?? firstCard);
+  };
+  const closeHand = () => { setHandMode(null); setHandFocusId(null); };
+
+  const handlePlay = (instanceId: string) => {
+    send({ type: 'play-card', playerId, cardId: instanceId });
+    closeHand();
+  };
+  const handleReroll = (instanceId: string) => {
+    enterRerollMode(instanceId);
+    closeHand();
+  };
 
   return (
-    <main className="min-h-dvh px-4 py-6 sm:px-6">
+    <main className={`min-h-dvh px-4 py-6 sm:px-6 ${showHandStrip ? 'pb-[124px]' : ''}`}>
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">
           {me?.displayName ?? 'You'}{' '}
@@ -67,14 +109,20 @@ export function Game() {
       )}
 
       {!ended && game.phase === 'action' && !selectionMode && (
-        <ActionPanel game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
+        <ActionPanel
+          game={game}
+          playerId={playerId}
+          send={send}
+          isMyTurn={isMyTurn}
+          onOpenHand={openHand}
+        />
       )}
 
       {(game.phase === 'action' || game.phase === 'upkeep' || ended) && (
         <DicePoolStrip game={game} playerId={playerId} />
       )}
 
-      <PlayerSummaries game={game} playerId={playerId} />
+      <PlayerSummaries game={game} playerId={playerId} catalogById={catalogById} />
 
       <EventLog events={events} />
 
@@ -89,6 +137,33 @@ export function Game() {
 
       {selectionMode && !ended && game.phase === 'action' && (
         <SelectionActionBar game={game} playerId={playerId} send={send} />
+      )}
+
+      {showHandStrip && myPlayer && (
+        <HandStrip
+          hand={myPlayer.hand}
+          game={game}
+          playerId={playerId}
+          catalogById={catalogById}
+          isMyTurn={isMyTurn}
+          onTap={(id) => openHand(isMyTurn ? 'play' : 'browse', id)}
+          onLongPress={(id) => openHand('browse', id)}
+        />
+      )}
+
+      {handMode && myPlayer && (
+        <HandOverlay
+          hand={myPlayer.hand}
+          game={game}
+          playerId={playerId}
+          mode={handMode}
+          catalogById={catalogById}
+          initialFocusId={handFocusId}
+          isMyTurn={isMyTurn}
+          onPlay={handlePlay}
+          onReroll={handleReroll}
+          onClose={closeHand}
+        />
       )}
     </main>
   );
@@ -189,16 +264,8 @@ function SetupPanel({
   );
 }
 
-// One of the open overlays. Each entry corresponds to a button in
-// ActionPanel that needs follow-up taps to dispatch (target choice,
-// destructive confirm, etc.). Single-string state because at most one
-// overlay is open at a time on touch. Resolve-dice is *not* an overlay
-// — it takes over the dice tray plus a sticky bottom bar; see
-// ResolveActionBar.
 type OpenOverlay =
   | { kind: 'activate' }
-  | { kind: 'play-card' }
-  | { kind: 'pick-reroll-discard' }
   | { kind: 'confirm-claim' }
   | { kind: 'confirm-concede' };
 
@@ -207,26 +274,19 @@ function ActionPanel({
   playerId,
   send,
   isMyTurn,
+  onOpenHand,
 }: {
   game: GameState;
   playerId: string;
   send: (a: Action) => void;
   isMyTurn: boolean;
+  onOpenHand: (mode: HandMode) => void;
 }) {
   const [overlay, setOverlay] = useState<OpenOverlay | null>(null);
   const enterResolveMode = useApp((s) => s.enterResolveMode);
-  const enterRerollMode = useApp((s) => s.enterRerollMode);
   const legal = getLegalActions(game, playerId);
   const close = () => setOverlay(null);
-
-  // After dispatching, clear the overlay. The state shape doesn't tell
-  // us whether the round rotated past us, but closing is the right UX
-  // either way — the user can re-open if it's still their turn.
-  const dispatch = (a: Action) => {
-    send(a);
-    close();
-  };
-
+  const dispatch = (a: Action) => { send(a); close(); };
   const me = game.players[playerId];
 
   return (
@@ -251,7 +311,7 @@ function ActionPanel({
           label="Play card"
           subLabel={legal.canPlayCard ? `${me?.hand.length ?? 0} in hand` : 'no card affordable'}
           enabled={legal.canPlayCard}
-          onClick={() => setOverlay({ kind: 'play-card' })}
+          onClick={() => onOpenHand('play')}
         />
         <ActionButton
           label="Discard to reroll"
@@ -263,7 +323,7 @@ function ActionPanel({
               : ''
           }
           enabled={isMyTurn && (me?.hand.length ?? 0) > 0}
-          onClick={() => setOverlay({ kind: 'pick-reroll-discard' })}
+          onClick={() => onOpenHand('reroll')}
         />
         <ActionButton
           label="Pass"
@@ -272,9 +332,7 @@ function ActionPanel({
         />
         <ActionButton
           label="Claim battlefield"
-          subLabel={
-            game.playerWhoClaimedThisRound !== null ? 'taken this round' : 'destructive'
-          }
+          subLabel={game.playerWhoClaimedThisRound !== null ? 'taken this round' : 'destructive'}
           enabled={legal.canClaim}
           tone="warning"
           onClick={() => setOverlay({ kind: 'confirm-claim' })}
@@ -308,56 +366,6 @@ function ActionPanel({
                 </TargetButton>
               );
             })}
-          </TargetGrid>
-        </ActionOverlay>
-      )}
-
-      {overlay?.kind === 'play-card' && (
-        <ActionOverlay title="Play which card?" onClose={close}>
-          <div className="mb-2 text-[11px] text-neutral-500">
-            Resources: {me?.resources ?? 0}. Card abilities don't fire yet — this is
-            cost-only play.
-          </div>
-          <TargetGrid>
-            {me?.hand.map((cardId) => {
-              const cost = game.cardCosts[cardId] ?? 0;
-              const affordable = (me?.resources ?? 0) >= cost;
-              return (
-                <TargetButton
-                  key={cardId}
-                  enabled={affordable}
-                  onClick={() => dispatch({ type: 'play-card', playerId, cardId })}
-                >
-                  <div className="font-mono text-sm">{cardId.replace(/^.*\./, '')}</div>
-                  <div className="text-[11px] text-neutral-400">cost {cost}</div>
-                </TargetButton>
-              );
-            })}
-          </TargetGrid>
-        </ActionOverlay>
-      )}
-
-      {overlay?.kind === 'pick-reroll-discard' && (
-        <ActionOverlay title="Discard which card to reroll?" onClose={close}>
-          <div className="mb-2 text-[11px] text-neutral-500">
-            After discarding, you'll pick which dice to reroll (zero or more).
-          </div>
-          <TargetGrid>
-            {me?.hand.map((cardId) => (
-              <TargetButton
-                key={cardId}
-                enabled
-                onClick={() => {
-                  close();
-                  enterRerollMode(cardId);
-                }}
-              >
-                <div className="font-mono text-sm">{cardId.replace(/^.*\./, '')}</div>
-                <div className="text-[11px] text-neutral-400">
-                  cost {game.cardCosts[cardId] ?? 0}
-                </div>
-              </TargetButton>
-            ))}
           </TargetGrid>
         </ActionOverlay>
       )}
@@ -537,7 +545,15 @@ function ConfirmOverlay({
   );
 }
 
-function PlayerSummaries({ game, playerId }: { game: GameState; playerId: string }) {
+function PlayerSummaries({
+  game,
+  playerId,
+  catalogById: _catalogById,
+}: {
+  game: GameState;
+  playerId: string;
+  catalogById: Map<string, Card>;
+}) {
   const lobby = useApp.getState().lobby!;
   return (
     <section className="grid gap-3 sm:grid-cols-2">
@@ -966,6 +982,336 @@ function SelectionActionBar({
         </ActionOverlay>
       )}
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hand strip + expanded overlay (WEB-4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function cardTypeBand(type: string): string {
+  switch (type) {
+    case 'character': return 'bg-amber-500';
+    case 'upgrade': return 'bg-blue-500';
+    case 'event': return 'bg-purple-500';
+    case 'support': return 'bg-teal-500';
+    default: return 'bg-neutral-600';
+  }
+}
+
+function dieFaceChipClass(symbol: string): string {
+  switch (symbol) {
+    case 'melee': return 'border-red-700 bg-red-950 text-red-300';
+    case 'ranged': return 'border-orange-700 bg-orange-950 text-orange-300';
+    case 'shield': return 'border-blue-700 bg-blue-950 text-blue-300';
+    case 'resource': return 'border-green-700 bg-green-950 text-green-300';
+    case 'disrupt': return 'border-purple-700 bg-purple-950 text-purple-300';
+    case 'focus': return 'border-yellow-700 bg-yellow-950 text-yellow-300';
+    case 'special': return 'border-neutral-600 bg-neutral-900 text-neutral-400';
+    case 'modifier': return 'border-neutral-700 bg-neutral-950 text-neutral-400';
+    default: return 'border-neutral-800 bg-neutral-950 text-neutral-600';
+  }
+}
+
+function DieFaceChip({ face }: { face: DieFace }) {
+  const label = face.modifier && face.symbol === 'modifier'
+    ? `+${face.value}`
+    : face.value > 0
+      ? `${face.modifier ? '+' : ''}${face.value} ${symbolLabel(face.symbol)}`
+      : symbolLabel(face.symbol);
+  return (
+    <span className={`inline-block rounded border px-1.5 py-0.5 text-[10px] leading-tight ${dieFaceChipClass(face.symbol)}`}>
+      {label}
+    </span>
+  );
+}
+
+function useLongPress(onLongPress: () => void, delay = 500) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancel = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
+  return {
+    onTouchStart: () => { timer.current = setTimeout(onLongPress, delay); },
+    onTouchEnd: cancel,
+    onTouchMove: cancel,
+    onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); onLongPress(); },
+  };
+}
+
+// Compact card tile used in the hand strip.
+function HandCardTile({
+  instanceId,
+  game,
+  catalogById,
+  eligible,
+  focused,
+  onTap,
+  onLongPress,
+}: {
+  instanceId: string;
+  game: GameState;
+  catalogById: Map<string, Card>;
+  eligible: boolean;
+  focused?: boolean;
+  onTap: () => void;
+  onLongPress: () => void;
+}) {
+  const catalogId = game.cardCatalogIds[instanceId];
+  const card = catalogId ? catalogById.get(catalogId) : undefined;
+  const cost = game.cardCosts[instanceId] ?? 0;
+  const longPress = useLongPress(onLongPress);
+
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      {...longPress}
+      className={`relative flex h-[90px] w-[68px] shrink-0 flex-col overflow-hidden rounded-lg border text-left transition ${
+        focused
+          ? 'border-emerald-400 ring-2 ring-emerald-400'
+          : eligible
+            ? 'border-emerald-600 bg-neutral-900'
+            : 'border-neutral-700 bg-neutral-900'
+      }`}
+    >
+      <div className={`h-1 w-full shrink-0 ${card ? cardTypeBand(card.type) : 'bg-neutral-700'}`} />
+      <div className="flex flex-1 flex-col gap-0.5 px-1.5 pt-1">
+        <div className="line-clamp-3 text-[10px] leading-tight text-neutral-100">
+          {card?.name ?? instanceId.replace(/^.*\.deck\./, 'card ')}
+        </div>
+        {card?.subtype && (
+          <div className="text-[9px] text-neutral-500">{card.subtype}</div>
+        )}
+      </div>
+      <div className="flex items-center justify-end px-1.5 pb-1">
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-neutral-800 text-[9px] font-bold text-neutral-300">
+          {cost}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function HandStrip({
+  hand,
+  game,
+  playerId,
+  catalogById,
+  isMyTurn,
+  onTap,
+  onLongPress,
+}: {
+  hand: readonly string[];
+  game: GameState;
+  playerId: string;
+  catalogById: Map<string, Card>;
+  isMyTurn: boolean;
+  onTap: (instanceId: string) => void;
+  onLongPress: (instanceId: string) => void;
+}) {
+  const me = game.players[playerId];
+  const legal = isMyTurn ? getLegalActions(game, playerId) : null;
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-800 bg-neutral-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      <div className="flex items-center gap-1 px-3 py-2">
+        <div className="mr-2 shrink-0 text-[10px] uppercase tracking-wider text-neutral-500">
+          Hand {hand.length > 0 ? `(${hand.length})` : ''}
+        </div>
+        {hand.length === 0 ? (
+          <div className="text-[11px] text-neutral-600">Empty</div>
+        ) : (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {hand.map((id) => {
+              const cost = game.cardCosts[id] ?? 0;
+              const affordable = (me?.resources ?? 0) >= cost;
+              const eligible = isMyTurn && affordable && (legal?.canPlayCard ?? false);
+              return (
+                <HandCardTile
+                  key={id}
+                  instanceId={id}
+                  game={game}
+                  catalogById={catalogById}
+                  eligible={eligible}
+                  onTap={() => onTap(id)}
+                  onLongPress={() => onLongPress(id)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HandOverlay({
+  hand,
+  game,
+  playerId,
+  mode,
+  catalogById,
+  initialFocusId,
+  isMyTurn,
+  onPlay,
+  onReroll,
+  onClose,
+}: {
+  hand: readonly string[];
+  game: GameState;
+  playerId: string;
+  mode: HandMode;
+  catalogById: Map<string, Card>;
+  initialFocusId: string | null;
+  isMyTurn: boolean;
+  onPlay: (instanceId: string) => void;
+  onReroll: (instanceId: string) => void;
+  onClose: () => void;
+}) {
+  const [focusId, setFocusId] = useState<string | null>(initialFocusId ?? hand[0] ?? null);
+  const me = game.players[playerId];
+  const legal = isMyTurn ? getLegalActions(game, playerId) : null;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const focusedCatalogId = focusId ? game.cardCatalogIds[focusId] : undefined;
+  const focusedCard = focusedCatalogId ? catalogById.get(focusedCatalogId) : undefined;
+  const focusedCost = focusId ? (game.cardCosts[focusId] ?? 0) : 0;
+  const focusedAffordable = (me?.resources ?? 0) >= focusedCost;
+  const focusedEligiblePlay = isMyTurn && focusedAffordable && (legal?.canPlayCard ?? false);
+
+  const title =
+    mode === 'play' ? 'Play a card' :
+    mode === 'reroll' ? 'Discard to reroll' :
+    'Your hand';
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-end sm:justify-center">
+      {/* backdrop */}
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+      />
+
+      {/* sheet */}
+      <div className="relative z-10 flex w-full max-w-lg flex-col rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:max-h-[85dvh] sm:rounded-2xl"
+        style={{ maxHeight: '85dvh' }}
+      >
+        {/* header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-4 py-3">
+          <div className="text-sm font-medium text-neutral-100">{title}</div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] min-w-[44px] rounded-md px-3 text-xs uppercase tracking-wider text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
+          >
+            Close
+          </button>
+        </div>
+
+        {/* card scroll row */}
+        {hand.length === 0 ? (
+          <div className="px-4 py-6 text-sm text-neutral-500">No cards in hand.</div>
+        ) : (
+          <div className="flex shrink-0 gap-3 overflow-x-auto px-4 py-3">
+            {hand.map((id) => {
+              const cost = game.cardCosts[id] ?? 0;
+              const affordable = (me?.resources ?? 0) >= cost;
+              const eligible =
+                mode === 'play' && isMyTurn && affordable && (legal?.canPlayCard ?? false);
+              return (
+                <HandCardTile
+                  key={id}
+                  instanceId={id}
+                  game={game}
+                  catalogById={catalogById}
+                  eligible={eligible}
+                  focused={id === focusId}
+                  onTap={() => setFocusId(id)}
+                  onLongPress={() => setFocusId(id)}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* focused card detail */}
+        {focusId && (
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto border-t border-neutral-800 px-4 py-4">
+            {/* name + badges */}
+            <div className="flex flex-wrap items-start gap-2">
+              <div className="flex-1">
+                <div className="text-base font-semibold text-neutral-100">
+                  {focusedCard?.name ?? focusId.replace(/^.*\.deck\./, 'Card ')}
+                </div>
+                {focusedCard && (
+                  <div className="mt-0.5 flex flex-wrap gap-1.5">
+                    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(focusedCard.type)}`}>
+                      {focusedCard.type}
+                      {focusedCard.subtype ? ` · ${focusedCard.subtype}` : ''}
+                    </span>
+                    <span className="inline-block rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-400">
+                      {focusedCard.faction}
+                      {focusedCard.color ? ` · ${focusedCard.color}` : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-sm font-bold text-neutral-200">
+                {focusedCost}
+              </div>
+            </div>
+
+            {/* ability / display text */}
+            {focusedCard?.displayText ? (
+              <p className="text-sm leading-relaxed text-neutral-300">{focusedCard.displayText}</p>
+            ) : (
+              <p className="text-sm text-neutral-600 italic">No ability text.</p>
+            )}
+
+            {/* die faces */}
+            {focusedCard?.dieFaces && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-neutral-500">Die faces</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {focusedCard.dieFaces.map((face, i) => (
+                    <DieFaceChip key={i} face={face} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* action button */}
+            <div className="mt-auto pt-2">
+              {mode === 'play' && (
+                <button
+                  type="button"
+                  disabled={!focusedEligiblePlay}
+                  onClick={() => focusId && onPlay(focusId)}
+                  className="min-h-[44px] w-full rounded-lg border border-emerald-700 bg-emerald-900 px-4 py-2 text-sm font-medium text-emerald-50 transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {focusedAffordable ? 'Play this card' : `Need ${focusedCost} resources (have ${me?.resources ?? 0})`}
+                </button>
+              )}
+              {mode === 'reroll' && (
+                <button
+                  type="button"
+                  onClick={() => focusId && onReroll(focusId)}
+                  className="min-h-[44px] w-full rounded-lg border border-amber-700 bg-amber-900 px-4 py-2 text-sm font-medium text-amber-50 transition hover:bg-amber-800"
+                >
+                  Discard to reroll
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

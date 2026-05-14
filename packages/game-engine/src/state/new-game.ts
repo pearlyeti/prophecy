@@ -51,6 +51,11 @@ export interface NewGameInput {
    * production callers (newGameFromDecks) populate it from the corpus.
    */
   readonly cardAbilities?: Readonly<Record<string, readonly Ability[]>>;
+  /**
+   * Optional instance-id → catalog-card-id mapping. Populated by
+   * newGameFromDecks; tests leave it unset (defaults to empty).
+   */
+  readonly cardCatalogIds?: Readonly<Record<string, string>>;
 }
 
 const DEFAULT_HAND_SIZE = 5;
@@ -94,6 +99,7 @@ export function newGame(input: NewGameInput): GameState {
     playerOverrides,
     cardCosts,
     cardAbilities,
+    cardCatalogIds,
   } = input;
 
   for (const id of playerIds) {
@@ -186,6 +192,7 @@ export function newGame(input: NewGameInput): GameState {
     winnerId: null,
     cardCosts: cardCosts ?? {},
     cardAbilities: cardAbilities ?? {},
+    cardCatalogIds: cardCatalogIds ?? {},
     queue: emptyQueue,
     pendingTriggers: null,
     nextQueueEntryId: 0,
@@ -279,6 +286,8 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
   const playerIds: [string, string] = [assignments[0].playerId, assignments[1].playerId];
   const playerCharacters: Record<string, CharacterInput[]> = {};
   const playerBattlefieldCardIds: Record<string, string> = {};
+  const cardCatalogIds: Record<string, string> = {};
+  const cardCosts: Record<string, number> = {};
 
   for (const a of assignments) {
     const team: CharacterInput[] = [];
@@ -291,8 +300,10 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
       if (!card.dieFaces) {
         throw new Error(`${dc.cardId} has no dieFaces`);
       }
+      const instanceId = `${a.playerId}.char.${i}`;
+      cardCatalogIds[instanceId] = dc.cardId;
       team.push({
-        id: `${a.playerId}.char.${i}`,
+        id: instanceId,
         cardId: dc.cardId,
         elite: dc.elite,
         dieFaces: card.dieFaces,
@@ -301,6 +312,25 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
     });
     playerCharacters[a.playerId] = team;
     playerBattlefieldCardIds[a.playerId] = a.deck.battlefieldCardId;
+
+    // Expand deck.cards (with counts) into the ordered instance list and
+    // build the catalog-id + cost maps. The deck must total exactly
+    // DEFAULT_DECK_SIZE cards to line up with the instance ids newGame creates.
+    const deckCardIds: string[] = [];
+    for (const { cardId, count } of a.deck.cards) {
+      for (let i = 0; i < count; i++) deckCardIds.push(cardId);
+    }
+    if (deckCardIds.length !== DEFAULT_DECK_SIZE) {
+      throw new Error(
+        `deck for ${a.playerId} has ${deckCardIds.length} cards; expected ${DEFAULT_DECK_SIZE}`,
+      );
+    }
+    deckCardIds.forEach((catalogId, i) => {
+      const instanceId = `${a.playerId}.deck.${i}`;
+      cardCatalogIds[instanceId] = catalogId;
+      const card = byId.get(catalogId);
+      cardCosts[instanceId] = card?.cost ?? 0;
+    });
   }
 
   return newGame({
@@ -308,6 +338,8 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
     playerIds,
     playerCharacters,
     playerBattlefieldCardIds,
+    cardCatalogIds,
+    cardCosts,
   });
 }
 
