@@ -141,6 +141,7 @@ export type Effect =
   | StubEffect<'resolveDie'>
   | StubEffect<'resolveWithoutRemoving'>
   | StubEffect<'rollDie'>
+  | StubEffect<'rollEventDie'>
   | StubEffect<'rollCardDie'>
   | StubEffect<'activateCharacter'>
   | StubEffect<'exhaustCard'>
