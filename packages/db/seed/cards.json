@@ -4,6 +4,7 @@
       "id": "BFD_002",
       "name": "The Sundered Bastion",
       "type": "battlefield",
+      "subtypes": [],
       "faction": "neutral",
       "color": null,
       "rarity": "uncommon",
@@ -14,9 +15,22 @@
       "plotPointValue": null,
       "isUnique": true,
       "keywords": [],
-      "displayText": "",
+      "displayText": "Claim: Opponent loses 1 resource.",
       "dieFaces": null,
-      "abilities": [],
+      "abilities": [
+        {
+          "kind": "claim",
+          "effects": [
+            {
+              "op": "loseResources",
+              "amount": 1,
+              "target": "opponent",
+              "optional": false
+            }
+          ],
+          "optional": false
+        }
+      ],
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
@@ -26,13 +40,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "BFD_003",
       "name": "Ashen Crossroads",
       "type": "battlefield",
+      "subtypes": [],
       "faction": "neutral",
       "color": null,
       "rarity": "uncommon",
@@ -55,13 +69,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "CHAR_003",
       "name": "War Hound",
       "type": "character",
+      "subtypes": [
+        "Soldier"
+      ],
       "faction": "shadow",
       "color": "red",
       "rarity": "rare",
@@ -72,7 +88,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "keywords": [],
-      "displayText": "",
+      "displayText": "Special: Remove all shields from an opponent's character.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -105,31 +121,46 @@
           "modifier": false
         },
         {
-          "symbol": "resource",
-          "value": 1,
-          "cost": 0,
+          "symbol": "special",
+          "value": 0,
+          "cost": 1,
           "modifier": false
         }
       ],
-      "abilities": [],
+      "abilities": [
+        {
+          "kind": "special",
+          "effects": [
+            {
+              "op": "removeShields",
+              "amount": "all",
+              "target": {
+                "kind": "opponentCharacter"
+              },
+              "optional": false
+            }
+          ],
+          "optional": false
+        }
+      ],
       "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_003.webp",
-      "artFrameX": 66.22474747474743,
-      "artFrameY": 43.5606060606061,
-      "artFrameZoom": 2.4,
+      "artFrameX": 71.07114245907361,
+      "artFrameY": 40.06844305120174,
+      "artFrameZoom": 2.9,
       "cardFrameX": 41.71974522292997,
       "cardFrameY": 50,
       "cardFrameZoom": 1,
-      "badgeFrameX": null,
-      "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Soldier"
-      ]
+      "badgeFrameX": 75.25496511003762,
+      "badgeFrameY": 39.43907675791731,
+      "badgeFrameZoom": 2.7
     },
     {
       "id": "CHAR_011",
       "name": "Berserker",
       "type": "character",
+      "subtypes": [
+        "Warrior"
+      ],
       "faction": "shadow",
       "color": "yellow",
       "rarity": "rare",
@@ -189,15 +220,15 @@
       "cardFrameZoom": 1,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Warrior"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "CHAR_016",
       "name": "Shield Maiden",
       "type": "character",
+      "subtypes": [
+        "Apprentice"
+      ],
       "faction": "light",
       "color": "red",
       "rarity": "rare",
@@ -257,15 +288,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Apprentice"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "CHAR_017",
       "name": "Loki, Trickster God",
       "type": "character",
+      "subtypes": [
+        "God"
+      ],
       "faction": "light",
       "color": "blue",
       "rarity": "legendary",
@@ -325,15 +356,13 @@
       "cardFrameZoom": 1,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "God"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_001",
       "name": "Quick Strike",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "red",
       "rarity": "common",
@@ -372,13 +401,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_002",
       "name": "Steady Stance",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "red",
       "rarity": "common",
@@ -415,13 +444,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_004",
       "name": "Sundering Blow",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "red",
       "rarity": "common",
@@ -458,13 +487,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_005",
       "name": "Watchful Eye",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "red",
       "rarity": "common",
@@ -500,13 +529,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_007",
       "name": "Brace for Action",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "red",
       "rarity": "uncommon",
@@ -542,13 +571,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_018",
       "name": "Quartermaster's Cache",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "gray",
       "rarity": "uncommon",
@@ -582,13 +611,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_019",
       "name": "Quick Pocket",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "yellow",
       "rarity": "uncommon",
@@ -622,13 +651,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_020",
       "name": "Triage",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "yellow",
       "rarity": "common",
@@ -665,13 +694,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_022",
       "name": "Pressing Assault",
       "type": "event",
+      "subtypes": [],
       "faction": "shadow",
       "color": "yellow",
       "rarity": "uncommon",
@@ -710,13 +739,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_026",
       "name": "Tactical Insight",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "red",
       "rarity": "uncommon",
@@ -752,13 +781,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_028",
       "name": "Field Medic",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "red",
       "rarity": "common",
@@ -795,13 +824,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_029",
       "name": "Resupply",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "red",
       "rarity": "common",
@@ -835,13 +864,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_032",
       "name": "Battle Plan",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "red",
       "rarity": "uncommon",
@@ -877,13 +906,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_033",
       "name": "Decisive Strike",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "red",
       "rarity": "uncommon",
@@ -922,13 +951,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_038",
       "name": "Marksman's Eye",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "blue",
       "rarity": "common",
@@ -967,13 +996,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_039",
       "name": "Ward of Light",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "blue",
       "rarity": "common",
@@ -1010,13 +1039,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_044",
       "name": "Last-Minute Plans",
       "type": "event",
+      "subtypes": [],
       "faction": "light",
       "color": "gray",
       "rarity": "uncommon",
@@ -1052,13 +1081,13 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_055",
       "name": "Long Shot",
       "type": "event",
+      "subtypes": [],
       "faction": "neutral",
       "color": "red",
       "rarity": "common",
@@ -1097,13 +1126,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": []
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_001",
       "name": "Crimson Vambrace",
       "type": "upgrade",
+      "subtypes": [
+        "Armor"
+      ],
       "faction": "shadow",
       "color": "red",
       "rarity": "legendary",
@@ -1163,15 +1194,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Armor"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_002",
       "name": "Blackthorn Edge",
       "type": "upgrade",
+      "subtypes": [
+        "Weapon"
+      ],
       "faction": "shadow",
       "color": "red",
       "rarity": "fixed",
@@ -1231,15 +1262,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Weapon"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_007",
       "name": "Hardened Plating",
       "type": "upgrade",
+      "subtypes": [
+        "Armor"
+      ],
       "faction": "shadow",
       "color": "gray",
       "rarity": "rare",
@@ -1299,15 +1330,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Armor"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_009",
       "name": "Stratos Sidearm",
       "type": "upgrade",
+      "subtypes": [
+        "Weapon"
+      ],
       "faction": "shadow",
       "color": "yellow",
       "rarity": "rare",
@@ -1367,15 +1398,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Weapon"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_011",
       "name": "Quickdraw Sleeve",
       "type": "upgrade",
+      "subtypes": [
+        "Equipment"
+      ],
       "faction": "shadow",
       "color": "yellow",
       "rarity": "rare",
@@ -1435,15 +1466,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Equipment"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_013",
       "name": "Sunsteel Sword",
       "type": "upgrade",
+      "subtypes": [
+        "Weapon"
+      ],
       "faction": "light",
       "color": "red",
       "rarity": "rare",
@@ -1503,15 +1534,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Weapon"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_014",
       "name": "Tide-Touched Helm",
       "type": "upgrade",
+      "subtypes": [
+        "Armor"
+      ],
       "faction": "light",
       "color": "blue",
       "rarity": "rare",
@@ -1571,15 +1602,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Armor"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_017",
       "name": "Lattice Aegis",
       "type": "upgrade",
+      "subtypes": [
+        "Armor"
+      ],
       "faction": "light",
       "color": "blue",
       "rarity": "legendary",
@@ -1639,15 +1670,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Armor"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_022",
       "name": "Smuggler's Brace",
       "type": "upgrade",
+      "subtypes": [
+        "Equipment"
+      ],
       "faction": "neutral",
       "color": "red",
       "rarity": "rare",
@@ -1707,15 +1738,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Equipment"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_024",
       "name": "Bowmaster's Cord",
       "type": "upgrade",
+      "subtypes": [
+        "Equipment"
+      ],
       "faction": "neutral",
       "color": "red",
       "rarity": "rare",
@@ -1775,15 +1806,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Equipment"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_026",
       "name": "Hollow Lens",
       "type": "upgrade",
+      "subtypes": [
+        "Equipment"
+      ],
       "faction": "neutral",
       "color": "blue",
       "rarity": "rare",
@@ -1843,15 +1874,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Equipment"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_030",
       "name": "Trade Charm",
       "type": "upgrade",
+      "subtypes": [
+        "Equipment"
+      ],
       "faction": "neutral",
       "color": "gray",
       "rarity": "rare",
@@ -1911,15 +1942,15 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Equipment"
-      ]
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_039",
       "name": "Patchcoat",
       "type": "upgrade",
+      "subtypes": [
+        "Armor"
+      ],
       "faction": "neutral",
       "color": "yellow",
       "rarity": "common",
@@ -1942,10 +1973,7 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null,
-      "subtypes": [
-        "Armor"
-      ]
+      "badgeFrameZoom": null
     }
   ]
 }
