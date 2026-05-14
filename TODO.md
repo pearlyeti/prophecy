@@ -70,72 +70,110 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
-#### SERVER-2 — FIFO matchmaking queue (corpus-deck MVP)
-**Why now.** Every match today requires one player to host a lobby and the other to type the invite code. To exercise the engine across more sessions per minute (and to validate the queue plumbing before MMR work lands), we want a "Find Match" button that pairs two players automatically.
+#### WEB-4 — Hand panel: real card display, expanded view, play-card integration
+**Why now.** Cards in hand currently render as raw instance ID suffixes (e.g. `deck.0`). Players can't make meaningful decisions without seeing card names, costs, types, and ability text. This blocks real playtesting.
 
 **Scope.**
-- In-memory FIFO queue inside `apps/game-server` (a `Map<playerId, { joinedAt, deckId }>`); Redis-backed durability is out of scope until multi-instance.
-- Accept a `lobby.findMatch` socket event with `{ playerId, displayName, deckId }`. Two players in the queue → pop, create a room (re-use `createRoom` + `startRoom`), and emit `lobby.matchFound` to both.
-- For now `deckId` is one of the corpus deck ids exposed by `corpus.ts` (`DECK_A` or `DECK_B`). The DB / `apps/api`-served deck path lands once API-1 unblocks and a real deck-fetch endpoint exists (separate card).
-- A matching `lobby.leaveQueue` event (and a disconnect handler) for the impatient player.
+- **Engine (small change):** Add `cardCatalogIds: Readonly<Record<string, string>>` to `GameState` in `packages/game-engine/src/state/types.ts`. Populate it in `newGameFromDecks` (`packages/game-engine/src/state/new-game.ts`) — maps each assigned instance ID to the catalog card ID it came from. This lets the web client look up catalog data given an instance ID.
+- **Catalog fetch:** On game start, `Game.tsx` fetches the card catalog from the game-server (`GET /admin/cards`) once and stores it in component state. No new endpoints needed — the admin endpoint already exists.
+- **Hand strip:** Replace the existing collapsed hand count in `PlayerSummaries` with a visible horizontal strip at the bottom of the board showing your hand (opponent's hand remains hidden as a count). Each card tile shows: name, cost badge, card type. Cards that are affordable and legal to play are highlighted with an emerald border.
+- **Expanded hand view:** Tapping any card in the strip (or clicking the existing "Play card" or "Discard to reroll" action buttons) opens a full-screen overlay showing all cards in hand as a scrollable row of larger tiles.
+- **Card focus / inspect:** Long pressing a card (500 ms `touchstart` timer; right-click on desktop) in either the strip or expanded view opens a focused single-card view showing: name, type, cost, full ability text, and a compact list of die face specs (symbol + value for each face). A "Play" button appears on the focused card if it's legal to play and it's your turn. Tapping elsewhere or pressing Escape closes.
+- **Play-card workflow:** The existing `play-card` overlay (`ActionPanel`) is replaced — clicking "Play card" now opens the expanded hand view. Selecting a card in that view that is affordable dispatches `play-card` and closes. Selecting one that isn't affordable does nothing (it stays dimmed).
+- **Reroll workflow:** Same — "Discard to reroll" opens the expanded hand view; all cards are selectable (cost irrelevant for discarding).
 
 **Context to load.**
-- `apps/game-server/src/rooms.ts` (`createRoom`, `startRoom`, `newGameFromDecks` wiring already in place)
-- `apps/game-server/src/corpus.ts` (`TESTING_DECKS` — the available `deckId` values)
-- `apps/game-server/src/index.ts` (socket lifecycle hooks)
-- `packages/protocol/src/events.ts` (add `lobby.findMatch` / `lobby.leaveQueue` / `lobby.matchFound` to the client↔server event types)
+- `apps/web/src/routes/Game.tsx` (full file — ActionPanel, DicePoolStrip, PlayerSummaries)
+- `packages/game-engine/src/state/types.ts` (`GameState`)
+- `packages/game-engine/src/state/new-game.ts` (`newGameFromDecks`)
+- `packages/protocol/src/events.ts` (`GameState` re-export shape)
+- `apps/web/src/routes/admin/api.ts` (catalog fetch pattern to reuse)
+- `packages/db/seed/cards.json` (catalog shape — understand the `dieFaces` and `abilities` fields)
 
-**Out of scope.** Elo / MMR. Deck fetch from DB or `apps/api`. Real-currency deck restrictions. Reconnect semantics for queued players (closing the tab pops them from the queue — see disconnect handler).
+**Out of scope.** Character/support cards in play (WEB-5). Die face inspector on dice tiles (WEB-6). Opponent's hand contents (always hidden). Support / event / plot card play (no play-card action for those card types yet).
 
-**Depends on.** None blocking (uses corpus decks, not the DB). The DB-backed deck path comes after API-1.
-
-**Done when.** Typecheck clean. Manual smoke: two browser sessions both hit Find Match → both land in a single newly-generated room → game state is dealt. Closing one tab before pairing pops that player from the queue and the other keeps waiting.
+**Done when.** Typecheck clean. Manual smoke: hand strip shows real card names and costs; expanded view opens from strip tap or action button; long press shows full ability text; play-card and reroll workflows use the new hand view; eligible cards are visually highlighted.
 
 ---
 
-#### WEB-3 — Find Match flow on the splash screen
-**Why now.** SERVER-2 ships a matchmaking queue but no UI hits it. The existing `Lobby.tsx` is the invite-code flow and stays as-is; matchmaking is a parallel entry point on the splash screen.
+#### WEB-5 — Characters and supports in play: real names, ability text, die specs
+**Why now.** Characters in play show as `deck.0`, `deck.1` etc. Players can't tell which character is which, can't read abilities, and can't see die face options without memorizing the catalog.
 
 **Scope.**
-- Add a "Find Match" button to `apps/web/src/routes/Splash.tsx` alongside the existing Create / Join Lobby affordances. For v1, the button pairs the player using a default corpus deck (no deck-picker yet — that lands once a real deck source exists).
-- On click, emit `lobby.findMatch` and transition to a `searching` state (spinner + Cancel button that emits `lobby.leaveQueue`).
-- On `lobby.matchFound`, populate the local lobby + game state the same way the existing rejoin flow does and route to `Game.tsx`.
-- Cache the queued state in the same `lobbyCache` slot that invite-code lobbies use, so a refresh during searching cancels the queue rather than dangling it.
+- In `PlayerSummaries` (and the activate / target overlays in `ActionPanel`), replace the `cid.replace(/^.*\./, '')` placeholder with the character's real name looked up via `game.cardCatalogIds[cid]` → catalog.
+- Each character card in play shows: name, health / damage bar, shield pips (up to 3), exhausted badge, elite badge if applicable.
+- Ability text: if the catalog entry has `abilities`, render each ability as a compact line below the stats (kind label + first-line text, truncated with a "…" expand on tap if long).
+- Die specs: render the character's die face list as a row of compact pips below the ability text (6 faces, symbol initial + value, greyed if not the current face).
+- Support cards: same treatment — name + ability text. No die faces (supports don't have dice).
+- Reuse the catalog already fetched in WEB-4 (pass it down as a prop or read from the same component state).
 
 **Context to load.**
-- `apps/web/src/routes/Splash.tsx`, `Lobby.tsx` (existing invite-code flow — reference, do not modify)
-- `apps/web/src/lib/socket.ts`, `lib/lobbyCache.ts`
-- `apps/web/src/store.ts` (where lobby + game state lives)
-- `apps/web/src/App.tsx` (rejoin hook for the matchFound shape)
+- `apps/web/src/routes/Game.tsx` (PlayerSummaries, TargetButton for activate/target overlays)
+- `packages/db/seed/cards.json` (character and support catalog shape)
 
-**Out of scope.** Deck picker UI (no deck source to pick from yet). Full deckbuilder. Ranked / Casual / Tournament queue selection. Animations / spinners beyond a basic text-only "searching" state.
+**Out of scope.** Battlefield and plot cards (no activate/target action applies to them yet). Animated ability triggers. Inline die-face inspector (WEB-6).
 
-**Depends on.** SERVER-2.
+**Depends on.** WEB-4 (catalog fetch + `cardCatalogIds` in game state).
 
-**Done when.** Typecheck clean. Manual smoke: two browser sessions both hit Find Match on the splash → both transition to the game board with a real match. Hitting Cancel during searching returns to splash and the server-side queue is empty.
+**Done when.** Typecheck clean. Manual smoke: characters in play show real names, health, shields, exhausted state, and any ability text; activate overlay uses real names; die face row visible on character tiles.
 
 ---
 
-#### OPS-1 — External hosting: Vercel (web) + Railway (game-server)
-**Why now.** Testing with people outside the LAN requires public URLs. `apps/web` (Vite SPA) deploys trivially to Vercel. `apps/game-server` (Socket.io, persistent WebSocket) cannot go on serverless — it needs a persistent-process host. Railway is the lowest-friction option (Dockerfile or nixpacks, no config file needed for a simple Node server).
+#### WEB-6 — Dice: tap-to-resolve shortcut and long-press die face inspector
+**Why now.** Entering resolve mode currently requires tapping "Resolve dice" in the action panel, then tapping dice. Tapping a die directly is the natural gesture — it's how the physical game works. The long-press inspector addresses the parallel need to understand what a die can roll before committing to activating that character.
 
 **Scope.**
-- Deploy `apps/web` to Vercel. Set `VITE_GAME_SERVER_URL` to the Railway game-server URL in Vercel project env vars.
-- Deploy `apps/game-server` to Railway. Set `WEB_PUBLIC_URL` to the Vercel web URL (used for Socket.io CORS). Set `GAME_SERVER_PORT` to whatever Railway exposes (usually `$PORT`).
-- Verify the Socket.io CORS config in `index.ts` respects `WEB_PUBLIC_URL` (it already does — `origin: process.env.WEB_PUBLIC_URL ?? true`).
-- Add `PORT` fallback in game-server: `Number(process.env.PORT ?? process.env.GAME_SERVER_PORT ?? 3001)`.
-- Smoke test: two browsers on separate devices both hit Find Match → game starts.
-- Document the two env vars (`VITE_GAME_SERVER_URL`, `WEB_PUBLIC_URL`) in README Local Development / Deployment sections.
+- **Tap-to-resolve shortcut:** In `DicePoolStrip`, when it's your turn and `selectionMode` is `null`, tapping a die that passes `canSelectDie` calls `enterResolveMode()` and immediately toggles that die as selected — one gesture instead of two. The "Resolve dice" button in `ActionPanel` remains for discoverability but is now a secondary path.
+- **Long-press to inspect die:** 500 ms `touchstart` timer on each die tile (cancel on `touchmove` or `touchend`; `contextmenu` / right-click on desktop). Opens an `ActionOverlay` showing all 6 faces of that die type: look up the character via `game.cardCatalogIds`, find the die spec in the fetched catalog, render each face as symbol + value + cost + modifier flag. Closes on backdrop tap or Escape.
+- Long press works on both your dice and the opponent's dice (reading-only, no action).
 
 **Context to load.**
-- `apps/game-server/src/index.ts` (port binding, CORS config)
-- `apps/web/src/lib/socket.ts` (`VITE_GAME_SERVER_URL` usage)
-- `apps/web/vite.config.ts` (check for any local-only assumptions)
-- `README.md` Local Development section
+- `apps/web/src/routes/Game.tsx` (DicePoolStrip, ActionPanel, canSelectDie, enterResolveMode)
+- `apps/web/src/store.ts` (enterResolveMode, selectionMode shape)
+- `packages/db/seed/cards.json` (die face spec shape)
 
-**Out of scope.** `apps/api` hosting (no endpoints the client uses yet). Custom domain. CI/CD pipelines. Auth or rate-limiting (dev/test deployment only).
+**Out of scope.** Reroll-mode tap shortcut (reroll requires choosing a discard card first — that flow stays button-driven). Transient dice visual distinction (ENGINE-6b). Animated dice roll.
 
-**Done when.** Two browsers on separate networks both hit Find Match and land in a live game. URLs documented in README.
+**Depends on.** WEB-4 (catalog fetch + `cardCatalogIds`).
+
+**Done when.** Typecheck clean. Manual smoke: tapping a die on your turn immediately enters resolve mode with that die selected; long pressing any die shows all 6 faces; cancel returns to board without side effects.
+
+---
+
+#### WEB-7 — Human-readable activity log
+**Why now.** The current event log renders raw JSON next to event type names — unreadable in play. Testers can't follow what happened or why a game state changed without decoding engine internals.
+
+**Scope.**
+- Write a `formatEvent` function (or grouped formatter) that maps each `EngineEvent` type to a human-readable string. Target strings:
+  - `character.activated` → "**{PlayerName}** activates **{CharacterName}** — rolls [Melee 3] [Shield 1]" (die chips from `rolledDice` in payload)
+  - `dice.resolved` + its following `damage.dealt` → "**{PlayerName}** resolves [5 Melee] against **{CharacterName}** — deals 4 damage (1 blocked)" — group these two by folding `damage.dealt` into the preceding `dice.resolved` entry since they always co-occur
+  - `dice.resolved` without `damage.dealt` (resource/disrupt/shield) → "**{PlayerName}** resolves [3 Resource] — gains 3 resources" / "disrupts" / "places 2 shields on **{CharacterName}**"
+  - `shields.placed` standalone (setup) → "**{PlayerName}** places a shield on **{CharacterName}**"
+  - `card.played` → "**{PlayerName}** plays **{CardName}** (cost {N})"
+  - `dice.rerolled` → "**{PlayerName}** rerolls {N} dice (discards **{CardName}**)" — show new faces if N > 0
+  - `character.defeated` → "**{CharacterName}** is defeated"
+  - `battlefield.claimed` → "**{PlayerName}** claims the battlefield"
+  - `round.begin` → "— Round {N} —" (rendered as a divider, not a bullet)
+  - `game.ended` → "**{WinnerName}** wins ({reason})" where reason is "concession" / "all characters defeated" / "deck exhausted"
+  - `player.passed` with `automatic: true` → skip (these are noise)
+  - `player.passed` explicit → "**{PlayerName}** passes"
+  - `upkeep.player` → "**{PlayerName}** draws {N} and gains {R} resources" (only if N > 0 or R > 0)
+  - All other events (trigger lifecycle, setup roll-off, `turn.advanced`, `upkeep.begin/end`) → skip silently
+- **Die chip component:** a small inline badge `[Symbol Value]` — e.g. `[Melee 3]`, `[Shield 1]`, `[+Modifier 2]` (modifier flag prepends `+`). Chips are color-coded by symbol (melee = red, ranged = orange, shield = blue, resource = green, disrupt = purple, modifier = neutral).
+- **Event grouping:** walk the event array building a `FormattedEntry[]` list. When a `dice.resolved` is immediately followed by `damage.dealt` (or `shields.placed` / `resources.gained` / `shields.removed`), merge them into one entry. The merging pass runs over `recentEvents` and produces the display list.
+- **Updated EventLog component:** replace the current `<pre>`-style list with a styled `<ol>` where each entry is a single line with bold player/character names, inline die chips, and `round.begin` rendered as a centered divider. Show up to 30 entries, scrollable. Keep the section collapsed by default on mobile (a disclosure triangle) so it doesn't dominate the screen.
+- **Name resolution:** look up display names from lobby for player IDs. Look up character and card names via `game.cardCatalogIds` + the fetched catalog (available after WEB-4). If catalog isn't loaded yet, fall back to the instance-ID suffix (e.g. `deck.0`).
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (EventLog component, full event rendering context)
+- `packages/game-engine/src/events.ts` (all event types and payload shapes — read carefully before writing the formatter)
+- `apps/web/src/store.ts` (`recentEvents` shape)
+
+**Out of scope.** Animated event feed. Sound effects keyed off events. Filtering by player. Exporting the log. Trigger-ordering events (show as "Resolving triggered abilities" at most).
+
+**Depends on.** Can ship without WEB-4 (character/card names fall back to ID suffixes). Upgrade names automatically once WEB-4 lands and the catalog is available.
+
+**Done when.** Typecheck clean. Manual smoke: play a full turn (activate → resolve → pass) and confirm the log reads naturally in plain English with die chips; damage events are merged with their resolve; round dividers appear; automatic passes and upkeep noise are hidden; log is scrollable past 10 entries.
 
 ---
 
@@ -191,7 +229,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ### Backlog — client (not yet sized)
 - Phone-portrait layout pass (360×640): opponent strip, table, hand, dice tray.
-- Card detail modal (tap a card → full text + dice faces).
 - Game over screen + rematch.
 - Pixi board renderer with zones and dice physics.
 - Combat-effect library (melee/ranged/indirect/special) keyed off engine events.
@@ -295,6 +332,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-14 — WEB-4 — Hand strip, expanded view, play-card integration** (`10d2fc2`). `cardCatalogIds` added to `GameState` (instance-id → catalog-card-id); `newGameFromDecks` populates it for characters + deck cards and now correctly wires `cardCosts` from the catalog. Persistent `HandStrip` at bottom shows compact card tiles with type color band, cost badge, and affordability highlight. Tapping a tile or the Play card / Discard to reroll buttons opens `HandOverlay` — bottom-sheet with scrollable card row and focused-card detail panel (name, type, faction, cost, ability text, die face chips). Long-press / right-click focuses a card for reading. `ActionPanel`'s old inline play-card and reroll target grids removed. 152 engine tests green; workspace typecheck clean.
 - **2026-05-13 — SERVER-2 + WEB-3 — FIFO matchmaking queue + Find Match UI** (`c3ea317`). In-memory FIFO queue in `apps/game-server/src/index.ts` (`lobby.findMatch` / `lobby.leaveQueue` socket events, disconnect handler clears the queue). Match fires `lobby.matchFound` unicast to both players with full lobby + game state. New protocol types: `LobbyFindMatchReq`, `LobbyLeaveQueueReq`, `MatchFoundPayload`. `SocketBridge` in `App.tsx` handles `matchFound` identically to rejoin. Splash rewritten: Find Match is the primary CTA, searching state shows spinner + Cancel, invite-code flow demoted to secondary. Typecheck clean.
 - **2026-05-13 — ENGINE-7 — The queue, after-triggers, before-triggers** (`e6e86a7`). `GameState` gains `queue`, `pendingTriggers`, `nextQueueEntryId`. `QueueEntry` fully typed. Trigger scanner (`queue/scan.ts`) maps engine events to `TriggeredAbility` matches; `collectAfterTriggers` + `collectBeforeTriggers` + `commitTriggers` + `applyOrderTriggers`. Queue drain (`queue/drain.ts`) FIFO loop with tail-append for drain-spawned triggers. Before-triggers wired inline in `activate.ts` and `resolve-dice.ts` (beforeActivate, beforeTakeDamage). After-triggers wired in `activate.ts`, `resolve-dice.ts`, `play-card.ts` via `commitTriggers` + drain. Simultaneous trigger ordering via new `order-triggers` action and `PendingTriggers` state machine. `LegalActions` gains `canOrderTriggers`. 152 tests green; workspace typecheck clean.
 - **2026-05-13 — ENGINE-6 — Ability AST framework + first-wave event dispatcher** (`2676a51`). Full `Ability`/`Effect` TypeScript type system in `game-engine/src/abilities/types.ts` (6 ability kinds, 7 first-wave ops + 28 stubs). Matching Zod schemas in `@prophecy/protocol/src/catalog.ts`. Shared combat helpers extracted to `state/combat.ts`; `applyResolveDice` updated to import from there. `applyEffect` / `applyEffects` dispatcher in `abilities/dispatch.ts` — first-wave ops implemented (`dealDamage`, `addShields`, `removeShields`, `drawCards`, `gainResources`, `loseResources`, `healDamage`); all other ops throw `NotImplementedError`. `applyPlayCard` wired to fire `immediate` abilities; `GameState` gains `cardAbilities` map; `play-card` action gains `characterTargets`. Op names migrated to camelCase in `packages/db/seed/cards.json`; admin `AbilityBuilder.tsx` updated. 3 new engine events (`shields.removed`, `damage.healed`, `cards.drawn`). 147 tests green; workspace typecheck clean.
