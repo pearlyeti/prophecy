@@ -17,7 +17,11 @@
       "keywords": [],
       "displayText": "",
       "dieFaces": null,
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "BFD_003",
@@ -36,7 +40,11 @@
       "keywords": [],
       "displayText": "",
       "dieFaces": null,
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "CHAR_003",
@@ -92,7 +100,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "CHAR_011",
@@ -148,7 +160,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "CHAR_016",
@@ -204,7 +220,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "CHAR_017",
@@ -219,7 +239,7 @@
       "pointValue": 15,
       "elitePointValue": 20,
       "plotPointValue": null,
-      "isUnique": true,
+      "isUnique": false,
       "keywords": [],
       "displayText": "",
       "dieFaces": [
@@ -260,7 +280,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_017.webp",
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_001",
@@ -289,11 +313,17 @@
               "damageType": "melee",
               "target": {
                 "kind": "opponentCharacter"
-              }
+              },
+              "unblockable": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_002",
@@ -321,11 +351,16 @@
               "amount": 2,
               "target": {
                 "kind": "ownCharacter"
-              }
+              },
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_004",
@@ -353,11 +388,16 @@
               "amount": "all",
               "target": {
                 "kind": "anyCharacter"
-              }
+              },
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_005",
@@ -383,11 +423,17 @@
             {
               "op": "drawCards",
               "player": "self",
-              "amount": 1
+              "amount": 1,
+              "toHandSize": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_007",
@@ -413,11 +459,17 @@
             {
               "op": "drawCards",
               "player": "eachPlayer",
-              "amount": 2
+              "amount": 2,
+              "toHandSize": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_018",
@@ -442,11 +494,16 @@
           "effects": [
             {
               "op": "gainResources",
-              "amount": 3
+              "amount": 3,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_019",
@@ -471,11 +528,16 @@
           "effects": [
             {
               "op": "gainResources",
-              "amount": 1
+              "amount": 1,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_020",
@@ -503,11 +565,16 @@
               "amount": 1,
               "target": {
                 "kind": "ownCharacter"
-              }
+              },
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_022",
@@ -536,11 +603,17 @@
               "damageType": "melee",
               "target": {
                 "kind": "opponentCharacter"
-              }
+              },
+              "unblockable": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_026",
@@ -566,11 +639,17 @@
             {
               "op": "drawCards",
               "player": "self",
-              "amount": 2
+              "amount": 2,
+              "toHandSize": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_028",
@@ -598,11 +677,16 @@
               "amount": 2,
               "target": {
                 "kind": "ownCharacter"
-              }
+              },
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_029",
@@ -627,11 +711,16 @@
           "effects": [
             {
               "op": "gainResources",
-              "amount": 2
+              "amount": 2,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_032",
@@ -657,11 +746,17 @@
             {
               "op": "drawCards",
               "player": "self",
-              "amount": 1
+              "amount": 1,
+              "toHandSize": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_033",
@@ -690,11 +785,17 @@
               "damageType": "melee",
               "target": {
                 "kind": "opponentCharacter"
-              }
+              },
+              "unblockable": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_038",
@@ -723,11 +824,17 @@
               "damageType": "ranged",
               "target": {
                 "kind": "opponentCharacter"
-              }
+              },
+              "unblockable": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_039",
@@ -755,11 +862,16 @@
               "amount": 1,
               "target": {
                 "kind": "ownCharacter"
-              }
+              },
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_044",
@@ -785,11 +897,17 @@
             {
               "op": "drawCards",
               "player": "self",
-              "toHandSize": true
+              "amount": null,
+              "toHandSize": true,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "EVT_055",
@@ -818,11 +936,17 @@
               "damageType": "ranged",
               "target": {
                 "kind": "opponentCharacter"
-              }
+              },
+              "unblockable": false,
+              "optional": false
             }
           ]
         }
-      ]
+      ],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_001",
@@ -878,7 +1002,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_002",
@@ -934,7 +1062,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_007",
@@ -990,7 +1122,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_009",
@@ -1046,7 +1182,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_011",
@@ -1102,7 +1242,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_013",
@@ -1158,7 +1302,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_014",
@@ -1214,7 +1362,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_017",
@@ -1270,7 +1422,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_022",
@@ -1326,7 +1482,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_024",
@@ -1382,7 +1542,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_026",
@@ -1438,7 +1602,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_030",
@@ -1494,7 +1662,11 @@
           "modifier": false
         }
       ],
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     },
     {
       "id": "UPG_039",
@@ -1513,7 +1685,11 @@
       "keywords": [],
       "displayText": "",
       "dieFaces": null,
-      "abilities": []
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null
     }
   ]
 }
