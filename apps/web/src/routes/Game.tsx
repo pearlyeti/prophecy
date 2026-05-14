@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { fetchCards } from './admin/api.js';
 
 import { getSocket } from '../lib/socket.js';
-import { useApp } from '../store.js';
+import { useApp, type SelectionMode } from '../store.js';
 
 // Bare-bones in-game UI. Renders the public game state and exposes the
 // implemented actions as buttons. Pretty UI comes later — first goal is
