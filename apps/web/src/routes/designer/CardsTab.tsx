@@ -330,13 +330,15 @@ export function CardsTab({
                       : 'border-transparent text-neutral-500 hover:text-neutral-300'
                   }`}
                 >
-                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${TYPE_BADGE[tab.draft.type]}`} />
                   <button
                     type="button"
                     onClick={() => setActiveTabKey(tab.key)}
-                    className="max-w-[140px] truncate text-left"
+                    className="flex flex-col items-start text-left"
                   >
-                    {tab.draft.name || 'New Card'}
+                    <span className="max-w-[140px] truncate leading-tight">{tab.draft.name || 'New Card'}</span>
+                    <span className={`mt-0.5 rounded px-1.5 py-0 text-[9px] font-medium capitalize text-white ${TYPE_BADGE[tab.draft.type]}`}>
+                      {tab.draft.type}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -366,16 +368,6 @@ export function CardsTab({
             }}
             className="space-y-4"
           >
-            {/* ── Header: name + type badge ─────────────────────── */}
-            <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
-              <span className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-medium capitalize text-white ${TYPE_BADGE[draft.type]}`}>
-                {draft.type}
-              </span>
-              <h2 className="flex-1 truncate text-base font-semibold text-neutral-100">
-                {draft.name || <span className="text-neutral-600">Untitled</span>}
-              </h2>
-            </div>
-
             {/* ── Identity ──────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="Name" wide>
