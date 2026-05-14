@@ -1338,6 +1338,33 @@ function HandOverlay({
 // Battle zone — four-column board layout (WEB-10)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Build a map of characterId → pool dice for one player.
+ * Uses ownerInstanceId when present; otherwise falls back to matching
+ * DieInPool.instanceId against each character's CardDie.instanceId so
+ * games started before ownerInstanceId was introduced still render.
+ */
+function buildDiceByOwner(
+  player: { diceInPool: readonly DieInPool[]; characters: Record<string, { dice: readonly { instanceId: string }[] }>; characterOrder: readonly string[] } | null | undefined,
+): Map<string, DieInPool[]> {
+  const m = new Map<string, DieInPool[]>();
+  if (!player) return m;
+
+  // Build die-instanceId → characterId reverse lookup for the fallback path.
+  const dieToChar = new Map<string, string>();
+  for (const cid of player.characterOrder) {
+    for (const die of player.characters[cid]?.dice ?? []) {
+      dieToChar.set(die.instanceId, cid);
+    }
+  }
+
+  for (const d of player.diceInPool) {
+    const key = d.ownerInstanceId ?? dieToChar.get(d.instanceId) ?? '';
+    m.set(key, [...(m.get(key) ?? []), d]);
+  }
+  return m;
+}
+
 /** Four-column board: [player cards][player dice][opp dice][opp cards] */
 function BattleZone({
   game,
@@ -1361,24 +1388,17 @@ function BattleZone({
   const inActionPhase = game.phase === 'action';
   const diceInteractive = isMyTurn && inActionPhase && selectionMode === null;
 
-  // Group each player's pool dice by ownerInstanceId.
-  const myDiceByOwner = useMemo(() => {
-    const m = new Map<string, DieInPool[]>();
-    for (const d of myPlayer?.diceInPool ?? []) {
-      const key = d.ownerInstanceId ?? '';
-      m.set(key, [...(m.get(key) ?? []), d]);
-    }
-    return m;
-  }, [myPlayer?.diceInPool]);
-
-  const oppDiceByOwner = useMemo(() => {
-    const m = new Map<string, DieInPool[]>();
-    for (const d of oppPlayer?.diceInPool ?? []) {
-      const key = d.ownerInstanceId ?? '';
-      m.set(key, [...(m.get(key) ?? []), d]);
-    }
-    return m;
-  }, [oppPlayer?.diceInPool]);
+  // Group pool dice by owning character. ownerInstanceId is preferred;
+  // fall back to matching by die instanceId against the character's dice
+  // array so games started before ownerInstanceId was added still work.
+  const myDiceByOwner = useMemo(
+    () => buildDiceByOwner(myPlayer),
+    [myPlayer],
+  );
+  const oppDiceByOwner = useMemo(
+    () => buildDiceByOwner(oppPlayer),
+    [oppPlayer],
+  );
 
   const detailChar =
     detailId ? game.players[detailId.ownerId]?.characters[detailId.charId] : null;
