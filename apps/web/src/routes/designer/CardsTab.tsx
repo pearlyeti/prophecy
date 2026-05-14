@@ -760,52 +760,40 @@ function SubtypePicker({
   options: string[];
   onChange: (next: string[]) => void;
 }) {
-  const [input, setInput] = useState('');
+  const toggle = (val: string) =>
+    onChange(selected.includes(val) ? selected.filter((s) => s !== val) : [...selected, val]);
 
-  const add = (val: string) => {
-    const v = val.trim();
-    if (!v || selected.includes(v)) return;
-    onChange([...selected, v]);
-    setInput('');
-  };
-
-  const remove = (val: string) => onChange(selected.filter((s) => s !== val));
-
-  const suggestions = options.filter((o) => !selected.includes(o) && (!input || o.toLowerCase().includes(input.toLowerCase())));
+  if (options.length === 0) {
+    return (
+      <div className="col-span-full text-[11px] text-neutral-600">
+        No subtypes defined — add some in the Attributes tab first.
+      </div>
+    );
+  }
 
   return (
-    <div className="col-span-full flex flex-col text-[11px] text-neutral-400">
-      <span className="mb-1">Subtypes</span>
-      <div className="flex min-h-[36px] flex-wrap gap-1 rounded border border-neutral-700 bg-neutral-900 px-2 py-1">
-        {selected.map((s) => (
-          <span key={s} className="flex items-center gap-1 rounded bg-neutral-700 px-1.5 py-0.5 text-[11px] text-neutral-100">
-            {s}
-            <button type="button" onClick={() => remove(s)} className="text-neutral-400 hover:text-red-400">×</button>
-          </span>
-        ))}
-        <input
-          type="text"
-          value={input}
-          placeholder={selected.length === 0 ? 'Add subtype…' : ''}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); add(input); }
-            if (e.key === 'Backspace' && !input && selected.length > 0) remove(selected[selected.length - 1]!);
-          }}
-          className="min-w-[80px] flex-1 bg-transparent text-xs text-neutral-200 outline-none"
-        />
+    <div className="col-span-full flex flex-col gap-1 text-[11px] text-neutral-400">
+      <span>Subtypes</span>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((s) => {
+          const active = selected.includes(s);
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggle(s)}
+              className={`min-h-[32px] rounded border px-2 py-0.5 text-xs transition ${
+                active
+                  ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
+                  : 'border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200'
+              }`}
+            >
+              {active && <span className="mr-1 text-emerald-400">✓</span>}
+              {s}
+            </button>
+          );
+        })}
       </div>
-      {input && suggestions.length > 0 && (
-        <ul className="mt-0.5 rounded border border-neutral-700 bg-neutral-900 shadow">
-          {suggestions.slice(0, 6).map((s) => (
-            <li key={s}>
-              <button type="button" onClick={() => add(s)} className="w-full px-2 py-1.5 text-left text-xs text-neutral-200 hover:bg-neutral-800">
-                {s}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
