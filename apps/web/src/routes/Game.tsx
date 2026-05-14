@@ -859,6 +859,7 @@ interface DragCardInfo {
   name: string;
   type: string;
   cost: number;
+  artUrl?: string | null;
 }
 
 type DragHandlers = Pick<React.HTMLAttributes<HTMLButtonElement>, 'onTouchStart' | 'onMouseDown'>;
@@ -1034,7 +1035,7 @@ function DragArtifact({
       <div className={`relative flex h-[96px] w-[72px] overflow-hidden rounded-lg border shadow-2xl ${
         overZone ? 'border-emerald-400' : 'border-neutral-500'
       }`}>
-        <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card.type)}`} />
+        <CardArtBg artUrl={card.artUrl} type={card.type} />
         <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">
           {card.cost}
         </span>
@@ -1050,6 +1051,14 @@ function DragArtifact({
 // ─────────────────────────────────────────────────────────────────────────────
 // Hand strip + expanded overlay (WEB-4)
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Fills its parent with card art if available, or falls back to the type-color gradient. */
+function CardArtBg({ artUrl, type, className = '' }: { artUrl?: string | null; type: string; className?: string }) {
+  if (artUrl) {
+    return <img src={artUrl} alt="" aria-hidden className={`absolute inset-0 h-full w-full object-cover ${className}`} />;
+  }
+  return <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(type)} ${className}`} />;
+}
 
 function cardTypeBand(type: string): string {
   switch (type) {
@@ -1130,8 +1139,7 @@ function HandCardTile({
           : 'border-neutral-700'
       }`}
     >
-      {/* art placeholder — fills the whole tile */}
-      <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card?.type ?? '')}`} />
+      <CardArtBg artUrl={card?.artUrl} type={card?.type ?? ''} />
       {/* cost badge — top-right */}
       <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">
         {cost}
@@ -1180,7 +1188,7 @@ function HandStrip({
               const catalogId = game.cardCatalogIds[id];
               const card = catalogId ? catalogById.get(catalogId) : undefined;
               const dragHandlers = eligible
-                ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost })
+                ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost, artUrl: card?.artUrl })
                 : undefined;
               return (
                 <HandCardTile
@@ -1282,8 +1290,10 @@ function HandOverlay({
           </button>
         </div>
 
-        {/* art area — gradient placeholder until real art lands */}
-        <div className={`mx-4 shrink-0 rounded-xl bg-gradient-to-b ${cardArtGradient(card?.type ?? '')} aspect-[3/2]`} />
+        {/* art area */}
+        <div className="relative mx-4 aspect-[3/2] shrink-0 overflow-hidden rounded-xl">
+          <CardArtBg artUrl={card?.artUrl} type={card?.type ?? ''} />
+        </div>
 
         {/* card info + text, scrollable */}
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 pt-3">
@@ -1630,7 +1640,7 @@ function CharacterCard({
         }}
         aria-label={`${card?.name ?? 'Character'} — ${char.health - char.damage} HP${char.exhausted ? ' (exhausted)' : ''}`}
       >
-        <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card?.type ?? 'character')}`} />
+        <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} />
         {/* name scrim — only useful when card is upright */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-5">
           <span className="line-clamp-2 text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
@@ -1643,15 +1653,37 @@ function CharacterCard({
           {char.upgradeIds.map((uid) => {
             const upCatalogId = game.cardCatalogIds[uid];
             const upCard = upCatalogId ? catalogById.get(upCatalogId) : undefined;
+            const fx = upCard?.artFrameX ?? 50;
+            const fy = upCard?.artFrameY ?? 50;
+            const fz = upCard?.artFrameZoom ?? 1;
             return (
               <button
                 key={uid}
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onUpgradeTap(uid); }}
                 style={{ width: 40, height: 40 }}
-                className={`pointer-events-auto flex-shrink-0 rounded-full border-2 border-neutral-500 bg-gradient-to-br ${cardArtGradient(upCard?.type ?? 'upgrade')}`}
+                className="pointer-events-auto relative flex-shrink-0 overflow-hidden rounded-full border-2 border-neutral-500"
                 aria-label={upCard?.name ?? 'Upgrade'}
-              />
+              >
+                {upCard?.artUrl ? (
+                  <img
+                    src={upCard.artUrl}
+                    alt=""
+                    aria-hidden
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: `${fx}% ${fy}%`,
+                      transform: fz > 1 ? `scale(${fz})` : undefined,
+                      transformOrigin: `${fx}% ${fy}%`,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                ) : (
+                  <div className={`absolute inset-0 bg-gradient-to-br ${cardArtGradient(upCard?.type ?? 'upgrade')}`} />
+                )}
+              </button>
             );
           })}
         </div>
@@ -1789,7 +1821,9 @@ function CardDetailOverlay({
 
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
           {/* art */}
-          <div className={`shrink-0 rounded-xl bg-gradient-to-b ${cardArtGradient(card?.type ?? 'character')} aspect-[3/2]`} />
+          <div className="relative aspect-[3/2] shrink-0 overflow-hidden rounded-xl">
+            <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} />
+          </div>
 
           {/* type / faction row */}
           {card && (
@@ -1869,7 +1903,9 @@ function UpgradeDetailOverlay({
           <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] rounded-md px-3 text-xs uppercase tracking-wider text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100">Close</button>
         </div>
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
-          <div className={`shrink-0 rounded-xl bg-gradient-to-b ${cardArtGradient(card.type)} aspect-[3/2]`} />
+          <div className="relative aspect-[3/2] shrink-0 overflow-hidden rounded-xl">
+            <CardArtBg artUrl={card.artUrl} type={card.type} />
+          </div>
           <div className="flex flex-wrap gap-1">
             <span className={`rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(card.type)}`}>
               {card.type}{card.subtype ? ` · ${card.subtype}` : ''}

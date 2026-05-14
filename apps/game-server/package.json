@@ -13,6 +13,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1047.0",
     "@prophecy/game-engine": "workspace:*",
     "@prophecy/protocol": "workspace:*",
     "socket.io": "^4.8.1"

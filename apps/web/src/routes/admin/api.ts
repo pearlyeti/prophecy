@@ -39,6 +39,20 @@ export async function fetchDecks(): Promise<Deck[]> {
   return body.decks;
 }
 
+export async function uploadCardArt(cardId: string, file: File): Promise<string> {
+  const r = await fetch(`${serverUrl()}/admin/card-art/${encodeURIComponent(cardId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!r.ok) {
+    const body = (await r.json().catch(() => ({ error: r.statusText }))) as { error?: string };
+    throw new Error(body.error ?? `Upload failed: ${r.status}`);
+  }
+  const body = (await r.json()) as { artUrl: string };
+  return body.artUrl;
+}
+
 export async function saveDecks(decks: readonly Deck[]): Promise<void> {
   const r = await fetch(`${serverUrl()}/admin/decks`, {
     method: 'PUT',

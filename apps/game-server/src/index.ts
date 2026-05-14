@@ -6,11 +6,25 @@ import {
   type ErrorPayload,
   type ServerToClientEvents,
 } from '@prophecy/protocol';
+import { createReadStream, existsSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { basename, extname, resolve } from 'node:path';
 import { Server } from 'socket.io';
 
-import { getCards, getDecks, writeCards, writeDecks } from './corpus.js';
+import { artDir, getCards, getDecks, writeCards, writeDecks } from './corpus.js';
+import { isStorageConfigured, uploadFile } from './storage.js';
+
+const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+const EXT_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
 
 import {
   applyRoomAction,
@@ -27,9 +41,9 @@ import {
 } from './rooms.js';
 
 const httpServer = createServer(async (req, res) => {
-  // CORS preflight + headers for every /admin response.
+  // CORS preflight + headers for /admin and /card-art routes.
   const origin = (req.headers.origin as string | undefined) ?? '*';
-  if (req.url?.startsWith('/admin')) {
+  if (req.url?.startsWith('/admin') || req.url?.startsWith('/card-art/')) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -44,6 +58,70 @@ const httpServer = createServer(async (req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, service: 'game-server' }));
+    return;
+  }
+
+  // ── Card art static serving ──────────────────────────────────────────
+  const artMatch = req.url?.match(/^\/card-art\/([^/]+)$/);
+  if (artMatch && req.method === 'GET') {
+    const filename = basename(artMatch[1]!); // basename strips any sneaky path separators
+    const filePath = resolve(artDir, filename);
+    const ext = extname(filename).slice(1).toLowerCase();
+    if (!existsSync(filePath) || !EXT_MIME[ext]) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': EXT_MIME[ext]!, 'Cache-Control': 'public, max-age=31536000, immutable' });
+    createReadStream(filePath).pipe(res);
+    return;
+  }
+
+  // ── Card art upload (binary PUT body, Content-Type = image/*) ────────
+  const artUploadMatch = req.url?.match(/^\/admin\/card-art\/([^/]+)$/);
+  if (artUploadMatch && req.method === 'PUT') {
+    const cardId = decodeURIComponent(artUploadMatch[1]!);
+    if (!/^[A-Za-z0-9_-]{1,60}$/.test(cardId)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'invalid cardId' }));
+      return;
+    }
+    const contentType = (req.headers['content-type'] ?? '').split(';')[0]!.trim();
+    const ext = ALLOWED_IMAGE_TYPES[contentType];
+    if (!ext) {
+      res.writeHead(415, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unsupported image type' }));
+      return;
+    }
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of req) {
+      size += (chunk as Buffer).length;
+      if (size > 4 * 1024 * 1024) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'file too large (max 4 MB)' }));
+        return;
+      }
+      chunks.push(chunk as Buffer);
+    }
+    const body = Buffer.concat(chunks);
+    const key = `card-art/${cardId}.${ext}`;
+    let artUrl: string;
+    if (isStorageConfigured()) {
+      artUrl = await uploadFile(key, body, contentType);
+    } else {
+      // Local disk fallback — dev only. Wipe stale extension if it changed.
+      for (const existing of readdirSync(artDir)) {
+        const stem = existing.replace(/\.[^.]+$/, '');
+        if (stem === cardId && existing !== `${cardId}.${ext}`) unlinkSync(resolve(artDir, existing));
+      }
+      writeFileSync(resolve(artDir, `${cardId}.${ext}`), body);
+      const proto = (req.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
+      const host = req.headers['host'] ?? `localhost:${port}`;
+      artUrl = `${proto}://${host}/card-art/${cardId}.${ext}`;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, artUrl }));
     return;
   }
 

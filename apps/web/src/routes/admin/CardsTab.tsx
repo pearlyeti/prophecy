@@ -11,11 +11,11 @@ import {
   type Ability,
   type DieFace,
 } from '@prophecy/protocol';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { AbilityBuilder } from './AbilityBuilder.js';
 import { DiceEditor, defaultDiceFaces } from './DiceEditor.js';
-import { saveCards } from './api.js';
+import { saveCards, uploadCardArt } from './api.js';
 
 type SixFaces = [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
 
@@ -56,6 +56,10 @@ function newCard(): Card {
     displayText: '',
     dieFaces: null,
     abilities: [],
+    artUrl: null,
+    artFrameX: null,
+    artFrameY: null,
+    artFrameZoom: null,
   };
 }
 
@@ -347,6 +351,24 @@ export function CardsTab({
               </label>
             </div>
 
+            <ArtUploader
+              cardId={draft.id}
+              artUrl={draft.artUrl ?? null}
+              onUploaded={(artUrl) => updateDraft({ artUrl })}
+            />
+
+            {draft.type === 'upgrade' && draft.artUrl && (
+              <BadgeFrameEditor
+                artUrl={draft.artUrl}
+                frameX={draft.artFrameX ?? null}
+                frameY={draft.artFrameY ?? null}
+                frameZoom={draft.artFrameZoom ?? null}
+                onChange={(x, y, zoom) =>
+                  updateDraft({ artFrameX: x, artFrameY: y, artFrameZoom: zoom })
+                }
+              />
+            )}
+
             <Field label="Display text">
               <textarea
                 value={draft.displayText}
@@ -467,6 +489,265 @@ function NullableNumber({
         }
         className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
       />
+    </div>
+  );
+}
+
+const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
+
+function ArtUploader({
+  cardId,
+  artUrl,
+  onUploaded,
+}: {
+  cardId: string;
+  artUrl: string | null;
+  onUploaded: (url: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFile = async (file: File) => {
+    if (!ACCEPTED.includes(file.type)) {
+      setError('Only JPEG, PNG, or WebP files are accepted.');
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const url = await uploadCardArt(cardId, file);
+      onUploaded(url);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="col-span-full">
+      <div className="mb-1 text-[11px] text-neutral-400">Card art</div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click(); }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const file = e.dataTransfer.files[0];
+          if (file) void handleFile(file);
+        }}
+        className={`relative flex min-h-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition ${
+          dragOver
+            ? 'border-emerald-500 bg-emerald-950/20'
+            : 'border-neutral-700 bg-neutral-900 hover:border-neutral-500'
+        }`}
+      >
+        {artUrl ? (
+          <>
+            <img
+              src={artUrl}
+              alt="Card art preview"
+              className="h-[120px] w-full object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition">
+              <span className="text-xs text-white">Click or drop to replace</span>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-1 text-neutral-500">
+            <span className="text-2xl">🖼</span>
+            <span className="text-xs">{uploading ? 'Uploading…' : 'Drop art here or click to browse'}</span>
+            <span className="text-[10px] text-neutral-600">JPEG · PNG · WebP · 512 × 512 recommended</span>
+          </div>
+        )}
+        {uploading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+            <span className="text-xs text-neutral-300">Uploading…</span>
+          </div>
+        )}
+      </div>
+      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED.join(',')}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleFile(file);
+          e.target.value = '';
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Badge frame editor (upgrade circle crop) ─────────────────────────────────
+
+const BADGE_SIZE = 96; // preview circle diameter in px
+
+function BadgeFrameEditor({
+  artUrl,
+  frameX,
+  frameY,
+  frameZoom,
+  onChange,
+}: {
+  artUrl: string;
+  frameX: number | null;
+  frameY: number | null;
+  frameZoom: number | null;
+  onChange: (x: number, y: number, zoom: number) => void;
+}) {
+  const x = frameX ?? 50;
+  const y = frameY ?? 50;
+  const zoom = frameZoom ?? 1;
+
+  const circleRef = useRef<HTMLDivElement>(null);
+  // Stable mutable snapshot — the document-level listeners close over this.
+  const snap = useRef({ x, y, zoom });
+  snap.current = { x, y, zoom };
+
+  const startDrag = (startX: number, startY: number, getPos: (e: MouseEvent | Touch) => { cx: number; cy: number }) => {
+    void startX; void startY; // anchors not needed for movementX path
+    const onMove = (e: MouseEvent) => {
+      if (!circleRef.current) return;
+      const { x: sx, y: sy, zoom: sz } = snap.current;
+      const sensitivity = 100 / (BADGE_SIZE * sz);
+      const nx = Math.max(0, Math.min(100, sx - e.movementX * sensitivity));
+      const ny = Math.max(0, Math.min(100, sy - e.movementY * sensitivity));
+      onChange(nx, ny, sz);
+    };
+    void getPos;
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    startDrag(e.clientX, e.clientY, (ev) => ({ cx: (ev as MouseEvent).clientX, cy: (ev as MouseEvent).clientY }));
+  };
+
+  // Touch: track previous position manually (no movementX on touch events).
+  const lastTouch = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (t) lastTouch.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    if (!t || !lastTouch.current) return;
+    const { x: sx, y: sy, zoom: sz } = snap.current;
+    const sensitivity = 100 / (BADGE_SIZE * sz);
+    const dx = t.clientX - lastTouch.current.x;
+    const dy = t.clientY - lastTouch.current.y;
+    lastTouch.current = { x: t.clientX, y: t.clientY };
+    const nx = Math.max(0, Math.min(100, sx - dx * sensitivity));
+    const ny = Math.max(0, Math.min(100, sy - dy * sensitivity));
+    onChange(nx, ny, sz);
+  };
+  const handleTouchEnd = () => { lastTouch.current = null; };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const { x: sx, y: sy, zoom: sz } = snap.current;
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    const nz = Math.max(1, Math.min(4, Math.round((sz + delta) * 10) / 10));
+    onChange(sx, sy, nz);
+  };
+
+  return (
+    <div className="col-span-full">
+      <div className="mb-2 text-[11px] text-neutral-400">Badge frame · drag to reposition, scroll or slider to zoom</div>
+      <div className="flex flex-wrap items-center gap-6">
+        {/* Editable circle */}
+        <div
+          ref={circleRef}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
+          style={{ width: BADGE_SIZE, height: BADGE_SIZE, touchAction: 'none' }}
+          className="relative shrink-0 cursor-grab overflow-hidden rounded-full border-2 border-neutral-500 active:cursor-grabbing"
+        >
+          <img
+            src={artUrl}
+            alt=""
+            aria-hidden
+            draggable={false}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: `${x}% ${y}%`,
+              transform: zoom > 1 ? `scale(${zoom})` : undefined,
+              transformOrigin: `${x}% ${y}%`,
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          />
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-[11px] text-neutral-400">
+            <span>Zoom — {zoom.toFixed(1)}×</span>
+            <input
+              type="range"
+              min={1}
+              max={4}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => onChange(x, y, Number(e.target.value))}
+              className="w-36 accent-emerald-500"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => onChange(50, 50, 1)}
+            className="w-fit rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] hover:border-neutral-500"
+          >
+            Reset frame
+          </button>
+        </div>
+
+        {/* Actual-size preview */}
+        <div className="flex flex-col items-center gap-1">
+          <div
+            style={{ width: 40, height: 40 }}
+            className="relative overflow-hidden rounded-full border-2 border-neutral-500"
+          >
+            <img
+              src={artUrl}
+              alt=""
+              aria-hidden
+              draggable={false}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: `${x}% ${y}%`,
+                transform: zoom > 1 ? `scale(${zoom})` : undefined,
+                transformOrigin: `${x}% ${y}%`,
+                pointerEvents: 'none',
+              }}
+            />
+          </div>
+          <span className="text-[10px] text-neutral-600">in-game size</span>
+        </div>
+      </div>
     </div>
   );
 }

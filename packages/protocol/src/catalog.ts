@@ -356,6 +356,10 @@ export const cardSchema = z
       .nullable()
       .default(null),
     abilities: z.array(abilitySchema).default([]),
+    artUrl: z.string().url().nullable().optional().default(null),
+    artFrameX: z.number().min(0).max(100).nullable().optional().default(null),
+    artFrameY: z.number().min(0).max(100).nullable().optional().default(null),
+    artFrameZoom: z.number().min(1).max(4).nullable().optional().default(null),
   })
   .strict();
 export type Card = z.infer<typeof cardSchema>;

@@ -8,12 +8,16 @@
 // first lobby join.
 
 import { cardCatalogSchema, deckCatalogSchema, type Card, type Deck } from '@prophecy/protocol';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const seedDir = resolve(here, '..', '..', '..', 'packages', 'db', 'seed');
+
+/** Disk directory where card art files live. Created on startup if absent. */
+export const artDir = resolve(seedDir, 'card-art');
+mkdirSync(artDir, { recursive: true });
 
 const cardsPath = resolve(seedDir, 'cards.json');
 const decksPath = resolve(seedDir, 'decks.json');
