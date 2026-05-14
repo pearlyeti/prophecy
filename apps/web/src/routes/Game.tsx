@@ -1628,7 +1628,7 @@ function CharacterCard({
           transform: char.exhausted ? exhaustedTransform : 'none',
           transformOrigin: 'center center',
         }}
-        aria-label={`${card?.name ?? 'Character'} — ${hp} HP${char.exhausted ? ' (exhausted)' : ''}`}
+        aria-label={`${card?.name ?? 'Character'} — ${char.health - char.damage} HP${char.exhausted ? ' (exhausted)' : ''}`}
       >
         <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card?.type ?? 'character')}`} />
         {/* name scrim — only useful when card is upright */}
