@@ -6,7 +6,7 @@
   "scripts": {
     "prebuild": "pnpm --filter \"@prophecy/api^...\" build",
     "build": "tsc -p tsconfig.build.json",
-    "dev": "tsx watch src/index.ts",
+    "dev": "NODE_OPTIONS='--conditions=development' tsx watch src/index.ts",
     "start": "node dist/index.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",

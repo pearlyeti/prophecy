@@ -7,18 +7,22 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./server": {
+      "development": "./src/server.ts",
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
     },
     "./router": {
+      "development": "./src/router.ts",
       "types": "./dist/router.d.ts",
       "default": "./dist/router.js"
     },
     "./events": {
+      "development": "./src/events.ts",
       "types": "./dist/events.d.ts",
       "default": "./dist/events.js"
     }
