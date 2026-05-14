@@ -9,6 +9,7 @@ import {
   type Ability,
   type DieFace,
 } from '@prophecy/protocol';
+import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 
 import { AbilityBuilder } from './AbilityBuilder.js';
@@ -359,8 +360,10 @@ export function CardsTab({
               const isActive = tab.key === activeTabKey;
               const isDragging = tab.key === dragKey;
               return (
-                <div
+                <motion.div
                   key={tab.key}
+                  layout
+                  transition={{ duration: 0.15, ease: 'easeInOut' }}
                   data-tabkey={tab.key}
                   draggable
                   onDragStart={(e) => {
@@ -400,7 +403,7 @@ export function CardsTab({
                   >
                     ×
                   </button>
-                </div>
+                </motion.div>
               );
             })}
           </div>
