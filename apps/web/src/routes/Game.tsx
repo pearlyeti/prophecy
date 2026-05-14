@@ -1291,7 +1291,7 @@ function HandOverlay({
         </div>
 
         {/* art area */}
-        <div className="relative mx-4 aspect-[3/2] shrink-0 overflow-hidden rounded-xl">
+        <div className="relative mx-4 aspect-square shrink-0 overflow-hidden rounded-xl">
           <CardArtBg artUrl={card?.artUrl} type={card?.type ?? ''} />
         </div>
 
@@ -1821,7 +1821,7 @@ function CardDetailOverlay({
 
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
           {/* art */}
-          <div className="relative aspect-[3/2] shrink-0 overflow-hidden rounded-xl">
+          <div className="relative aspect-square shrink-0 overflow-hidden rounded-xl">
             <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} />
           </div>
 
@@ -1903,7 +1903,7 @@ function UpgradeDetailOverlay({
           <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] rounded-md px-3 text-xs uppercase tracking-wider text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100">Close</button>
         </div>
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
-          <div className="relative aspect-[3/2] shrink-0 overflow-hidden rounded-xl">
+          <div className="relative aspect-square shrink-0 overflow-hidden rounded-xl">
             <CardArtBg artUrl={card.artUrl} type={card.type} />
           </div>
           <div className="flex flex-wrap gap-1">
