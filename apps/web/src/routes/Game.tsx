@@ -1458,7 +1458,7 @@ function BattleZone({
     <>
       {/* max-w-sm keeps desktop the same scale as mobile; h-full fills flex-1 from parent */}
       <section
-        className={`mx-auto flex h-full w-full max-w-sm gap-2 overflow-hidden ${className}`}
+        className={`mx-auto flex h-full w-full max-w-sm gap-2 ${className}`}
         aria-label="Battle zone"
       >
         {/* ── Player side: [card 9fr | dice 7fr] per row ─────────── */}
@@ -1469,7 +1469,7 @@ function BattleZone({
             return (
               <div
                 key={cid}
-                className="flex min-h-0 items-center gap-1 overflow-hidden"
+                className="flex min-h-0 items-center gap-1"
                 style={{ maxHeight: `${Math.floor(100 / myN)}%` }}
               >
                 <CharacterCard
@@ -1501,7 +1501,7 @@ function BattleZone({
             return (
               <div
                 key={cid}
-                className="flex min-h-0 items-center gap-1 overflow-hidden"
+                className="flex min-h-0 items-center gap-1"
                 style={{ maxHeight: `${Math.floor(100 / oppN)}%` }}
               >
                 <div className="flex flex-[7] min-w-0 items-center justify-center">
