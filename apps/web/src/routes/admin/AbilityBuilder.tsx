@@ -183,7 +183,7 @@ function ImmediateEditor({ ability, onChange }: {
     <div className="space-y-3">
       <PlayConditionSection
         value={ability.playCondition}
-        onChange={(c) => onChange({ ...ability, playCondition: c })}
+        onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-neutral-400">After resolving:</span>
@@ -219,7 +219,7 @@ function TriggeredEditor({ ability, onChange }: {
       </Section>
       <PlayConditionSection
         value={ability.playCondition}
-        onChange={(c) => onChange({ ...ability, playCondition: c })}
+        onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
       <label className="flex items-center gap-1 text-[11px] text-neutral-400">
         <input type="checkbox" checked={ability.optional ?? false}
@@ -248,7 +248,7 @@ function ActionEditor({ ability, onChange }: {
       </Section>
       <PlayConditionSection
         value={ability.playCondition}
-        onChange={(c) => onChange({ ...ability, playCondition: c })}
+        onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
       <label className="flex items-center gap-1 text-[11px] text-neutral-400">
         <input type="checkbox" checked={ability.optional ?? false}
@@ -352,7 +352,7 @@ function PlayConditionSection({ value, onChange }: {
 
 function defaultCondition(kind: PlayCondition['kind']): PlayCondition {
   switch (kind) {
-    case 'spotCharacter': return { kind, color: undefined, unique: undefined, count: undefined };
+    case 'spotCharacter': return { kind } as PlayCondition;
     case 'spotCard': return { kind, cardId: '' };
     case 'haveNCharactersInPlay': return { kind, count: 2 };
     case 'opponentHasNCharacters': return { kind, count: 1 };
@@ -370,10 +370,10 @@ function PlayConditionFields({ value, onChange }: {
         <div className="flex flex-wrap gap-2">
           <SelectField label="Color" value={value.color ?? ''}
             options={[{ value: '', label: 'Any color' }, ...COLORS.map((c) => ({ value: c, label: c }))]}
-            onChange={(v) => onChange({ ...value, color: v || undefined })} />
+            onChange={(v) => onChange({ ...value, color: v || undefined } as any)} />
           <SelectField label="Unique" value={value.unique == null ? '' : String(value.unique)}
             options={[{ value: '', label: 'Any' }, { value: 'true', label: 'Unique only' }, { value: 'false', label: 'Non-unique only' }]}
-            onChange={(v) => onChange({ ...value, unique: v === '' ? undefined : v === 'true' })} />
+            onChange={(v) => onChange({ ...value, unique: v === '' ? undefined : v === 'true' } as any)} />
           <NumberField label="Min count" value={value.count ?? 1} min={1} max={4}
             onChange={(n) => onChange({ ...value, count: n })} />
         </div>
@@ -458,10 +458,10 @@ function TriggerEventFields({ value, onChange }: {
         <div className="flex flex-wrap gap-2">
           <SelectField label="Card type" value={value.cardType ?? ''}
             options={[{ value: '', label: 'Any type' }, ...CARD_TYPES.map((t) => ({ value: t, label: t }))]}
-            onChange={(v) => onChange({ ...value, cardType: v || undefined })} />
+            onChange={(v) => onChange({ ...value, cardType: v || undefined } as any)} />
           <SelectField label="Color" value={value.color ?? ''}
             options={[{ value: '', label: 'Any color' }, ...COLORS.map((c) => ({ value: c, label: c }))]}
-            onChange={(v) => onChange({ ...value, color: v || undefined })} />
+            onChange={(v) => onChange({ ...value, color: v || undefined } as any)} />
         </div>
       );
     case 'afterCharacterDefeated':
@@ -664,7 +664,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               { value: 'melee', label: 'Melee' }, { value: 'ranged', label: 'Ranged' },
               { value: 'indirect', label: 'Indirect' }, { value: 'unspecified', label: 'Unspecified' },
             ]}
-            onChange={(v) => onChange({ ...effect, damageType: v as typeof effect.damageType })} />
+            onChange={(v) => onChange({ ...effect, damageType: v } as any)} />
           <TargetPicker
             value={effect.target}
             options={['opponentCharacter', 'ownCharacter', 'anyCharacter', 'eachOpponentCharacter', 'eachCharacter']}

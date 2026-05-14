@@ -1,8 +1,7 @@
 import type { AppRouter } from '@prophecy/protocol';
-import { createTRPCReact, httpBatchLink } from '@trpc/react-query';
-import type {} from '@trpc/react-query'; // Fixes TS2742 inference error
+import { createTRPCReact, httpBatchLink, type CreateTRPCReact } from '@trpc/react-query';
 
-export const trpc = createTRPCReact<AppRouter>();
+export const trpc: CreateTRPCReact<AppRouter, any, any> = createTRPCReact<AppRouter>();
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
