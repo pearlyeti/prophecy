@@ -24,43 +24,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ### Up next — task cards
 
-#### ENGINE-6 — Ability AST framework + first-wave event dispatcher
-**Why now.** Cards currently cost resources to play but have no effects. ADMIN-1 already authored ~18 event card ASTs in `packages/db/seed/cards.json` using informal snake_case op names; this card formalises the schema, canonicalises naming to camelCase, and builds the dispatcher for the first wave of ops. The schema is designed as a *framework* — all known op shapes are defined up front (even ops whose dispatchers don't land until later cards) so future card authors always have a valid schema to write against.
-
-**Scope.**
-- Replace `abilityAstSchema` in `packages/protocol/src/schemas.ts` with a comprehensive discriminated union. All known `Effect` ops are schema-defined; unimplemented ops parse cleanly but throw a descriptive `NotImplementedError` at dispatch time — they are never silently skipped.
-- **Naming:** camelCase op names throughout. Fix the seed file (`deal_damage` → `dealDamage`, `give_shields` → `addShields`, etc.) and any op-name strings in the admin card editor.
-- Schema building blocks to define in `packages/protocol/src/schemas.ts`:
-  - `TargetSpec` — discriminated union: `opponent`, `self`, `ownCharacter`, `opponentCharacter`, `anyCharacter`, `eachOpponentCharacter`, `eachCharacter`, `attachedCharacter`, `thisCharacter`.
-  - `PlayCondition` — card-level precondition checked before any effects fire. Variants (add more as card content demands; field is optional): `controlsBattlefield`, `spotCharacter` (with optional `color`, `unique`, `count`), `spotCard` (by cardId), `moreReadyCharacters`, `firstActionOfRound`, `opponentHasNoCards`, `haveNCharactersInPlay`, `opponentHasNCharacters`.
-  - `TriggerEvent` — discriminated union describing what fires a `triggered` or `before`-trigger ability. Variants: `afterActivateCharacter`, `afterActivateSupport`, `afterPlayCard` (with optional `cardType`, `color` filter), `afterPlayUpgrade`, `afterCharacterDefeated` (own or opponent's), `afterDieRolledSymbol` (with `symbol` filter), `afterResolveDie`, `afterClaimBattlefield`, `afterRemoveDice`, `afterDealDamage`, `afterTakeDamage`, `beforeCharacterDefeated`, `beforeTakeDamage`, `beforeActivate`, `beforeResolve`, `setup` (fires once at game start).
-  - `ActionCost` — what a player pays to use an `action` or `powerAction` ability. Variants: `exhaust`, `removeDie` (with optional die filter), `spendResources` (with `amount`), `discardCard`, `dealDamageToSelf` (with `amount`). Multiple costs are an array.
-  - `ValueRef` — stub for computed values: `{ kind: 'literal', value: number }` only for now. Richer variants (`countDice`, `countCharacters`, `countCards`, `dieValue`) are schema-defined but their dispatch is deferred; all first-wave ops use `number` literals.
-  - `CardDisposition` — `'discard' | 'setAside' | 'returnToDeckBottom'` (default `'discard'`; governs what happens to the event card after it resolves).
-  - `Effect` — discriminated union on `op`. `optional: boolean` field on every effect (default `false`; when `true`, the active player may choose to skip it). **First-wave ops (dispatcher required):** `dealDamage`, `addShields`, `removeShields`, `drawCards`, `gainResources`, `loseResources`, `healDamage`. **Schema-only stubs (parse, `NotImplementedError` at dispatch):** `removeDie`, `rerollDice`, `turnDie`, `resolveDie`, `resolveWithoutRemoving`, `rollDie` (roll an existing character's die into pool), `rollCardDie` (ENGINE-6b), `activateCharacter`, `exhaustCard`, `readyCard`, `moveDamage`, `moveShields`, `discardCards`, `discardFromDeck`, `lookAtCards`, `revealTopCard`, `searchDeck`, `playCard` (from hand or discard with optional cost modifier), `returnToHand`, `takeBattlefieldControl`, `claimBattlefield`, `endActionPhase`, `takeAdditionalActions`, `forceActivate`, `grantKeyword`, `modifyDieValue`, `setAsideDie`, `placeDamageOnCard`, `placeResourceOnCard`, `returnDefeatedCharacter`, `choice` (two-branch fork where opponent or active player picks a branch).
-  - `Ability` — six kinds: `immediate` (events: effects fire on play, card then discarded/set aside), `action` (character/support/upgrade: player activates at a cost), `powerAction` (same, once per round), `triggered` (fires automatically on a `TriggerEvent`), `passive` (always-on; describes a state the engine checks, not an effect sequence), `special` (fires when this card's special die face is resolved), `claim` (battlefield: fires when this card's battlefield is claimed). All kinds except `passive` carry an `effects: Effect[]`. `action`/`powerAction` carry `costs: ActionCost[]`. `triggered` carries `triggerEvent: TriggerEvent`. All carry optional `playCondition?: PlayCondition`. `cardDisposition` applies to `immediate` only.
-- Create `packages/game-engine/src/abilities/`: `types.ts` (narrows protocol types for engine use) and `dispatch.ts` exposing `applyEffect(state, ctx, effect) → { state; events }`.
-- Wire dispatcher into `applyPlayCard` — event cards run their `effect[]` array sequentially, threading state through.
-- Update `packages/db/seed/cards.json` op names. Update `apps/web` admin card editor if it hard-codes any op strings.
-- Run the protocol-drift test and update the `packages/db` mirror if the schema changed.
-
-**Context to load.**
-- `packages/protocol/src/schemas.ts`
-- `packages/db/src/schema/cards.ts`
-- `packages/db/seed/cards.json`
-- `packages/game-engine/src/actions/play-card.ts`
-- `packages/game-engine/src/actions/resolve-dice.ts` (`dealDamage`, `addShields`, `adjustResources` helpers to compose)
-- `packages/game-engine/src/state/draw.ts` (`drawCards`)
-- `apps/web/src/routes/admin/Cards.tsx` (check for hardcoded op strings)
-
-**Out of scope.** Queue, triggered abilities, replacement effects. Targeting-prompt UI (targets are passed in the action dispatch or pre-specified in tests — the player is never interactively asked to pick a target in this card). Event-owned / cross-card dice (ENGINE-6b). `ValueRef` computed values beyond `literal`.
-
-**Depends on.** ENGINE-2.
-
-**Done when.** Typecheck clean. `dispatch.test.ts` covers each first-wave op against a synthesised state. Integration test: play an `EVT_*` fixture with `dealDamage` and assert damage lands on the specified target. Protocol schema drift test passes.
-
----
-
 #### ENGINE-6b — Event-owned dice + cross-card die roll mechanic
 **Why now.** Some events should roll a die into the pool — either the event's own die (events can carry `dieFaces`, a mechanic not possible in the physical game) or a specific card's die by catalog reference (e.g. "Howl at the Moon" rolls a Werewolf die even if Werewolf isn't in the active player's deck). Neither case is handled by the existing pool machinery.
 
@@ -84,31 +47,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 **Depends on.** ENGINE-6.
 
 **Done when.** Typecheck clean. Tests: (a) play an event with `rollEventDie` — die appears in pool with correct faces; after resolution it is removed; (b) play an event with `rollCardDie` — correct faces from catalog, `transient: true`, removed after resolution; (c) `rollCardDie` with an unknown `cardId` throws a descriptive error.
-
----
-
-#### ENGINE-7 — The queue, after-triggers, before-triggers
-**Why now.** "After" and "Before" triggers make the game interactive — events fire when other events resolve, characters react when activated, damage is interrupted by Guardian, etc. The queue is what orders all of this. The scaffolding (`packages/game-engine/src/queue/types.ts`) is in place but nothing reads or writes it yet.
-
-**Scope.**
-- Wire the existing `Queue` type into `GameState` (currently absent — `state/types.ts` has no queue field).
-- Identify the canonical engine events that can trigger abilities — character activation, damage dealt, card played, etc. — and add `before` / `after` interception points in their handlers (`activate.ts`, `resolve-dice.ts`, `play-card.ts`). Each interception scans cards in play whose ability AST matches the trigger.
-- After-abilities enter the queue at the tail; before-abilities resolve inline and interrupt; both share the same matching logic.
-- Implement simultaneous-ability tiebreak per [README → Engine implementation notes](../README.md#engine-implementation-notes) and [rules-reference §Part 7 → Triggered abilities](../docs/rules-reference.md): if multiple triggers fire at the same instant, the player resolving orders their own; if multiple players have simultaneous triggers, the battlefield controller orders them.
-- Sequencing: only run the queue between actions — within a single action, after-triggers buffer; once the action's effects finish, drain the queue.
-
-**Context to load.**
-- `packages/game-engine/src/queue/types.ts` (existing `Queue`, `QueueEntry`)
-- `packages/game-engine/src/state/types.ts` (`GameState` — needs `queue` field)
-- `packages/game-engine/src/actions/activate.ts`, `resolve-dice.ts`, `play-card.ts` (where interception lands)
-- `docs/rules-reference.md` Part 7 → "The queue" (§p. 526) and "Triggered abilities" (§p. 598+)
-- README → "Engine implementation notes" (queue / before / after / simultaneous tiebreak)
-
-**Out of scope.** Replacement effects ("instead" / "would be") — those interceptors run *before the event commits at all* and are their own card. Additional-action handling (Ambush) — see ENGINE-4. AST shape for triggered abilities is assumed defined by ENGINE-6.
-
-**Depends on.** ENGINE-6 (trigger / effect AST shape + dispatcher). ENGINE-4 is done; ENGINE-6b is not required but its catalog-context threading makes triggered `rollCardDie` effects work without extra wiring.
-
-**Done when.** Typecheck clean. Tests: (a) a before-trigger interrupts and modifies a damage event; (b) two after-triggers from the same player resolve in the order the player chose; (c) two after-triggers from different players resolve in the order the battlefield controller chose; (d) an after-trigger spawned mid-resolution still resolves at the queue's tail.
 
 ---
 
