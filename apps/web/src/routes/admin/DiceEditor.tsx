@@ -36,16 +36,17 @@ export function DiceEditor({
 }) {
   const updateFace = (idx: number, patch: Partial<DieFace>) => {
     const next = [...faces] as SixFaces;
-    next[idx] = { ...faces[idx], ...patch };
+    const updatedFace = { ...faces[idx]!, ...patch } as DieFace;
     // 'special' and 'blank' always have value 0 per the rules.
-    if (next[idx].symbol === 'special' || next[idx].symbol === 'blank') {
-      next[idx].value = 0;
+    if (updatedFace.symbol === 'special' || updatedFace.symbol === 'blank') {
+      updatedFace.value = 0;
     }
     // 'modifier'-symbol faces must be modifier=true (it's the symbolless
     // wild's defining trait). Snap on symbol change.
-    if (next[idx].symbol === 'modifier') {
-      next[idx].modifier = true;
+    if (updatedFace.symbol === 'modifier') {
+      updatedFace.modifier = true;
     }
+    next[idx] = updatedFace;
     onChange(next);
   };
 

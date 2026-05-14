@@ -1,5 +1,6 @@
 import type { AppRouter } from '@prophecy/protocol';
 import { createTRPCReact, httpBatchLink } from '@trpc/react-query';
+import type {} from '@trpc/react-query'; // Fixes TS2742 inference error
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -10,7 +11,7 @@ export const trpcClient = trpc.createClient({
     httpBatchLink({
       url: `${apiUrl}/trpc`,
       fetch(input, init) {
-        return fetch(input, { ...init, credentials: 'include' });
+        return fetch(input, { ...init, credentials: 'include' } as RequestInit);
       },
     }),
   ],
