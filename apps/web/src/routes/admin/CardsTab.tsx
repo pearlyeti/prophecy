@@ -542,7 +542,7 @@ function ArtUploader({
           const file = e.dataTransfer.files[0];
           if (file) void handleFile(file);
         }}
-        className={`relative aspect-square w-full cursor-pointer overflow-hidden rounded-lg border-2 border-dashed transition ${
+        className={`relative aspect-square w-[512px] max-w-full cursor-pointer overflow-hidden rounded-lg border-2 border-dashed transition ${
           dragOver
             ? 'border-emerald-500 bg-emerald-950/20'
             : 'border-neutral-700 bg-neutral-900 hover:border-neutral-500'
