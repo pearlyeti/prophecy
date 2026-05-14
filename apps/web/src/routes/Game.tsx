@@ -1451,66 +1451,74 @@ function BattleZone({
     : '—';
   void opponentName;
 
+  const myN = myPlayer?.characterOrder.length ?? 1;
+  const oppN = oppPlayer?.characterOrder.length ?? 1;
+
   return (
     <>
+      {/* max-w-sm keeps desktop the same scale as mobile; h-full fills flex-1 from parent */}
       <section
-        className={`flex gap-1 overflow-y-auto ${className}`}
+        className={`mx-auto flex h-full w-full max-w-sm gap-2 overflow-hidden ${className}`}
         aria-label="Battle zone"
       >
-        {/* Player side: card col | dice col (9fr : 7fr) */}
-        <div
-          className="grid flex-1 content-start gap-y-2"
-          style={{ gridTemplateColumns: '9fr 7fr', columnGap: 4 }}
-        >
+        {/* ── Player side: [card 9fr | dice 7fr] per row ─────────── */}
+        <div className="flex h-full min-h-0 flex-1 flex-col" style={{ justifyContent: 'space-evenly' }}>
           {myPlayer?.characterOrder.map((cid) => {
             const char = myPlayer.characters[cid]!;
             const charDice = myDiceByOwner.get(cid) ?? [];
             return (
-              <>
+              <div
+                key={cid}
+                className="flex min-h-0 items-center gap-1 overflow-hidden"
+                style={{ maxHeight: `${Math.floor(100 / myN)}%` }}
+              >
                 <CharacterCard
-                  key={`card-${cid}`}
                   char={char}
                   game={game}
                   catalogById={catalogById}
+                  className="flex-[9] min-w-0"
                   onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
                   onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
                 />
-                <DiceStack
-                  key={`dice-${cid}`}
-                  dice={charDice}
-                  diceInteractive={diceInteractive}
-                  selectionMode={selectionMode}
-                />
-              </>
+                <div className="flex flex-[7] min-w-0 items-center justify-center">
+                  <DiceStack
+                    dice={charDice}
+                    diceInteractive={diceInteractive}
+                    selectionMode={selectionMode}
+                  />
+                </div>
+              </div>
             );
           })}
         </div>
 
-        {/* Opponent side: dice col | card col (7fr : 9fr) */}
-        <div
-          className="grid flex-1 content-start gap-y-2"
-          style={{ gridTemplateColumns: '7fr 9fr', columnGap: 4 }}
-        >
+        {/* ── Opponent side: [dice 7fr | card 9fr] per row ────────── */}
+        <div className="flex h-full min-h-0 flex-1 flex-col" style={{ justifyContent: 'space-evenly' }}>
           {oppPlayer?.characterOrder.map((cid) => {
             const char = oppPlayer.characters[cid]!;
             const charDice = oppDiceByOwner.get(cid) ?? [];
             return (
-              <>
-                <DiceStack
-                  key={`dice-${cid}`}
-                  dice={charDice}
-                  diceInteractive={false}
-                  selectionMode={selectionMode}
-                />
+              <div
+                key={cid}
+                className="flex min-h-0 items-center gap-1 overflow-hidden"
+                style={{ maxHeight: `${Math.floor(100 / oppN)}%` }}
+              >
+                <div className="flex flex-[7] min-w-0 items-center justify-center">
+                  <DiceStack
+                    dice={charDice}
+                    diceInteractive={false}
+                    selectionMode={selectionMode}
+                  />
+                </div>
                 <CharacterCard
-                  key={`card-${cid}`}
                   char={char}
                   game={game}
                   catalogById={catalogById}
+                  className="flex-[9] min-w-0"
                   onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
                   onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
                 />
-              </>
+              </div>
             );
           })}
         </div>
@@ -1540,12 +1548,14 @@ function CharacterCard({
   char,
   game,
   catalogById,
+  className = '',
   onTap,
   onUpgradeTap,
 }: {
   char: CharacterState;
   game: GameState;
   catalogById: Map<string, Card>;
+  className?: string;
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -1554,8 +1564,9 @@ function CharacterCard({
   const hp = char.health - char.damage;
 
   return (
-    <div className="relative overflow-hidden" style={{ aspectRatio: '63/88' }}>
-      {/* Main card button — rotates 90° when exhausted */}
+    // overflow-hidden clips the rotated card art; the wrapper itself never rotates.
+    <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio: '63/88' }}>
+      {/* Card art + name — rotates 90° when exhausted */}
       <button
         type="button"
         onClick={onTap}
@@ -1566,17 +1577,18 @@ function CharacterCard({
         aria-label={`${card?.name ?? 'Character'} — ${hp} HP${char.exhausted ? ' (exhausted)' : ''}`}
       >
         <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card?.type ?? 'character')}`} />
-        {/* health badge */}
-        <span className="absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold leading-tight text-white">
-          ♥&thinsp;{hp}
-        </span>
-        {/* name scrim */}
+        {/* name scrim — only useful when card is upright */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-5">
           <span className="line-clamp-2 text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
         </div>
       </button>
 
-      {/* Upgrade badges — siblings of card button so no nested-button violation */}
+      {/* Health badge — outside the rotating button so it's always upright and visible */}
+      <span className="absolute left-1 top-1 z-10 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold leading-tight text-white">
+        ♥&thinsp;{hp}
+      </span>
+
+      {/* Upgrade badges */}
       {char.upgradeIds.length > 0 && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center gap-0.5 pb-1">
           {char.upgradeIds.map((uid) => {
