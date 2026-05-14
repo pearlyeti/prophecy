@@ -5,4 +5,15 @@ export type { Context } from './trpc.js';
 export * from './catalog.js';
 export * from './events.js';
 export * from './schemas.js';
-export type { Action, EngineEvent, GameState } from '@prophecy/game-engine';
+export type {
+  Action,
+  EngineEvent,
+  GameState,
+  ActionCost,
+  CardDisposition,
+  Effect,
+  ImmediateAbility,
+  PlayCondition,
+  TargetSpec,
+  TriggerEvent,
+} from '@prophecy/game-engine';
