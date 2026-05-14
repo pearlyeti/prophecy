@@ -81,8 +81,8 @@ export function CardsTab({
   const [filter, setFilter] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  // Collapsed groups — starts with all expanded.
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Collapsed groups — starts with all collapsed.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set(CARD_TYPES));
 
   const toggleGroup = (type: string) =>
     setCollapsed((prev) => {
