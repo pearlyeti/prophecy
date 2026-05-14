@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { basename, extname, resolve } from 'node:path';
 import { Server } from 'socket.io';
 
-import { artDir, getCards, getDecks, writeCards, writeDecks } from './corpus.js';
+import { artDir, getCards, getDecks, initialize, writeCards, writeDecks } from './corpus.js';
 import { isStorageConfigured, uploadFile } from './storage.js';
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
@@ -414,6 +414,9 @@ function toError(e: unknown): ErrorPayload {
 }
 
 const port = Number(process.env.PORT ?? process.env.GAME_SERVER_PORT ?? 3001);
+
+await initialize();
+
 httpServer.listen(port, () => {
   console.log(`game-server listening on http://localhost:${port}`);
 });

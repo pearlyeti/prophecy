@@ -2,7 +2,7 @@
 // and Cloudflare R2 (production). Activate by setting the five S3_* env vars.
 // When they're absent the game-server falls back to local disk (dev only).
 
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 let _client: S3Client | null | undefined; // undefined = not yet initialised
 
@@ -32,6 +32,27 @@ export function isStorageConfigured(): boolean {
     process.env.S3_BUCKET &&
     process.env.S3_PUBLIC_URL
   );
+}
+
+const CATALOG_KEY = 'catalog/cards.json';
+
+/** Read the card catalog JSON from storage. Returns null if absent or storage not configured. */
+export async function readCatalogFromStorage(): Promise<string | null> {
+  const c = client();
+  if (!c) return null;
+  try {
+    const result = await c.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: CATALOG_KEY }));
+    return (await result.Body?.transformToString()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the card catalog JSON to storage. No-op if storage not configured. */
+export async function writeCatalogToStorage(json: string): Promise<void> {
+  const c = client();
+  if (!c) return;
+  await c.send(new PutObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: CATALOG_KEY, Body: json, ContentType: 'application/json' }));
 }
 
 /**
