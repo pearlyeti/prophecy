@@ -99,6 +99,8 @@ export function CardsTab({
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const newMenuRef = useRef<HTMLDivElement>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set(CARD_TYPES));
+  const [dragKey, setDragKey] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
   const activeTab = tabs.find((t) => t.key === activeTabKey) ?? null;
   const draft = activeTab?.draft ?? null;
@@ -321,19 +323,43 @@ export function CardsTab({
           <div className="flex items-end gap-0.5 overflow-x-auto border-b border-neutral-800 px-2 pt-2 shrink-0">
             {tabs.map((tab) => {
               const isActive = tab.key === activeTabKey;
+              const isDragging = tab.key === dragKey;
+              const isDropTarget = tab.key === dragOverKey && tab.key !== dragKey;
               return (
                 <div
                   key={tab.key}
-                  className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-sm transition ${
+                  draggable
+                  onDragStart={(e) => {
+                    setDragKey(tab.key);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverKey(tab.key); }}
+                  onDragLeave={() => setDragOverKey(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragKey && dragKey !== tab.key) {
+                      setTabs((prev) => {
+                        const next = [...prev];
+                        const from = next.findIndex((t) => t.key === dragKey);
+                        const to = next.findIndex((t) => t.key === tab.key);
+                        next.splice(to, 0, next.splice(from, 1)[0]!);
+                        return next;
+                      });
+                    }
+                    setDragKey(null);
+                    setDragOverKey(null);
+                  }}
+                  onDragEnd={() => { setDragKey(null); setDragOverKey(null); }}
+                  className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-sm transition select-none ${
                     isActive
                       ? 'border-neutral-700 bg-neutral-950/80 text-neutral-100'
                       : 'border-transparent text-neutral-500 hover:text-neutral-300'
-                  }`}
+                  } ${isDragging ? 'opacity-40' : ''} ${isDropTarget ? 'border-l-2 border-l-emerald-500' : ''}`}
                 >
                   <button
                     type="button"
                     onClick={() => setActiveTabKey(tab.key)}
-                    className="flex flex-col items-start text-left"
+                    className="flex cursor-grab flex-col items-start text-left active:cursor-grabbing"
                   >
                     <span className="max-w-[140px] truncate leading-tight">{tab.draft.name || 'New Card'}</span>
                     <span className={`mt-1.5 rounded px-1.5 py-0 text-[11px] font-medium capitalize text-white ${TYPE_BADGE[tab.draft.type]}`}>
