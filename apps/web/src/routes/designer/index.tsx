@@ -58,7 +58,7 @@ export function Designer() {
         <h1 className="text-xl font-semibold text-neutral-100">Prophecy Designer</h1>
         <a
           href="/"
-          className="min-h-[36px] rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs text-neutral-300 hover:border-neutral-500"
+          className="min-h-[36px] rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1 text-sm text-neutral-300 hover:border-neutral-500"
         >
           ← back to game
         </a>
@@ -71,13 +71,13 @@ export function Designer() {
       </nav>
 
       {error && (
-        <div className="mb-3 rounded border border-red-800 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+        <div className="mb-3 rounded border border-red-800 bg-red-950/40 px-3 py-2 text-base text-red-200">
           {error}
         </div>
       )}
 
       {cards === null || decks === null || attributes === null ? (
-        <div className="text-sm text-neutral-500">Loading catalog…</div>
+        <div className="text-base text-neutral-500">Loading catalog…</div>
       ) : tab === 'cards' ? (
         <CardsTab cards={cards} attributes={attributes} onReload={reload} />
       ) : tab === 'decks' ? (
@@ -102,7 +102,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[44px] rounded-t-lg border-b-2 px-4 py-2 text-sm ${
+      className={`min-h-[44px] rounded-t-lg border-b-2 px-4 py-2 text-base ${
         active
           ? 'border-emerald-500 text-emerald-100'
           : 'border-transparent text-neutral-400 hover:text-neutral-200'

@@ -220,13 +220,13 @@ export function CardsTab({
             placeholder="Filter…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="min-h-[36px] flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs"
+            className="min-h-[36px] flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-sm"
           />
           <div ref={newMenuRef} className="relative">
             <button
               type="button"
               onClick={() => setNewMenuOpen((o) => !o)}
-              className="min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900 px-3 py-1 text-xs text-emerald-50 hover:bg-emerald-800"
+              className="min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900 px-3 py-1 text-sm text-emerald-50 hover:bg-emerald-800"
             >
               + New
             </button>
@@ -237,7 +237,7 @@ export function CardsTab({
                     <button
                       type="button"
                       onClick={() => startNew(t)}
-                      className="w-full px-3 py-2 text-left text-xs capitalize text-neutral-200 hover:bg-neutral-800"
+                      className="w-full px-3 py-2 text-left text-sm capitalize text-neutral-200 hover:bg-neutral-800"
                     >
                       {t}
                     </button>
@@ -247,7 +247,7 @@ export function CardsTab({
             )}
           </div>
         </div>
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500">
+        <div className="text-xs uppercase tracking-wider text-neutral-500">
           {filtered.length} / {cards.length}
         </div>
         <div className="mt-2 max-h-[70vh] overflow-y-auto space-y-1">
@@ -260,9 +260,9 @@ export function CardsTab({
                   onClick={() => toggleGroup(type)}
                   className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left hover:bg-neutral-800/60"
                 >
-                  <span className="text-[10px] text-neutral-500 transition-transform" style={{ display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'none' }}>▶</span>
-                  <span className="flex-1 text-xs font-semibold capitalize text-neutral-300">{type}</span>
-                  <span className="text-[10px] text-neutral-600">{group.length}</span>
+                  <span className="text-xs text-neutral-500 transition-transform" style={{ display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'none' }}>▶</span>
+                  <span className="flex-1 text-sm font-semibold capitalize text-neutral-300">{type}</span>
+                  <span className="text-xs text-neutral-600">{group.length}</span>
                 </button>
                 {expanded && (
                   <ul className="ml-3 mt-0.5 space-y-0.5 border-l border-neutral-800 pl-2">
@@ -274,7 +274,7 @@ export function CardsTab({
                           <button
                             type="button"
                             onClick={() => openTab(c.id)}
-                            className={`flex min-h-[44px] w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs ${
+                            className={`flex min-h-[44px] w-full items-center gap-2 rounded border px-2 py-1 text-left text-sm ${
                               isActive
                                 ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
                                 : isOpen
@@ -301,7 +301,7 @@ export function CardsTab({
                             </div>
                             <div className="min-w-0">
                               <div className="truncate font-medium leading-tight">{c.name}</div>
-                              <div className="font-mono text-[10px] text-neutral-500">{c.id}</div>
+                              <div className="font-mono text-xs text-neutral-500">{c.id}</div>
                             </div>
                           </button>
                         </li>
@@ -324,7 +324,7 @@ export function CardsTab({
               return (
                 <div
                   key={tab.key}
-                  className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-xs transition ${
+                  className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-sm transition ${
                     isActive
                       ? 'border-neutral-700 bg-neutral-950/80 text-neutral-100'
                       : 'border-transparent text-neutral-500 hover:text-neutral-300'
@@ -336,7 +336,7 @@ export function CardsTab({
                     className="flex flex-col items-start text-left"
                   >
                     <span className="max-w-[140px] truncate leading-tight">{tab.draft.name || 'New Card'}</span>
-                    <span className={`mt-0.5 rounded px-1.5 py-0 text-[9px] font-medium capitalize text-white ${TYPE_BADGE[tab.draft.type]}`}>
+                    <span className={`mt-0.5 rounded px-1.5 py-0 text-[11px] font-medium capitalize text-white ${TYPE_BADGE[tab.draft.type]}`}>
                       {tab.draft.type}
                     </span>
                   </button>
@@ -357,7 +357,7 @@ export function CardsTab({
         {/* ── Form area ───────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto p-4">
         {!draft ? (
-          <div className="text-sm text-neutral-500">
+          <div className="text-base text-neutral-500">
             Select a card on the left, or click <span className="text-emerald-300">+ New</span>.
           </div>
         ) : (
@@ -375,7 +375,7 @@ export function CardsTab({
                   type="text"
                   value={draft.name}
                   onChange={(e) => updateDraft({ name: e.target.value })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
                 />
               </Field>
               <Field label="Id">
@@ -383,7 +383,7 @@ export function CardsTab({
                   type="text"
                   value={draft.id}
                   onChange={(e) => updateDraft({ id: e.target.value })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
                   disabled={selectedId !== null}
                 />
               </Field>
@@ -401,7 +401,7 @@ export function CardsTab({
                   <button
                     type="button"
                     onClick={() => updateDraft({ artUrl: null })}
-                    className="text-center text-[11px] text-neutral-600 hover:text-red-400"
+                    className="text-center text-sm text-neutral-600 hover:text-red-400"
                   >
                     Remove image
                   </button>
@@ -432,7 +432,7 @@ export function CardsTab({
                 <select
                   value={draft.faction}
                   onChange={(e) => updateDraft({ faction: e.target.value as Card['faction'] })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
                 >
                   {attributes.factions.map((f) => (
                     <option key={f} value={f}>{f}</option>
@@ -444,7 +444,7 @@ export function CardsTab({
                   <select
                     value={draft.color ?? ''}
                     onChange={(e) => updateDraft({ color: (e.target.value || null) as Card['color'] })}
-                    className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                    className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
                   >
                     <option value="">—</option>
                     {attributes.colors.map((c) => (
@@ -457,7 +457,7 @@ export function CardsTab({
                 <select
                   value={draft.rarity}
                   onChange={(e) => updateDraft({ rarity: e.target.value as Card['rarity'] })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
                 >
                   {attributes.rarities.map((r) => (
                     <option key={r} value={r}>{r}</option>
@@ -488,7 +488,7 @@ export function CardsTab({
               <Field label="Plot point value">
                 <NullableNumber value={draft.plotPointValue} min={-5} max={5} onChange={(plotPointValue) => updateDraft({ plotPointValue })} />
               </Field>
-              <label className="flex min-h-[60px] items-center gap-2 self-end text-xs text-neutral-300">
+              <label className="flex min-h-[60px] items-center gap-2 self-end text-sm text-neutral-300">
                 <input
                   type="checkbox"
                   checked={draft.isUnique}
@@ -503,12 +503,12 @@ export function CardsTab({
                 value={draft.displayText}
                 rows={3}
                 onChange={(e) => updateDraft({ displayText: e.target.value })}
-                className="min-h-[80px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                className="min-h-[80px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
               />
             </Field>
 
             <div>
-              <div className="mb-2 text-xs uppercase tracking-wider text-neutral-500">
+              <div className="mb-2 text-sm uppercase tracking-wider text-neutral-500">
                 Abilities
               </div>
               <AbilityBuilder
@@ -518,7 +518,7 @@ export function CardsTab({
             </div>
 
             <div>
-              <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-300">
+              <label className="mb-2 flex items-center gap-2 text-sm uppercase tracking-wider text-neutral-300">
                 <input
                   type="checkbox"
                   checked={draft.dieFaces !== null}
@@ -542,7 +542,7 @@ export function CardsTab({
               <button
                 type="submit"
                 disabled={saving}
-                className="min-h-[44px] rounded-lg border border-emerald-700 bg-emerald-900 px-4 py-2 text-sm text-emerald-50 hover:bg-emerald-800 disabled:opacity-50"
+                className="min-h-[44px] rounded-lg border border-emerald-700 bg-emerald-900 px-4 py-2 text-base text-emerald-50 hover:bg-emerald-800 disabled:opacity-50"
               >
                 {saving ? 'Saving…' : selectedId === null ? 'Create card' : 'Save changes'}
               </button>
@@ -551,7 +551,7 @@ export function CardsTab({
                   type="button"
                   onClick={deleteSelected}
                   disabled={saving}
-                  className="min-h-[44px] rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-sm text-red-200 hover:border-red-700"
+                  className="min-h-[44px] rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-base text-red-200 hover:border-red-700"
                 >
                   Delete
                 </button>
@@ -564,12 +564,12 @@ export function CardsTab({
                   if (original) setTabs((prev) => prev.map((t) => t.key === activeTabKey ? { ...t, draft: structuredClone(original), savedAt: null } : t));
                 }}
                 disabled={saving || selectedId === null}
-                className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500 disabled:opacity-50"
+                className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-base hover:border-neutral-500 disabled:opacity-50"
               >
                 Revert
               </button>
               {activeTab?.savedAt && (
-                <span className="self-center text-[11px] text-emerald-400">
+                <span className="self-center text-sm text-emerald-400">
                   Saved {new Date(activeTab.savedAt).toLocaleTimeString()}
                 </span>
               )}
@@ -592,7 +592,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className={`flex flex-col text-[11px] text-neutral-400 ${wide ? 'col-span-2' : ''}`}>
+    <label className={`flex flex-col text-sm text-neutral-400 ${wide ? 'col-span-2' : ''}`}>
       <span>{label}</span>
       {children}
     </label>
@@ -621,7 +621,7 @@ function NullableNumber({
         onChange={(e) =>
           onChange(e.target.value === '' ? null : Number(e.target.value))
         }
-        className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+        className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
       />
     </div>
   );
@@ -662,7 +662,7 @@ function ArtUploader({
 
   return (
     <div className="col-span-full">
-      <div className="mb-1 text-[11px] text-neutral-400">Card art</div>
+      <div className="mb-1 text-sm text-neutral-400">Card art</div>
       <div
         role="button"
         tabIndex={0}
@@ -690,23 +690,23 @@ function ArtUploader({
               className="h-full w-full object-cover"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition">
-              <span className="text-xs text-white">Click or drop to replace</span>
+              <span className="text-sm text-white">Click or drop to replace</span>
             </div>
           </>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-neutral-500">
             <span className="text-2xl">🖼</span>
-            <span className="text-xs">{uploading ? 'Uploading…' : 'Drop art here or click to browse'}</span>
-            <span className="text-[10px] text-neutral-600">JPEG · PNG · WebP · up to 20 MB · converted to WebP 1024 × 1024</span>
+            <span className="text-sm">{uploading ? 'Uploading…' : 'Drop art here or click to browse'}</span>
+            <span className="text-xs text-neutral-600">JPEG · PNG · WebP · up to 20 MB · converted to WebP 1024 × 1024</span>
           </div>
         )}
         {uploading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-            <span className="text-xs text-neutral-300">Uploading…</span>
+            <span className="text-sm text-neutral-300">Uploading…</span>
           </div>
         )}
       </div>
-      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
       <input
         ref={inputRef}
         type="file"
@@ -793,7 +793,7 @@ function FrameEditor({
   if (compact) {
     return (
       <div className="flex flex-col items-center gap-1.5">
-        <span className="text-[10px] text-neutral-500">{cfg.label}</span>
+        <span className="text-xs text-neutral-500">{cfg.label}</span>
         <div
           onMouseDown={onMouseDown}
           onTouchStart={onTouchStart}
@@ -806,15 +806,15 @@ function FrameEditor({
           <img src={artUrl} alt="" aria-hidden draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${x}% ${y}%`, transform: zoom > 1 ? `scale(${zoom})` : undefined, transformOrigin: `${x}% ${y}%`, pointerEvents: 'none', userSelect: 'none' }} />
         </div>
         <input type="range" min={1} max={4} step={0.1} value={zoom} onChange={(e) => onChange(x, y, Number(e.target.value))} className="w-20 accent-emerald-500" title={`Zoom ${zoom.toFixed(1)}×`} />
-        <button type="button" onClick={() => onChange(50, 50, 1)} className="text-[10px] text-neutral-600 hover:text-neutral-300">Reset</button>
+        <button type="button" onClick={() => onChange(50, 50, 1)} className="text-xs text-neutral-600 hover:text-neutral-300">Reset</button>
       </div>
     );
   }
 
   return (
     <div className="col-span-full">
-      <div className="mb-1 text-[11px] text-neutral-400">{cfg.label}</div>
-      <div className="mb-2 text-[10px] text-neutral-600">{cfg.hint} · drag to reposition, scroll or slider to zoom</div>
+      <div className="mb-1 text-sm text-neutral-400">{cfg.label}</div>
+      <div className="mb-2 text-xs text-neutral-600">{cfg.hint} · drag to reposition, scroll or slider to zoom</div>
       <div className="flex flex-wrap items-center gap-6">
         <div
           onMouseDown={onMouseDown}
@@ -828,11 +828,11 @@ function FrameEditor({
           <img src={artUrl} alt="" aria-hidden draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${x}% ${y}%`, transform: zoom > 1 ? `scale(${zoom})` : undefined, transformOrigin: `${x}% ${y}%`, pointerEvents: 'none', userSelect: 'none' }} />
         </div>
         <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-[11px] text-neutral-400">
+          <label className="flex flex-col gap-1 text-sm text-neutral-400">
             <span>Zoom — {zoom.toFixed(1)}×</span>
             <input type="range" min={1} max={4} step={0.1} value={zoom} onChange={(e) => onChange(x, y, Number(e.target.value))} className="w-36 accent-emerald-500" />
           </label>
-          <button type="button" onClick={() => onChange(50, 50, 1)} className="w-fit rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] hover:border-neutral-500">
+          <button type="button" onClick={() => onChange(50, 50, 1)} className="w-fit rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm hover:border-neutral-500">
             Reset
           </button>
         </div>
@@ -881,11 +881,11 @@ function SubtypePicker({
   const remove = (val: string) => onChange(selected.filter((s) => s !== val));
 
   return (
-    <div className="col-span-full flex flex-col gap-1 text-[11px] text-neutral-400">
+    <div className="col-span-full flex flex-col gap-1 text-sm text-neutral-400">
       <span>Subtypes</span>
       <div className="flex flex-wrap items-center gap-1.5">
         {selected.map((s) => (
-          <span key={s} className="flex items-center gap-1 rounded border border-emerald-700 bg-emerald-950/40 px-2 py-0.5 text-xs text-emerald-100">
+          <span key={s} className="flex items-center gap-1 rounded border border-emerald-700 bg-emerald-950/40 px-2 py-0.5 text-sm text-emerald-100">
             {s}
             <button type="button" onClick={() => remove(s)} className="text-emerald-500 hover:text-red-400" aria-label={`Remove ${s}`}>×</button>
           </span>
@@ -896,7 +896,7 @@ function SubtypePicker({
             type="button"
             onClick={() => setOpen((o) => !o)}
             disabled={options.length === 0}
-            className="min-h-[28px] rounded border border-dashed border-neutral-600 px-2 py-0.5 text-xs text-neutral-400 hover:border-neutral-400 hover:text-neutral-200 disabled:opacity-40"
+            className="min-h-[28px] rounded border border-dashed border-neutral-600 px-2 py-0.5 text-sm text-neutral-400 hover:border-neutral-400 hover:text-neutral-200 disabled:opacity-40"
           >
             + Subtype
           </button>
@@ -910,12 +910,12 @@ function SubtypePicker({
                   placeholder="Search…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-100 outline-none"
+                  className="w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none"
                 />
               </div>
               <ul className="max-h-48 overflow-y-auto pb-1">
                 {available.length === 0 ? (
-                  <li className="px-3 py-2 text-xs text-neutral-600">
+                  <li className="px-3 py-2 text-sm text-neutral-600">
                     {search ? 'No matches' : 'All subtypes selected'}
                   </li>
                 ) : (
@@ -924,7 +924,7 @@ function SubtypePicker({
                       <button
                         type="button"
                         onClick={() => add(s)}
-                        className="w-full px-3 py-1.5 text-left text-xs text-neutral-200 hover:bg-neutral-800"
+                        className="w-full px-3 py-1.5 text-left text-sm text-neutral-200 hover:bg-neutral-800"
                       >
                         {s}
                       </button>
@@ -937,7 +937,7 @@ function SubtypePicker({
         </div>
 
         {options.length === 0 && (
-          <span className="text-[10px] text-neutral-600">Add subtypes in the Attributes tab first.</span>
+          <span className="text-xs text-neutral-600">Add subtypes in the Attributes tab first.</span>
         )}
       </div>
     </div>
