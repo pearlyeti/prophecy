@@ -96,9 +96,10 @@ export function Game() {
   return (
     <main
       data-droptarget="play"
-      className={`min-h-dvh px-4 py-6 sm:px-6 ${showHandStrip ? 'pb-[124px]' : ''} ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
+      className={`flex h-dvh flex-col overflow-hidden px-4 pt-3 sm:px-6 ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
     >
-      <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <header className="mb-2 shrink-0 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">
           {me?.displayName ?? 'You'}{' '}
           <span className="text-neutral-500">vs</span>{' '}
@@ -112,34 +113,31 @@ export function Game() {
         </div>
       </header>
 
-      {ended && <EndedBanner game={game} playerId={playerId} />}
+      {/* ── Panels (EndedBanner / SetupPanel / ActionPanel) ──────── */}
+      {/* Capped height + internal scroll so they never push the board off-screen */}
+      <div className="shrink-0 overflow-y-auto" style={{ maxHeight: '42%' }}>
+        {ended && <EndedBanner game={game} playerId={playerId} />}
 
-      {!ended && game.phase === 'setup' && (
-        <SetupPanel game={game} playerId={playerId} send={send} />
-      )}
+        {!ended && game.phase === 'setup' && (
+          <SetupPanel game={game} playerId={playerId} send={send} />
+        )}
 
-      {!ended && game.phase === 'action' && !selectionMode && (
-        <ActionPanel
-          game={game}
-          playerId={playerId}
-          send={send}
-          isMyTurn={isMyTurn}
-          onOpenHand={openHand}
-        />
-      )}
+        {!ended && game.phase === 'action' && !selectionMode && (
+          <ActionPanel
+            game={game}
+            playerId={playerId}
+            send={send}
+            isMyTurn={isMyTurn}
+            onOpenHand={openHand}
+          />
+        )}
+      </div>
 
-      <BattleZone game={game} playerId={playerId} catalogById={catalogById} />
+      {/* ── Battle zone — fills all remaining space ───────────────── */}
+      <BattleZone game={game} playerId={playerId} catalogById={catalogById} className="min-h-0 flex-1" />
 
-      <EventLog events={events} />
-
-      <details className="mt-6 rounded-lg border border-neutral-800 bg-neutral-950/50">
-        <summary className="cursor-pointer px-4 py-2 text-xs uppercase tracking-wider text-neutral-500">
-          Raw state
-        </summary>
-        <pre className="overflow-x-auto px-4 py-3 text-[11px] leading-relaxed text-neutral-400">
-          {JSON.stringify(game, null, 2)}
-        </pre>
-      </details>
+      {/* Spacer so the fixed hand strip doesn't cover the board */}
+      {showHandStrip && <div className="shrink-0 h-[104px]" />}
 
       {selectionMode && !ended && game.phase === 'action' && (
         <SelectionActionBar game={game} playerId={playerId} send={send} />
@@ -1370,10 +1368,12 @@ function BattleZone({
   game,
   playerId,
   catalogById,
+  className = '',
 }: {
   game: GameState;
   playerId: string;
   catalogById: Map<string, Card>;
+  className?: string;
 }) {
   const lobby = useApp.getState().lobby!;
   const selectionMode = useApp((s) => s.selectionMode);
@@ -1423,8 +1423,7 @@ function BattleZone({
   return (
     <>
       <section
-        className="mb-4 flex gap-1 overflow-y-auto"
-        style={{ maxHeight: '65dvh' }}
+        className={`flex gap-1 overflow-y-auto ${className}`}
         aria-label="Battle zone"
       >
         {/* Player side: card col | dice col (9fr : 7fr) */}
@@ -1524,9 +1523,7 @@ function CharacterCard({
   const hp = char.health - char.damage;
 
   return (
-    // aspect-[63/88] = CCG portrait ratio. overflow-visible so rotated card
-    // stays visible; no clipping at the wrapper level.
-    <div className="relative overflow-visible" style={{ aspectRatio: '63/88' }}>
+    <div className="relative overflow-hidden" style={{ aspectRatio: '63/88' }}>
       {/* Main card button — rotates 90° when exhausted */}
       <button
         type="button"
