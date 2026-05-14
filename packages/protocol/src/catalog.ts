@@ -366,6 +366,9 @@ export const cardSchema = z
     badgeFrameX: z.number().min(0).max(100).nullable().optional().default(null),
     badgeFrameY: z.number().min(0).max(100).nullable().optional().default(null),
     badgeFrameZoom: z.number().min(1).max(4).nullable().optional().default(null),
+    landscapeFrameX: z.number().min(0).max(100).nullable().optional().default(null),
+    landscapeFrameY: z.number().min(0).max(100).nullable().optional().default(null),
+    landscapeFrameZoom: z.number().min(1).max(4).nullable().optional().default(null),
   })
   .strict();
 export type Card = z.infer<typeof cardSchema>;
