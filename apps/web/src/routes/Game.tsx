@@ -1078,7 +1078,6 @@ function HandCardTile({
   eligible,
   onTap,
   dragHandlers,
-  rotation = 0,
 }: {
   instanceId: string;
   game: GameState;
@@ -1086,7 +1085,6 @@ function HandCardTile({
   eligible: boolean;
   onTap: () => void;
   dragHandlers?: DragHandlers;
-  rotation?: number;
 }) {
   const catalogId = game.cardCatalogIds[instanceId];
   const card = catalogId ? catalogById.get(catalogId) : undefined;
@@ -1097,7 +1095,6 @@ function HandCardTile({
       type="button"
       onClick={onTap}
       {...dragHandlers}
-      style={{ transform: `rotate(${rotation}deg)`, transformOrigin: 'bottom center' }}
       className={`relative flex h-[96px] min-w-0 flex-1 overflow-hidden rounded-lg border text-left transition active:scale-95 ${
         eligible
           ? 'border-emerald-500 shadow-[0_0_8px_1px_rgba(16,185,129,0.3)]'
@@ -1146,7 +1143,7 @@ function HandStrip({
         {hand.length === 0 ? (
           <div className="text-[11px] text-neutral-600">Hand empty</div>
         ) : (
-          <div className="flex w-full items-end gap-1">
+          <div className="flex w-full items-stretch gap-1">
             {hand.map((id, idx) => {
               const cost = game.cardCosts[id] ?? 0;
               const affordable = (me?.resources ?? 0) >= cost;
@@ -1156,9 +1153,6 @@ function HandStrip({
               const dragHandlers = eligible
                 ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost })
                 : undefined;
-              // Subtle fan: max ±5° spread evenly across all cards.
-              const mid = (hand.length - 1) / 2;
-              const deg = hand.length > 1 ? ((idx - mid) / mid) * 5 : 0;
               return (
                 <HandCardTile
                   key={id}
@@ -1167,7 +1161,6 @@ function HandStrip({
                   catalogById={catalogById}
                   eligible={eligible}
                   onTap={() => onTap(id)}
-                  rotation={deg}
                   {...(dragHandlers ? { dragHandlers } : {})}
                 />
               );
