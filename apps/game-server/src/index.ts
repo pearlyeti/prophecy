@@ -114,7 +114,32 @@ io.engine.on('initial_headers', (_headers, req) => {
   console.log('[engine] initial', req.method, req.url, 'origin=', req.headers.origin);
 });
 
+// ────────────────────────────────────────────────────────────────────
+// Matchmaking queue (in-memory FIFO; Redis-backed when multi-instance)
+// ────────────────────────────────────────────────────────────────────
+
+interface QueueEntry {
+  readonly playerId: string;
+  readonly displayName: string;
+  readonly socketId: string;
+  readonly joinedAt: number;
+}
+
+/** Keyed by playerId. Insertion order preserved (Map is FIFO). */
+const matchmakingQueue = new Map<string, QueueEntry>();
+
+function dequeue(): QueueEntry | undefined {
+  const first = matchmakingQueue.keys().next().value as string | undefined;
+  if (!first) return undefined;
+  const entry = matchmakingQueue.get(first)!;
+  matchmakingQueue.delete(first);
+  return entry;
+}
+
+// ────────────────────────────────────────────────────────────────────
 // Per-socket state. Keyed by socket.id.
+// ────────────────────────────────────────────────────────────────────
+
 interface SocketState {
   playerId?: string;
   roomId?: string;
@@ -203,7 +228,71 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('lobby.findMatch', (req, ack) => {
+    console.log(`[game-server] lobby.findMatch from ${req.playerId} (${req.displayName})`);
+    try {
+      // Remove any stale entry for this player (e.g. double-click).
+      matchmakingQueue.delete(req.playerId);
+
+      const waiting = dequeue();
+
+      if (waiting) {
+        // Pair found — create room, join both players, start immediately.
+        const seed = randomUUID();
+        const room = createRoom(waiting.playerId, waiting.displayName);
+
+        // Wire the waiting player's socket into the room.
+        const waitingSocket = io.sockets.sockets.get(waiting.socketId);
+        if (waitingSocket) {
+          waitingSocket.join(room.id);
+          trackConnection(room.id, waiting.playerId, 1);
+          const ws = socketStates.get(waitingSocket);
+          if (ws) {
+            ws.playerId = waiting.playerId;
+            ws.roomId = room.id;
+          }
+        }
+
+        // Wire the current player's socket.
+        joinRoom(room.code, req.playerId, req.displayName);
+        socket.join(room.id);
+        trackConnection(room.id, req.playerId, 1);
+        state.playerId = req.playerId;
+        state.roomId = room.id;
+
+        // Start the game.
+        const started = startRoom(room.id, waiting.playerId, seed);
+        const payload = { lobby: lobbyStateOf(started), game: started.game ?? null };
+
+        // Unicast to both — they're now in the socket.io room.
+        io.to(room.id).emit('lobby.matchFound', payload);
+        console.log(`[game-server] matched ${waiting.playerId} + ${req.playerId} → room ${room.id}`);
+      } else {
+        // No one waiting — add to queue.
+        matchmakingQueue.set(req.playerId, {
+          playerId: req.playerId,
+          displayName: req.displayName,
+          socketId: socket.id,
+          joinedAt: Date.now(),
+        });
+        console.log(`[game-server] queued ${req.playerId} (queue size: ${matchmakingQueue.size})`);
+      }
+
+      ack({ queued: true });
+    } catch (e) {
+      ack(toError(e));
+    }
+  });
+
+  socket.on('lobby.leaveQueue', (req) => {
+    const deleted = matchmakingQueue.delete(req.playerId);
+    if (deleted) console.log(`[game-server] ${req.playerId} left matchmaking queue`);
+  });
+
   socket.on('disconnect', (reason) => {
+    // Remove from matchmaking queue on disconnect (tab close, network drop, etc.)
+    if (state.playerId) matchmakingQueue.delete(state.playerId);
+
     if (state.roomId && state.playerId) {
       trackConnection(state.roomId, state.playerId, -1);
       const room = getRoomById(state.roomId);

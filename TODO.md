@@ -20,7 +20,7 @@ Dependencies between cards are noted under **Depends on**. If a card lists one, 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- **2026-05-13 — SERVER-2 + WEB-3 — FIFO matchmaking queue + Find Match UI**
+- _(none — claim a card from Up next.)_
 
 ### Up next — task cards
 
@@ -113,6 +113,29 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 **Depends on.** SERVER-2.
 
 **Done when.** Typecheck clean. Manual smoke: two browser sessions both hit Find Match on the splash → both transition to the game board with a real match. Hitting Cancel during searching returns to splash and the server-side queue is empty.
+
+---
+
+#### OPS-1 — External hosting: Vercel (web) + Railway (game-server)
+**Why now.** Testing with people outside the LAN requires public URLs. `apps/web` (Vite SPA) deploys trivially to Vercel. `apps/game-server` (Socket.io, persistent WebSocket) cannot go on serverless — it needs a persistent-process host. Railway is the lowest-friction option (Dockerfile or nixpacks, no config file needed for a simple Node server).
+
+**Scope.**
+- Deploy `apps/web` to Vercel. Set `VITE_GAME_SERVER_URL` to the Railway game-server URL in Vercel project env vars.
+- Deploy `apps/game-server` to Railway. Set `WEB_PUBLIC_URL` to the Vercel web URL (used for Socket.io CORS). Set `GAME_SERVER_PORT` to whatever Railway exposes (usually `$PORT`).
+- Verify the Socket.io CORS config in `index.ts` respects `WEB_PUBLIC_URL` (it already does — `origin: process.env.WEB_PUBLIC_URL ?? true`).
+- Add `PORT` fallback in game-server: `Number(process.env.PORT ?? process.env.GAME_SERVER_PORT ?? 3001)`.
+- Smoke test: two browsers on separate devices both hit Find Match → game starts.
+- Document the two env vars (`VITE_GAME_SERVER_URL`, `WEB_PUBLIC_URL`) in README Local Development / Deployment sections.
+
+**Context to load.**
+- `apps/game-server/src/index.ts` (port binding, CORS config)
+- `apps/web/src/lib/socket.ts` (`VITE_GAME_SERVER_URL` usage)
+- `apps/web/vite.config.ts` (check for any local-only assumptions)
+- `README.md` Local Development section
+
+**Out of scope.** `apps/api` hosting (no endpoints the client uses yet). Custom domain. CI/CD pipelines. Auth or rate-limiting (dev/test deployment only).
+
+**Done when.** Two browsers on separate networks both hit Find Match and land in a live game. URLs documented in README.
 
 ---
 
@@ -272,6 +295,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-13 — SERVER-2 + WEB-3 — FIFO matchmaking queue + Find Match UI**. In-memory FIFO queue in `apps/game-server/src/index.ts` (`lobby.findMatch` / `lobby.leaveQueue` socket events, disconnect handler clears the queue). Match fires `lobby.matchFound` unicast to both players with full lobby + game state. New protocol types: `LobbyFindMatchReq`, `LobbyLeaveQueueReq`, `MatchFoundPayload`. `SocketBridge` in `App.tsx` handles `matchFound` identically to rejoin. Splash rewritten: Find Match is the primary CTA, searching state shows spinner + Cancel, invite-code flow demoted to secondary. Typecheck clean.
 - **2026-05-13 — ENGINE-7 — The queue, after-triggers, before-triggers** (`e6e86a7`). `GameState` gains `queue`, `pendingTriggers`, `nextQueueEntryId`. `QueueEntry` fully typed. Trigger scanner (`queue/scan.ts`) maps engine events to `TriggeredAbility` matches; `collectAfterTriggers` + `collectBeforeTriggers` + `commitTriggers` + `applyOrderTriggers`. Queue drain (`queue/drain.ts`) FIFO loop with tail-append for drain-spawned triggers. Before-triggers wired inline in `activate.ts` and `resolve-dice.ts` (beforeActivate, beforeTakeDamage). After-triggers wired in `activate.ts`, `resolve-dice.ts`, `play-card.ts` via `commitTriggers` + drain. Simultaneous trigger ordering via new `order-triggers` action and `PendingTriggers` state machine. `LegalActions` gains `canOrderTriggers`. 152 tests green; workspace typecheck clean.
 - **2026-05-13 — ENGINE-6 — Ability AST framework + first-wave event dispatcher** (`2676a51`). Full `Ability`/`Effect` TypeScript type system in `game-engine/src/abilities/types.ts` (6 ability kinds, 7 first-wave ops + 28 stubs). Matching Zod schemas in `@prophecy/protocol/src/catalog.ts`. Shared combat helpers extracted to `state/combat.ts`; `applyResolveDice` updated to import from there. `applyEffect` / `applyEffects` dispatcher in `abilities/dispatch.ts` — first-wave ops implemented (`dealDamage`, `addShields`, `removeShields`, `drawCards`, `gainResources`, `loseResources`, `healDamage`); all other ops throw `NotImplementedError`. `applyPlayCard` wired to fire `immediate` abilities; `GameState` gains `cardAbilities` map; `play-card` action gains `characterTargets`. Op names migrated to camelCase in `packages/db/seed/cards.json`; admin `AbilityBuilder.tsx` updated. 3 new engine events (`shields.removed`, `damage.healed`, `cards.drawn`). 147 tests green; workspace typecheck clean.
 - **2026-05-13 — ADMIN-1 — Original-card / deck admin UX + JSON-backed catalog** (`a8abde9`). New canonical catalog at `packages/db/seed/cards.json` + `decks.json` (37 cards + 2 decks, mechanically ported from `synthetic-set` with rewritten original-IP names + ability text). Shared Zod schemas (`cardSchema`, `deckSchema`, `effectSchema`, `abilitySchema`) in `@prophecy/protocol`. Game-server loads + validates the catalog at boot via `corpus.ts`; `startRoom` now plays from `packages/db/seed/` instead of `synthetic-set` (which stays test-only). New REST endpoints on game-server: `GET/PUT /admin/cards`, `GET/PUT /admin/decks` — dev-only, no auth. Admin UX at `/admin/cards` and `/admin/decks` in `apps/web`: per-tab table + edit form, character / battlefield / plot pickers driven by card type, ability builder with a form per known op plus a `(new)` placeholder that doubles as the running TODO list of unimplemented effect ops. Deck-build rule enforcement (color / faction / 30-card / 2-copy) intentionally out of scope — author manually for now. Die-face editor deferred — characters keep their seeded faces read-only. 121 engine tests still green; workspace typecheck clean.

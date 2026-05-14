@@ -108,6 +108,11 @@ function SocketBridge() {
     const onError: Parameters<typeof socket.on<'error'>>[1] = (e) => {
       if (isError(e)) setError(e.message);
     };
+    const onMatchFound: Parameters<typeof socket.on<'lobby.matchFound'>>[1] = ({ lobby, game }) => {
+      saveCachedLobby({ roomId: lobby.roomId, code: lobby.code });
+      setLobby(lobby);
+      if (game) setGame(game);
+    };
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
@@ -116,6 +121,7 @@ function SocketBridge() {
     socket.on('game.state', onGameState);
     socket.on('game.events', onGameEvents);
     socket.on('error', onError);
+    socket.on('lobby.matchFound', onMatchFound);
     if (socket.connected) onConnect();
 
     return () => {
@@ -126,6 +132,7 @@ function SocketBridge() {
       socket.off('game.state', onGameState);
       socket.off('game.events', onGameEvents);
       socket.off('error', onError);
+      socket.off('lobby.matchFound', onMatchFound);
     };
   }, [playerId, setLobby, setGame, appendEvents, setStatus, setError]);
 

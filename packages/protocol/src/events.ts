@@ -95,12 +95,33 @@ export interface RejoinResp {
   readonly game: GameState | null;
 }
 
+export interface LobbyFindMatchReq {
+  readonly playerId: string;
+  readonly displayName: string;
+  /** One of the corpus deck IDs (e.g. 'DECK_A'). Ignored for now — server assigns randomly. */
+  readonly deckId: string;
+}
+
+export interface LobbyLeaveQueueReq {
+  readonly playerId: string;
+}
+
+export interface MatchFoundPayload {
+  readonly lobby: LobbyState;
+  /** Always present for matchmaking — game starts immediately when the pair is found. */
+  readonly game: GameState | null;
+}
+
 export interface ClientToServerEvents {
   'lobby.create': (req: LobbyCreateReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'lobby.join': (req: LobbyJoinReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'lobby.rejoin': (req: LobbyRejoinReq, ack: (resp: RejoinResp | ErrorPayload) => void) => void;
   'lobby.start': (req: LobbyStartReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'game.action': (req: GameActionReq, ack: (resp: { ok: true } | ErrorPayload) => void) => void;
+  /** Join the matchmaking queue. Ack fires immediately; match arrives via lobby.matchFound. */
+  'lobby.findMatch': (req: LobbyFindMatchReq, ack: (resp: { queued: true } | ErrorPayload) => void) => void;
+  /** Leave the matchmaking queue. Fire-and-forget — no ack needed. */
+  'lobby.leaveQueue': (req: LobbyLeaveQueueReq) => void;
 }
 
 export interface ServerToClientEvents {
@@ -108,6 +129,8 @@ export interface ServerToClientEvents {
   'game.state': (payload: GameStatePayload) => void;
   'game.events': (payload: GameEventsPayload) => void;
   'error': (payload: ErrorPayload) => void;
+  /** Unicast to both matched players when the pair is found and the game has started. */
+  'lobby.matchFound': (payload: MatchFoundPayload) => void;
 }
 
 export function isError<T>(resp: T | ErrorPayload): resp is ErrorPayload {
