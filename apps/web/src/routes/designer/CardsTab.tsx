@@ -17,6 +17,15 @@ import { saveCards, uploadCardArt } from './api.js';
 
 type SixFaces = [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
 
+const TYPE_BADGE: Record<Card['type'], string> = {
+  character:  'bg-amber-700',
+  upgrade:    'bg-blue-700',
+  support:    'bg-teal-700',
+  event:      'bg-purple-700',
+  plot:       'bg-orange-700',
+  battlefield:'bg-neutral-600',
+};
+
 const TYPE_DEFAULTS: Record<Card['type'], Partial<Card>> = {
   character: { cost: null, health: 8, pointValue: 10, elitePointValue: 14, plotPointValue: null },
   upgrade: { cost: 2, health: null, pointValue: null, elitePointValue: null, plotPointValue: null },
@@ -81,8 +90,19 @@ export function CardsTab({
   const [filter, setFilter] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [newMenuOpen, setNewMenuOpen] = useState(false);
+  const newMenuRef = useRef<HTMLDivElement>(null);
   // Collapsed groups — starts with all collapsed.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set(CARD_TYPES));
+
+  useEffect(() => {
+    if (!newMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!newMenuRef.current?.contains(e.target as Node)) setNewMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [newMenuOpen]);
 
   const toggleGroup = (type: string) =>
     setCollapsed((prev) => {
@@ -116,10 +136,11 @@ export function CardsTab({
     setDraft(id ? structuredClone(cards.find((c) => c.id === id) ?? null) : null);
   };
 
-  const startNew = () => {
-    const fresh = newCard();
+  const startNew = (type: Card['type']) => {
+    const fresh = { ...newCard(), type, ...TYPE_DEFAULTS[type] };
     setSelectedId(null);
     setDraft(fresh);
+    setNewMenuOpen(false);
   };
 
   const updateDraft = (patch: Partial<Card>) => {
@@ -181,13 +202,30 @@ export function CardsTab({
             onChange={(e) => setFilter(e.target.value)}
             className="min-h-[36px] flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs"
           />
-          <button
-            type="button"
-            onClick={startNew}
-            className="min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900 px-3 py-1 text-xs text-emerald-50 hover:bg-emerald-800"
-          >
-            + New
-          </button>
+          <div ref={newMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setNewMenuOpen((o) => !o)}
+              className="min-h-[36px] rounded-lg border border-emerald-700 bg-emerald-900 px-3 py-1 text-xs text-emerald-50 hover:bg-emerald-800"
+            >
+              + New
+            </button>
+            {newMenuOpen && (
+              <ul className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-neutral-700 bg-neutral-900 py-1 shadow-xl">
+                {CARD_TYPES.map((t) => (
+                  <li key={t}>
+                    <button
+                      type="button"
+                      onClick={() => startNew(t)}
+                      className="w-full px-3 py-2 text-left text-xs capitalize text-neutral-200 hover:bg-neutral-800"
+                    >
+                      {t}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         <div className="text-[10px] uppercase tracking-wider text-neutral-500">
           {filtered.length} / {cards.length}
@@ -267,6 +305,16 @@ export function CardsTab({
             }}
             className="space-y-4"
           >
+            {/* ── Header: name + type badge ─────────────────────── */}
+            <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
+              <span className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-medium capitalize text-white ${TYPE_BADGE[draft.type]}`}>
+                {draft.type}
+              </span>
+              <h2 className="flex-1 truncate text-base font-semibold text-neutral-100">
+                {draft.name || <span className="text-neutral-600">Untitled</span>}
+              </h2>
+            </div>
+
             {/* ── Identity ──────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="Name" wide>
@@ -285,20 +333,6 @@ export function CardsTab({
                   className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                   disabled={selectedId !== null}
                 />
-              </Field>
-              <Field label="Type">
-                <select
-                  value={draft.type}
-                  onChange={(e) => {
-                    const newType = e.target.value as Card['type'];
-                    updateDraft({ type: newType, ...TYPE_DEFAULTS[newType] });
-                  }}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
-                >
-                  {CARD_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
               </Field>
             </div>
 
