@@ -476,6 +476,15 @@ When a character has damage equal to its health, it is immediately defeated. Set
 
 - When a player controls no characters, they lose.
 
+#### Stability
+
+Support cards have **Stability** instead of Health. Stability represents how resilient a support is against interference; it can only be reduced by **Disrupt** or **Discard** dice sides resolved against it (not by Melee, Ranged, or Indirect damage). Shields on a support block Stability loss the same way they block damage on characters.
+
+- Each support card lists its Stability value. Place Stability tokens on the card to track the current value.
+- When Stability is reduced to 0 the support is immediately discarded and its dice (including any upgrade dice) are removed from the pool.
+- Supports are **not** characters. Effects that reference "characters" do not affect supports unless they explicitly say "or support."
+- A player cannot lose the game from losing supports alone — only losing all characters causes defeat.
+
 #### Resources
 
 Resources are the game's currency, used to pay for cards, abilities, and dice resolutions. Resource tokens represent how many a player currently has. Resources begin in the supply. Gaining takes from the supply; spending or losing returns to the supply.

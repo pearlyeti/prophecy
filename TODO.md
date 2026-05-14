@@ -162,6 +162,39 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
+#### WEB-10 — Battle zone: four-column board layout with CCG card ratio
+**Why now.** The current board shows characters and dice as plain stat blocks. The target layout mirrors physical card game tables: player cards in play on the far left, player dice pool in the center-left (grouped and vertically aligned with the card that owns them), opponent dice in the center-right, opponent cards on the far right. Characters are rendered as CCG-ratio cards (63×88 mm, ~5:7) with art gradient, remaining health badge, exhausted = rotated 90°, and upgrade circular badges.
+
+**Scope.**
+
+*Engine (small):*
+- Add `ownerInstanceId: string` to `DieInPool` in `packages/game-engine/src/state/types.ts`. Populated in `actions/activate.ts` when dice are rolled into the pool — set to the activating character's instance id. This replaces string-parsing of `instanceId` in the UI and makes ownership explicit.
+- Mirror in `@prophecy/protocol`.
+
+*Web:*
+- New `BattleZone` component that replaces `PlayerSummaries` and `DicePoolStrip`. It takes up all available vertical space between the header and the hand strip.
+- **Four-column grid:** `[player cards] [player dice] [opponent dice] [opponent cards]`. On a 360px screen the target split is roughly 90px card | 70px dice | 70px dice | 90px card with 8px total gutters.
+- **Character card in play:** portrait orientation, CCG ratio (width × 1.397 = height), art gradient (same system as hand tiles), card name, remaining health badge (e.g. `♥ 7`). Exhausted = `transform: rotate(90deg)` on the card element; wrapper keeps the rotated bounding box so layout doesn't collapse (width and height swap). Clicking opens the expanded card view (reuse `HandOverlay` or a new `CardDetailOverlay`) showing max health, full ability text, subtypes.
+- **Upgrade badges:** circular badge (40×40 px) overlaid at the bottom edge of the owning card's art. Multiple badges stack horizontally. Each badge shows the upgrade's type-color gradient. Tapping opens the upgrade's card detail overlay.
+- **Dice:** each character's dice are shown as a vertical stack of die tiles in the adjacent dice column, aligned (top-edge matched) with the character's card row. Die tiles use the existing 48×48 design. Dice are interactive (tap to enter resolve mode) when it is your turn and `selectionMode === null` — reuse the `enterResolveMode` shortcut from WEB-6. Opponent dice are read-only.
+- **Row alignment:** since the number of characters per side may differ, each side's rows are independent stacks. No forced row-pairing across sides.
+- **Up to 8 character rows (4 per side)** must be comfortable at 360px tall (estimate ~120px per row including gap; 4 rows = ~480px, so the zone may need to scroll vertically if both sides have 4 characters).
+- Remove `DicePoolStrip` and `PlayerSummaries` from `Game.tsx` once `BattleZone` is in.
+- The action panel stays for now (Activate, Resolve, Play card, etc.) — removal is a follow-on card once the direct-interaction shortcuts fully cover it.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (full file — especially PlayerSummaries, DicePoolStrip, Game layout, selectionMode wiring)
+- `packages/game-engine/src/state/types.ts` (DieInPool, CharacterState, PlayerState)
+- `packages/game-engine/src/actions/activate.ts` (where dice enter the pool — add ownerInstanceId here)
+- `apps/web/src/store.ts` (enterResolveMode)
+- `packages/db/seed/cards.json` (catalog shape — character die faces for the upgrade badge lookup)
+
+**Out of scope.** Support cards in play (deferred — see ENGINE-S1 / WEB-S1 below). Animated exhausted rotation. Drag-to-activate (that's WEB-9). Real card art. Plot and battlefield zone rendering.
+
+**Done when.** Typecheck clean. Engine tests still green. Manual smoke: start a game, characters appear as CCG-ratio cards in the correct columns; dice appear next to their owning character; activating a character exhausts (rotates) the card and dice appear in pool; the exhausted card shows rotated while dice stay upright; clicking a character opens the detail overlay; upgrade badge appears and tapping it opens the upgrade card.
+
+---
+
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
@@ -271,6 +304,16 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 - Anti-cheat heuristics workers (queue dodging, dice-roll bias, AFK).
 - Cloudflare in front of api/game-server with rate-limit rules.
 - Turnstile on signup and high-value actions.
+
+### Backlog — supports & stability (deferred until after WEB-10)
+
+These cards are blocked on WEB-10 landing first and the engine support work being scoped.
+
+#### ENGINE-S1 — Support card state + Stability mechanic
+Add `SupportState` to `PlayerState` (mirrors `CharacterState` but with `stability`/`maxStability` instead of `health`/`damage`). Stability can only be reduced by Disrupt or Discard dice sides. When Stability reaches 0 the support is discarded and its dice (including upgrade dice) are removed from the pool. Supports can be activated (exhaust + roll their die if they have one). `DieInPool.ownerInstanceId` must also cover support instance ids. Update `getLegalActions`, `applyResolveDice`, `applyActivate`, `newGameFromDecks`. Full rules in `docs/rules-reference.md § Stability`.
+
+#### WEB-S1 — Support cards in the battle zone
+Render support cards in play inside `BattleZone` below their owning player's characters (or in a separate support row). Supports have a Stability badge instead of a health badge. Supports can be activated (tap → activate action, same flow as characters). Upgrade badges appear on supports the same way as on characters. Clicking opens detail overlay with Stability, ability text, subtypes.
 
 ### Backlog — client (not yet sized)
 - Phone-portrait layout pass (360×640): opponent strip, table, hand, dice tray.

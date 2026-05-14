@@ -274,6 +274,8 @@ The fixture importer ([Engine test fixtures](#engine-test-fixtures-test-only)) e
 
 ### Live match experience
 - Pixi-rendered board with discrete zones (team, dice pool, hand, deck, discard, battlefield, supports, set-aside).
+- **Board layout:** four-column battlefield — player cards in play (left), player dice pool grouped by owning card (center-left), opponent dice pool (center-right), opponent cards in play (right). Cards use the standard CCG aspect ratio (63×88 mm). Exhausted cards rotate 90°; dice always stay upright. Upgrade cards are not shown as separate cards in play — they appear as circular badge overlays on the card they are attached to; tapping a badge opens the upgrade's full card view.
+- **Stability (supports):** Support cards have Stability instead of Health. Stability can only be reduced by Disrupt or Discard dice sides — not by Melee, Ranged, or Indirect damage. Shields block Stability loss the same way they block damage. When Stability reaches 0 the support is immediately discarded. Full rules in `docs/rules-reference.md § Stability`.
 - Action affordances: drag a die to target, click to resolve, hold to inspect.
 - Combat effects keyed off engine events: melee → blade-trail + impact, ranged → tracer + spark, indirect → distributed shockwaves, focus → die-flip glow, special → card-tinted burst.
 - Dice resolution timeline at the bottom of the screen — each event narrated and replayable.
