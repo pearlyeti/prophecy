@@ -1113,12 +1113,9 @@ function HandStrip({
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-800 bg-neutral-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <div className="flex items-center gap-1 px-3 py-2">
-        <div className="mr-2 shrink-0 text-[10px] uppercase tracking-wider text-neutral-500">
-          Hand {hand.length > 0 ? `(${hand.length})` : ''}
-        </div>
+      <div className="flex items-center px-3 py-2">
         {hand.length === 0 ? (
-          <div className="text-[11px] text-neutral-600">Empty</div>
+          <div className="text-[11px] text-neutral-600">Hand empty</div>
         ) : (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {hand.map((id) => {
