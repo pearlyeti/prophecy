@@ -60,6 +60,9 @@ function newCard(): Card {
     artFrameX: null,
     artFrameY: null,
     artFrameZoom: null,
+    cardFrameX: null,
+    cardFrameY: null,
+    cardFrameZoom: null,
     badgeFrameX: null,
     badgeFrameY: null,
     badgeFrameZoom: null,
@@ -361,26 +364,35 @@ export function CardsTab({
             />
 
             {draft.artUrl && (
-              <CardArtFrameEditor
+              <FrameEditor
+                shape="square"
                 artUrl={draft.artUrl}
                 frameX={draft.artFrameX ?? null}
                 frameY={draft.artFrameY ?? null}
                 frameZoom={draft.artFrameZoom ?? null}
-                onChange={(x, y, zoom) =>
-                  updateDraft({ artFrameX: x, artFrameY: y, artFrameZoom: zoom })
-                }
+                onChange={(x, y, zoom) => updateDraft({ artFrameX: x, artFrameY: y, artFrameZoom: zoom })}
+              />
+            )}
+
+            {draft.artUrl && (
+              <FrameEditor
+                shape="portrait"
+                artUrl={draft.artUrl}
+                frameX={draft.cardFrameX ?? null}
+                frameY={draft.cardFrameY ?? null}
+                frameZoom={draft.cardFrameZoom ?? null}
+                onChange={(x, y, zoom) => updateDraft({ cardFrameX: x, cardFrameY: y, cardFrameZoom: zoom })}
               />
             )}
 
             {draft.type === 'upgrade' && draft.artUrl && (
-              <BadgeFrameEditor
+              <FrameEditor
+                shape="circle"
                 artUrl={draft.artUrl}
                 frameX={draft.badgeFrameX ?? null}
                 frameY={draft.badgeFrameY ?? null}
                 frameZoom={draft.badgeFrameZoom ?? null}
-                onChange={(x, y, zoom) =>
-                  updateDraft({ badgeFrameX: x, badgeFrameY: y, badgeFrameZoom: zoom })
-                }
+                onChange={(x, y, zoom) => updateDraft({ badgeFrameX: x, badgeFrameY: y, badgeFrameZoom: zoom })}
               />
             )}
 
@@ -603,248 +615,99 @@ function ArtUploader({
   );
 }
 
-// ─── Shared frame editor logic ────────────────────────────────────────────────
+// ─── Frame editor (square / portrait / circle) ────────────────────────────────
 
-function useFrameDrag(
-  snap: React.MutableRefObject<{ x: number; y: number; zoom: number }>,
-  previewSize: number,
-  onChange: (x: number, y: number, zoom: number) => void,
-) {
-  const startDrag = (e: React.MouseEvent) => {
+type FrameShape = 'square' | 'portrait' | 'circle';
+
+const FRAME_CONFIGS: Record<FrameShape, { label: string; w: number; h: number; radius: string; hint: string }> = {
+  square:   { label: 'Square frame',   w: 220, h: 220, radius: 'rounded-lg',   hint: 'Battle zone character cards' },
+  portrait: { label: 'Portrait frame', w: 157, h: 220, radius: 'rounded-lg',   hint: 'Hand overlay & detail views' },
+  circle:   { label: 'Circle frame',   w: 120, h: 120, radius: 'rounded-full', hint: 'Upgrade badges' },
+};
+
+function FrameEditor({
+  shape,
+  artUrl,
+  frameX,
+  frameY,
+  frameZoom,
+  onChange,
+}: {
+  shape: FrameShape;
+  artUrl: string;
+  frameX: number | null;
+  frameY: number | null;
+  frameZoom: number | null;
+  onChange: (x: number, y: number, zoom: number) => void;
+}) {
+  const x = frameX ?? 50;
+  const y = frameY ?? 50;
+  const zoom = frameZoom ?? 1;
+  const snap = useRef({ x, y, zoom });
+  snap.current = { x, y, zoom };
+  const cfg = FRAME_CONFIGS[shape];
+
+  const onMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const onMove = (me: MouseEvent) => {
-      const { x, y, zoom } = snap.current;
-      const s = 100 / (previewSize * zoom);
-      onChange(
-        Math.max(0, Math.min(100, x - me.movementX * s)),
-        Math.max(0, Math.min(100, y - me.movementY * s)),
-        zoom,
-      );
+      const { x: cx, y: cy, zoom: cz } = snap.current;
+      const s = 100 / (cfg.w * cz);
+      onChange(Math.max(0, Math.min(100, cx - me.movementX * s)), Math.max(0, Math.min(100, cy - me.movementY * s)), cz);
     };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   };
 
   const lastTouch = useRef<{ x: number; y: number } | null>(null);
-  const startTouchDrag = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    if (t) lastTouch.current = { x: t.clientX, y: t.clientY };
-  };
-  const moveTouchDrag = (e: React.TouchEvent) => {
+  const onTouchStart = (e: React.TouchEvent) => { const t = e.touches[0]; if (t) lastTouch.current = { x: t.clientX, y: t.clientY }; };
+  const onTouchMove = (e: React.TouchEvent) => {
     e.preventDefault();
     const t = e.touches[0];
     if (!t || !lastTouch.current) return;
-    const { x, y, zoom } = snap.current;
-    const s = 100 / (previewSize * zoom);
-    const dx = t.clientX - lastTouch.current.x;
-    const dy = t.clientY - lastTouch.current.y;
+    const { x: cx, y: cy, zoom: cz } = snap.current;
+    const s = 100 / (cfg.w * cz);
+    onChange(Math.max(0, Math.min(100, cx - (t.clientX - lastTouch.current.x) * s)), Math.max(0, Math.min(100, cy - (t.clientY - lastTouch.current.y) * s)), cz);
     lastTouch.current = { x: t.clientX, y: t.clientY };
-    onChange(Math.max(0, Math.min(100, x - dx * s)), Math.max(0, Math.min(100, y - dy * s)), zoom);
   };
-  const endTouchDrag = () => { lastTouch.current = null; };
+  const onTouchEnd = () => { lastTouch.current = null; };
 
   const onWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const { x, y, zoom } = snap.current;
-    const nz = Math.max(1, Math.min(4, Math.round((zoom + (e.deltaY < 0 ? 0.1 : -0.1)) * 10) / 10));
-    onChange(x, y, nz);
+    const { x: cx, y: cy, zoom: cz } = snap.current;
+    onChange(cx, cy, Math.max(1, Math.min(4, Math.round((cz + (e.deltaY < 0 ? 0.1 : -0.1)) * 10) / 10)));
   };
 
-  return { startDrag, startTouchDrag, moveTouchDrag, endTouchDrag, onWheel };
-}
-
-// ─── Card art frame editor (square crop) ──────────────────────────────────────
-
-const ART_PREVIEW_SIZE = 240;
-
-function CardArtFrameEditor({
-  artUrl,
-  frameX,
-  frameY,
-  frameZoom,
-  onChange,
-}: {
-  artUrl: string;
-  frameX: number | null;
-  frameY: number | null;
-  frameZoom: number | null;
-  onChange: (x: number, y: number, zoom: number) => void;
-}) {
-  const x = frameX ?? 50;
-  const y = frameY ?? 50;
-  const zoom = frameZoom ?? 1;
-  const snap = useRef({ x, y, zoom });
-  snap.current = { x, y, zoom };
-  const { startDrag, startTouchDrag, moveTouchDrag, endTouchDrag, onWheel } =
-    useFrameDrag(snap, ART_PREVIEW_SIZE, onChange);
-
   return (
     <div className="col-span-full">
-      <div className="mb-2 text-[11px] text-neutral-400">Card art frame · drag to reposition, scroll or slider to zoom</div>
+      <div className="mb-1 text-[11px] text-neutral-400">{cfg.label}</div>
+      <div className="mb-2 text-[10px] text-neutral-600">{cfg.hint} · drag to reposition, scroll or slider to zoom</div>
       <div className="flex flex-wrap items-center gap-6">
         <div
-          onMouseDown={startDrag}
-          onTouchStart={startTouchDrag}
-          onTouchMove={moveTouchDrag}
-          onTouchEnd={endTouchDrag}
+          onMouseDown={onMouseDown}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
           onWheel={onWheel}
-          style={{ width: ART_PREVIEW_SIZE, height: ART_PREVIEW_SIZE, touchAction: 'none' }}
-          className="relative shrink-0 cursor-grab overflow-hidden rounded-lg border border-neutral-500 active:cursor-grabbing"
+          style={{ width: cfg.w, height: cfg.h, touchAction: 'none' }}
+          className={`relative shrink-0 cursor-grab overflow-hidden border border-neutral-500 active:cursor-grabbing ${cfg.radius}`}
         >
           <img
             src={artUrl}
             alt=""
             aria-hidden
             draggable={false}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: `${x}% ${y}%`,
-              transform: zoom > 1 ? `scale(${zoom})` : undefined,
-              transformOrigin: `${x}% ${y}%`,
-              pointerEvents: 'none',
-              userSelect: 'none',
-            }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${x}% ${y}%`, transform: zoom > 1 ? `scale(${zoom})` : undefined, transformOrigin: `${x}% ${y}%`, pointerEvents: 'none', userSelect: 'none' }}
           />
         </div>
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-[11px] text-neutral-400">
             <span>Zoom — {zoom.toFixed(1)}×</span>
-            <input
-              type="range"
-              min={1}
-              max={4}
-              step={0.1}
-              value={zoom}
-              onChange={(e) => onChange(x, y, Number(e.target.value))}
-              className="w-36 accent-emerald-500"
-            />
+            <input type="range" min={1} max={4} step={0.1} value={zoom} onChange={(e) => onChange(x, y, Number(e.target.value))} className="w-36 accent-emerald-500" />
           </label>
-          <button
-            type="button"
-            onClick={() => onChange(50, 50, 1)}
-            className="w-fit rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] hover:border-neutral-500"
-          >
-            Reset frame
+          <button type="button" onClick={() => onChange(50, 50, 1)} className="w-fit rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] hover:border-neutral-500">
+            Reset
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Badge frame editor (upgrade circle crop) ─────────────────────────────────
-
-const BADGE_SIZE = 96; // preview circle diameter in px
-
-function BadgeFrameEditor({
-  artUrl,
-  frameX,
-  frameY,
-  frameZoom,
-  onChange,
-}: {
-  artUrl: string;
-  frameX: number | null;
-  frameY: number | null;
-  frameZoom: number | null;
-  onChange: (x: number, y: number, zoom: number) => void;
-}) {
-  const x = frameX ?? 50;
-  const y = frameY ?? 50;
-  const zoom = frameZoom ?? 1;
-
-  const circleRef = useRef<HTMLDivElement>(null);
-  void circleRef;
-  const snap = useRef({ x, y, zoom });
-  snap.current = { x, y, zoom };
-  const { startDrag: handleMouseDown, startTouchDrag: handleTouchStart, moveTouchDrag: handleTouchMove, endTouchDrag: handleTouchEnd, onWheel: handleWheel } =
-    useFrameDrag(snap, BADGE_SIZE, onChange);
-
-  return (
-    <div className="col-span-full">
-      <div className="mb-2 text-[11px] text-neutral-400">Badge frame · drag to reposition, scroll or slider to zoom</div>
-      <div className="flex flex-wrap items-center gap-6">
-        {/* Editable circle */}
-        <div
-          ref={circleRef}
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onWheel={handleWheel}
-          style={{ width: BADGE_SIZE, height: BADGE_SIZE, touchAction: 'none' }}
-          className="relative shrink-0 cursor-grab overflow-hidden rounded-full border-2 border-neutral-500 active:cursor-grabbing"
-        >
-          <img
-            src={artUrl}
-            alt=""
-            aria-hidden
-            draggable={false}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: `${x}% ${y}%`,
-              transform: zoom > 1 ? `scale(${zoom})` : undefined,
-              transformOrigin: `${x}% ${y}%`,
-              pointerEvents: 'none',
-              userSelect: 'none',
-            }}
-          />
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-[11px] text-neutral-400">
-            <span>Zoom — {zoom.toFixed(1)}×</span>
-            <input
-              type="range"
-              min={1}
-              max={4}
-              step={0.1}
-              value={zoom}
-              onChange={(e) => onChange(x, y, Number(e.target.value))}
-              className="w-36 accent-emerald-500"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => onChange(50, 50, 1)}
-            className="w-fit rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] hover:border-neutral-500"
-          >
-            Reset frame
-          </button>
-        </div>
-
-        {/* Actual-size preview */}
-        <div className="flex flex-col items-center gap-1">
-          <div
-            style={{ width: 40, height: 40 }}
-            className="relative overflow-hidden rounded-full border-2 border-neutral-500"
-          >
-            <img
-              src={artUrl}
-              alt=""
-              aria-hidden
-              draggable={false}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: `${x}% ${y}%`,
-                transform: zoom > 1 ? `scale(${zoom})` : undefined,
-                transformOrigin: `${x}% ${y}%`,
-                pointerEvents: 'none',
-              }}
-            />
-          </div>
-          <span className="text-[10px] text-neutral-600">in-game size</span>
         </div>
       </div>
     </div>
