@@ -116,29 +116,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
-#### OPS-1 — External hosting: Vercel (web) + Railway (game-server)
-**Why now.** Testing with people outside the LAN requires public URLs. `apps/web` (Vite SPA) deploys trivially to Vercel. `apps/game-server` (Socket.io, persistent WebSocket) cannot go on serverless — it needs a persistent-process host. Railway is the lowest-friction option (Dockerfile or nixpacks, no config file needed for a simple Node server).
-
-**Scope.**
-- Deploy `apps/web` to Vercel. Set `VITE_GAME_SERVER_URL` to the Railway game-server URL in Vercel project env vars.
-- Deploy `apps/game-server` to Railway. Set `WEB_PUBLIC_URL` to the Vercel web URL (used for Socket.io CORS). Set `GAME_SERVER_PORT` to whatever Railway exposes (usually `$PORT`).
-- Verify the Socket.io CORS config in `index.ts` respects `WEB_PUBLIC_URL` (it already does — `origin: process.env.WEB_PUBLIC_URL ?? true`).
-- Add `PORT` fallback in game-server: `Number(process.env.PORT ?? process.env.GAME_SERVER_PORT ?? 3001)`.
-- Smoke test: two browsers on separate devices both hit Find Match → game starts.
-- Document the two env vars (`VITE_GAME_SERVER_URL`, `WEB_PUBLIC_URL`) in README Local Development / Deployment sections.
-
-**Context to load.**
-- `apps/game-server/src/index.ts` (port binding, CORS config)
-- `apps/web/src/lib/socket.ts` (`VITE_GAME_SERVER_URL` usage)
-- `apps/web/vite.config.ts` (check for any local-only assumptions)
-- `README.md` Local Development section
-
-**Out of scope.** `apps/api` hosting (no endpoints the client uses yet). Custom domain. CI/CD pipelines. Auth or rate-limiting (dev/test deployment only).
-
-**Done when.** Two browsers on separate networks both hit Find Match and land in a live game. URLs documented in README.
-
----
-
 #### API-1 — Apply first DB migration against real Postgres
 **Why now.** Schema is generated but never executed. Until the migration actually runs against a live Postgres, the `db:seed` path and any future API endpoints are blocked.
 
@@ -295,6 +272,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-14 — OPS-1 — External hosting: Vercel (web) + Railway (game-server)**. Vercel frontend deployed and Railway socket server deployed. Dynamic `PORT` fallback added to game-server, `WEB_PUBLIC_URL` configured for CORS, and `VITE_GAME_SERVER_URL` configured in Vite. `package.json` entry points mapped to `dist/index.js` and `prebuild` hooks added for workspace dependencies to resolve production builds. Real-time multiplayer verified across devices.
 - **2026-05-13 — SERVER-2 + WEB-3 — FIFO matchmaking queue + Find Match UI** (`c3ea317`). In-memory FIFO queue in `apps/game-server/src/index.ts` (`lobby.findMatch` / `lobby.leaveQueue` socket events, disconnect handler clears the queue). Match fires `lobby.matchFound` unicast to both players with full lobby + game state. New protocol types: `LobbyFindMatchReq`, `LobbyLeaveQueueReq`, `MatchFoundPayload`. `SocketBridge` in `App.tsx` handles `matchFound` identically to rejoin. Splash rewritten: Find Match is the primary CTA, searching state shows spinner + Cancel, invite-code flow demoted to secondary. Typecheck clean.
 - **2026-05-13 — ENGINE-7 — The queue, after-triggers, before-triggers** (`e6e86a7`). `GameState` gains `queue`, `pendingTriggers`, `nextQueueEntryId`. `QueueEntry` fully typed. Trigger scanner (`queue/scan.ts`) maps engine events to `TriggeredAbility` matches; `collectAfterTriggers` + `collectBeforeTriggers` + `commitTriggers` + `applyOrderTriggers`. Queue drain (`queue/drain.ts`) FIFO loop with tail-append for drain-spawned triggers. Before-triggers wired inline in `activate.ts` and `resolve-dice.ts` (beforeActivate, beforeTakeDamage). After-triggers wired in `activate.ts`, `resolve-dice.ts`, `play-card.ts` via `commitTriggers` + drain. Simultaneous trigger ordering via new `order-triggers` action and `PendingTriggers` state machine. `LegalActions` gains `canOrderTriggers`. 152 tests green; workspace typecheck clean.
 - **2026-05-13 — ENGINE-6 — Ability AST framework + first-wave event dispatcher** (`2676a51`). Full `Ability`/`Effect` TypeScript type system in `game-engine/src/abilities/types.ts` (6 ability kinds, 7 first-wave ops + 28 stubs). Matching Zod schemas in `@prophecy/protocol/src/catalog.ts`. Shared combat helpers extracted to `state/combat.ts`; `applyResolveDice` updated to import from there. `applyEffect` / `applyEffects` dispatcher in `abilities/dispatch.ts` — first-wave ops implemented (`dealDamage`, `addShields`, `removeShields`, `drawCards`, `gainResources`, `loseResources`, `healDamage`); all other ops throw `NotImplementedError`. `applyPlayCard` wired to fire `immediate` abilities; `GameState` gains `cardAbilities` map; `play-card` action gains `characterTargets`. Op names migrated to camelCase in `packages/db/seed/cards.json`; admin `AbilityBuilder.tsx` updated. 3 new engine events (`shields.removed`, `damage.healed`, `cards.drawn`). 147 tests green; workspace typecheck clean.
