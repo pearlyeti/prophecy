@@ -330,7 +330,7 @@ function toError(e: unknown): ErrorPayload {
   return { code: 'internal', message: msg };
 }
 
-const port = Number(process.env.GAME_SERVER_PORT ?? 3001);
+const port = Number(process.env.PORT ?? process.env.GAME_SERVER_PORT ?? 3001);
 httpServer.listen(port, () => {
   console.log(`game-server listening on http://localhost:${port}`);
 });
