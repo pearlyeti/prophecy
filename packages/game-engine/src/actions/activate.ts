@@ -77,7 +77,7 @@ export function applyActivate(
     if (alreadyInPool.has(die.instanceId)) continue;
     const faceIndex = rng.rollDie(6);
     const face = die.faces[faceIndex]!;
-    newDice.push({ instanceId: die.instanceId, cardId: die.cardId, faceIndex, face });
+    newDice.push({ instanceId: die.instanceId, cardId: die.cardId, faceIndex, face, ownerInstanceId: characterId });
     rolledFaces.push({ instanceId: die.instanceId, faceIndex, face });
   }
 

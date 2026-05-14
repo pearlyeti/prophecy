@@ -1,4 +1,4 @@
-import { getLegalActions, type DieSymbol, type DieInPool, type DieFace } from '@prophecy/game-engine';
+import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
 import type { Action, Card, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -128,11 +128,7 @@ export function Game() {
         />
       )}
 
-      {(game.phase === 'action' || game.phase === 'upkeep' || ended) && (
-        <DicePoolStrip game={game} playerId={playerId} />
-      )}
-
-      <PlayerSummaries game={game} playerId={playerId} catalogById={catalogById} />
+      <BattleZone game={game} playerId={playerId} catalogById={catalogById} />
 
       <EventLog events={events} />
 
@@ -563,80 +559,6 @@ function ConfirmOverlay({
   );
 }
 
-function PlayerSummaries({
-  game,
-  playerId,
-  catalogById: _catalogById,
-}: {
-  game: GameState;
-  playerId: string;
-  catalogById: Map<string, Card>;
-}) {
-  const lobby = useApp.getState().lobby!;
-  return (
-    <section className="grid gap-3 sm:grid-cols-2">
-      {game.playerOrder.map((id) => {
-        const p = game.players[id]!;
-        const name = lobby.members.find((m) => m.playerId === id)?.displayName ?? id;
-        const isMe = id === playerId;
-        const isController = game.battlefieldControllerId === id;
-        const isActive = game.activePlayerId === id;
-        return (
-          <div
-            key={id}
-            className={`rounded-xl border p-4 text-sm ${isActive ? 'border-emerald-700 bg-emerald-950/20' : 'border-neutral-800 bg-neutral-900/40'}`}
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <div className="font-medium">
-                {name} {isMe && <span className="text-xs text-neutral-500">(you)</span>}
-              </div>
-              <div className="flex gap-2 text-[10px] uppercase tracking-wider text-neutral-500">
-                {isController && <span className="rounded bg-neutral-800 px-2 py-0.5">controller</span>}
-                {isActive && <span className="rounded bg-emerald-800 px-2 py-0.5 text-emerald-200">active</span>}
-              </div>
-            </div>
-            <dl className="grid grid-cols-3 gap-2 text-xs">
-              <Stat label="Resources" value={p.resources} />
-              <Stat label="Hand" value={p.hand.length} />
-              <Stat label="Deck" value={p.deck.length} />
-              <Stat label="Pool" value={p.diceInPool.length} />
-              <Stat label="Discard" value={p.discard.length} />
-              <Stat label="Characters" value={p.characterOrder.length} />
-            </dl>
-            <div className="mt-3 space-y-1">
-              {p.characterOrder.map((cid) => {
-                const c = p.characters[cid]!;
-                return (
-                  <div key={cid} className="flex items-center justify-between text-xs text-neutral-400">
-                    <span>
-                      {cid.replace(/^.*\./, '')}
-                      <span className="ml-2 text-[10px] text-neutral-600">
-                        {c.dice.length}d{c.elite ? ' · elite' : ''}
-                      </span>
-                    </span>
-                    <span className="font-mono">
-                      ♥ {c.damage} / shields {c.shields} {c.exhausted ? '· exhausted' : ''}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <dt className="text-[10px] uppercase tracking-wider text-neutral-500">{label}</dt>
-      <dd className="font-mono text-neutral-200">{value}</dd>
-    </div>
-  );
-}
-
 function EndedBanner({ game, playerId }: { game: GameState; playerId: string }) {
   const lobby = useApp.getState().lobby!;
   const winnerName = game.winnerId
@@ -679,113 +601,9 @@ function EventLog({ events }: { events: readonly EngineEvent[] }) {
   );
 }
 
-function DicePoolStrip({ game, playerId }: { game: GameState; playerId: string }) {
-  const lobby = useApp.getState().lobby!;
-  const selectionMode = useApp((s) => s.selectionMode);
-  const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
-  const me = game.players[playerId];
-  const selectedIds = selectionMode?.selectedDieIds ?? null;
-  // Symbol lock applies in resolve mode only. Reroll mode lets you pick
-  // any non-blank dice without grouping by symbol.
-  const lockedSymbol: DieSymbol | null = (() => {
-    if (selectionMode?.kind !== 'resolve' || !selectedIds?.length || !me) return null;
-    const first = me.diceInPool.find((d) => selectedIds.includes(d.instanceId));
-    return first?.face.symbol ?? null;
-  })();
-
-  return (
-    <section className="mb-4 grid gap-3 sm:grid-cols-2">
-      {game.playerOrder.map((id) => {
-        const p = game.players[id]!;
-        const name = lobby.members.find((m) => m.playerId === id)?.displayName ?? id;
-        const isMe = id === playerId;
-        const interactive = selectionMode !== null && isMe;
-        return (
-          <div key={id} className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-3">
-            <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wider text-neutral-500">
-              <span>{name}'s dice pool</span>
-              <span>{p.diceInPool.length}</span>
-            </div>
-            {p.diceInPool.length === 0 ? (
-              <div className="text-xs text-neutral-600">(empty)</div>
-            ) : (
-              <ul className="flex flex-wrap gap-2">
-                {p.diceInPool.map((d) => {
-                  const selected = !!selectedIds?.includes(d.instanceId);
-                  const enabled =
-                    interactive &&
-                    (selected ||
-                      (selectionMode?.kind === 'reroll'
-                        ? canRerollDie(d)
-                        : canSelectDie(d, lockedSymbol)));
-                  const tile = (
-                    <div
-                      className={`flex h-12 w-12 flex-col items-center justify-center rounded-md border text-[10px] uppercase ${
-                        selected
-                          ? 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500'
-                          : interactive && !enabled
-                            ? 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50'
-                            : 'border-neutral-700 bg-neutral-900 text-neutral-300'
-                      }`}
-                      title={`${d.face.symbol} ${d.face.value} (cost ${d.face.cost})${d.face.modifier ? ' +mod' : ''}`}
-                    >
-                      <span className="text-base font-mono text-neutral-100">
-                        {d.face.modifier ? '+' : ''}
-                        {d.face.value || ''}
-                      </span>
-                      <span className="text-[9px] leading-tight">{symbolLabel(d.face.symbol)}</span>
-                    </div>
-                  );
-                  if (interactive) {
-                    return (
-                      <li key={d.instanceId}>
-                        <button
-                          type="button"
-                          disabled={!enabled}
-                          onClick={() => toggleSelectedDie(d.instanceId)}
-                          // min size satisfies the 44×44 touch-target rule
-                          // even though the visual tile is 48×48.
-                          className="min-h-[44px] min-w-[44px] rounded-md disabled:cursor-not-allowed"
-                        >
-                          {tile}
-                        </button>
-                      </li>
-                    );
-                  }
-                  return <li key={d.instanceId}>{tile}</li>;
-                })}
-              </ul>
-            )}
-            {interactive && p.diceInPool.length > 0 && (
-              <div className="mt-2 text-[10px] text-neutral-500">
-                {selectionMode?.kind === 'reroll'
-                  ? 'Tap any dice to add them. Tap a selected die to remove it. Zero is fine.'
-                  : 'Tap dice of the same symbol to add them. Tap a selected die to remove it.'}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
 /**
- * Whether a pool die can be added to the current resolve-mode selection.
- *
- *  - Blank dice and engine-unimplemented symbols (special / focus /
- *    indirect / discard) are never selectable.
- *  - With nothing selected yet, only non-modifier dice are eligible
- *    (a modifier-only resolution is illegal per the rules).
- *  - With a locked symbol, any die of that symbol — modifier or not —
- *    is eligible.
- */
-/**
- * Whether a pool die can be added to a reroll-mode selection. The
- * engine accepts any die (it just rerolls them), so the only thing the
- * UI gates is blank — those have no face the player would want to
- * commit a discard to. All other symbols, modifier or not, are fair
- * game.
+ * Whether a pool die can be added to a reroll-mode selection.
+ * Gates out blank dice — no face the player would want to commit a discard to.
  */
 function canRerollDie(d: DieInPool): boolean {
   return d.face.symbol !== 'blank';
@@ -1517,6 +1335,457 @@ function HandOverlay({
           >
             Close
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Battle zone — four-column board layout (WEB-10)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Four-column board: [player cards][player dice][opp dice][opp cards] */
+function BattleZone({
+  game,
+  playerId,
+  catalogById,
+}: {
+  game: GameState;
+  playerId: string;
+  catalogById: Map<string, Card>;
+}) {
+  const lobby = useApp.getState().lobby!;
+  const selectionMode = useApp((s) => s.selectionMode);
+  const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
+  const [upgradeDetailId, setUpgradeDetailId] = useState<{ ownerId: string; upgradeId: string } | null>(null);
+
+  const opponentId = game.playerOrder.find((id) => id !== playerId);
+  const myPlayer = game.players[playerId];
+  const oppPlayer = opponentId ? game.players[opponentId] : null;
+
+  const isMyTurn = game.activePlayerId === playerId;
+  const inActionPhase = game.phase === 'action';
+  const diceInteractive = isMyTurn && inActionPhase && selectionMode === null;
+
+  // Group each player's pool dice by ownerInstanceId.
+  const myDiceByOwner = useMemo(() => {
+    const m = new Map<string, DieInPool[]>();
+    for (const d of myPlayer?.diceInPool ?? []) {
+      const key = d.ownerInstanceId ?? '';
+      m.set(key, [...(m.get(key) ?? []), d]);
+    }
+    return m;
+  }, [myPlayer?.diceInPool]);
+
+  const oppDiceByOwner = useMemo(() => {
+    const m = new Map<string, DieInPool[]>();
+    for (const d of oppPlayer?.diceInPool ?? []) {
+      const key = d.ownerInstanceId ?? '';
+      m.set(key, [...(m.get(key) ?? []), d]);
+    }
+    return m;
+  }, [oppPlayer?.diceInPool]);
+
+  const detailChar =
+    detailId ? game.players[detailId.ownerId]?.characters[detailId.charId] : null;
+  const upgradeChar =
+    upgradeDetailId ? game.players[upgradeDetailId.ownerId]?.characters[
+      Object.keys(game.players[upgradeDetailId.ownerId]?.characters ?? {}).find(
+        (cid) => game.players[upgradeDetailId.ownerId]?.characters[cid]?.upgradeIds.includes(upgradeDetailId.upgradeId)
+      ) ?? ''
+    ] : null;
+  void upgradeChar;
+
+  const upgradeDetailCatalogId = upgradeDetailId
+    ? game.cardCatalogIds[upgradeDetailId.upgradeId]
+    : undefined;
+  const upgradeDetailCard = upgradeDetailCatalogId ? catalogById.get(upgradeDetailCatalogId) : undefined;
+
+  const opponentName = opponentId
+    ? lobby.members.find((m) => m.playerId === opponentId)?.displayName ?? opponentId
+    : '—';
+  void opponentName;
+
+  return (
+    <>
+      <section
+        className="mb-4 flex gap-1 overflow-y-auto"
+        style={{ maxHeight: '65dvh' }}
+        aria-label="Battle zone"
+      >
+        {/* Player side: card col | dice col (9fr : 7fr) */}
+        <div
+          className="grid flex-1 content-start gap-y-2"
+          style={{ gridTemplateColumns: '9fr 7fr', columnGap: 4 }}
+        >
+          {myPlayer?.characterOrder.map((cid) => {
+            const char = myPlayer.characters[cid]!;
+            const charDice = myDiceByOwner.get(cid) ?? [];
+            return (
+              <>
+                <CharacterCard
+                  key={`card-${cid}`}
+                  char={char}
+                  game={game}
+                  catalogById={catalogById}
+                  onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
+                  onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
+                />
+                <DiceStack
+                  key={`dice-${cid}`}
+                  dice={charDice}
+                  diceInteractive={diceInteractive}
+                  selectionMode={selectionMode}
+                />
+              </>
+            );
+          })}
+        </div>
+
+        {/* Opponent side: dice col | card col (7fr : 9fr) */}
+        <div
+          className="grid flex-1 content-start gap-y-2"
+          style={{ gridTemplateColumns: '7fr 9fr', columnGap: 4 }}
+        >
+          {oppPlayer?.characterOrder.map((cid) => {
+            const char = oppPlayer.characters[cid]!;
+            const charDice = oppDiceByOwner.get(cid) ?? [];
+            return (
+              <>
+                <DiceStack
+                  key={`dice-${cid}`}
+                  dice={charDice}
+                  diceInteractive={false}
+                  selectionMode={selectionMode}
+                />
+                <CharacterCard
+                  key={`card-${cid}`}
+                  char={char}
+                  game={game}
+                  catalogById={catalogById}
+                  onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
+                  onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
+                />
+              </>
+            );
+          })}
+        </div>
+      </section>
+
+      {detailChar && detailId && (
+        <CardDetailOverlay
+          char={detailChar}
+          game={game}
+          catalogById={catalogById}
+          onClose={() => setDetailId(null)}
+        />
+      )}
+
+      {upgradeDetailCard && (
+        <UpgradeDetailOverlay
+          card={upgradeDetailCard}
+          onClose={() => setUpgradeDetailId(null)}
+        />
+      )}
+    </>
+  );
+}
+
+/** CCG-ratio character card tile with art gradient, health badge, upgrade badges. */
+function CharacterCard({
+  char,
+  game,
+  catalogById,
+  onTap,
+  onUpgradeTap,
+}: {
+  char: CharacterState;
+  game: GameState;
+  catalogById: Map<string, Card>;
+  onTap: () => void;
+  onUpgradeTap: (upgradeId: string) => void;
+}) {
+  const catalogId = game.cardCatalogIds[char.id];
+  const card = catalogId ? catalogById.get(catalogId) : undefined;
+  const hp = char.health - char.damage;
+
+  return (
+    // aspect-[63/88] = CCG portrait ratio. overflow-visible so rotated card
+    // stays visible; no clipping at the wrapper level.
+    <div className="relative overflow-visible" style={{ aspectRatio: '63/88' }}>
+      {/* Main card button — rotates 90° when exhausted */}
+      <button
+        type="button"
+        onClick={onTap}
+        className={`absolute inset-0 overflow-hidden rounded-lg border text-left transition-transform ${
+          char.exhausted ? 'border-neutral-600 opacity-70' : 'border-neutral-700'
+        }`}
+        style={{ transform: char.exhausted ? 'rotate(90deg)' : 'none', transformOrigin: 'center center' }}
+        aria-label={`${card?.name ?? 'Character'} — ${hp} HP${char.exhausted ? ' (exhausted)' : ''}`}
+      >
+        <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card?.type ?? 'character')}`} />
+        {/* health badge */}
+        <span className="absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold leading-tight text-white">
+          ♥&thinsp;{hp}
+        </span>
+        {/* name scrim */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-5">
+          <span className="line-clamp-2 text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
+        </div>
+      </button>
+
+      {/* Upgrade badges — siblings of card button so no nested-button violation */}
+      {char.upgradeIds.length > 0 && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center gap-0.5 pb-1">
+          {char.upgradeIds.map((uid) => {
+            const upCatalogId = game.cardCatalogIds[uid];
+            const upCard = upCatalogId ? catalogById.get(upCatalogId) : undefined;
+            return (
+              <button
+                key={uid}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onUpgradeTap(uid); }}
+                style={{ width: 40, height: 40 }}
+                className={`pointer-events-auto flex-shrink-0 rounded-full border-2 border-neutral-500 bg-gradient-to-br ${cardArtGradient(upCard?.type ?? 'upgrade')}`}
+                aria-label={upCard?.name ?? 'Upgrade'}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Vertical stack of die tiles for one character's pool dice. */
+function DiceStack({
+  dice,
+  diceInteractive,
+  selectionMode,
+}: {
+  dice: DieInPool[];
+  diceInteractive: boolean;
+  selectionMode: SelectionMode | null;
+}) {
+  const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
+  const enterResolveMode = useApp((s) => s.enterResolveMode);
+
+  const selectedIds = selectionMode?.selectedDieIds ?? null;
+  const lockedSymbol: DieSymbol | null = (() => {
+    if (selectionMode?.kind !== 'resolve' || !selectedIds?.length) return null;
+    const first = dice.find((d) => selectedIds.includes(d.instanceId));
+    return first?.face.symbol ?? null;
+  })();
+
+  const handleTap = (d: DieInPool) => {
+    if (!diceInteractive && selectionMode === null) return;
+    if (selectionMode === null) {
+      // Enter resolve mode and immediately select this die.
+      enterResolveMode();
+      useApp.setState((s) => ({
+        selectionMode: s.selectionMode
+          ? { ...s.selectionMode, selectedDieIds: [...s.selectionMode.selectedDieIds, d.instanceId] }
+          : { kind: 'resolve' as const, selectedDieIds: [d.instanceId] },
+      }));
+    } else {
+      toggleSelectedDie(d.instanceId);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      {dice.map((d) => {
+        const selected = !!selectedIds?.includes(d.instanceId);
+        const inSelectionMode = selectionMode !== null;
+        const canInteract =
+          inSelectionMode &&
+          (selected ||
+            (selectionMode?.kind === 'reroll'
+              ? canRerollDie(d)
+              : canSelectDie(d, lockedSymbol)));
+        const interactive = diceInteractive || inSelectionMode;
+        const tile = (
+          <div
+            className={`flex h-12 w-12 flex-col items-center justify-center rounded-md border text-[10px] uppercase ${
+              selected
+                ? 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500'
+                : interactive && inSelectionMode && !canInteract
+                  ? 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50'
+                  : 'border-neutral-700 bg-neutral-900 text-neutral-300'
+            }`}
+            title={`${d.face.symbol} ${d.face.value}${d.face.modifier ? ' +mod' : ''}`}
+          >
+            <span className="font-mono text-base text-neutral-100">
+              {d.face.modifier ? '+' : ''}{d.face.value || ''}
+            </span>
+            <span className="text-[9px] leading-tight">{symbolLabel(d.face.symbol)}</span>
+          </div>
+        );
+
+        if (!interactive) return <div key={d.instanceId}>{tile}</div>;
+
+        return (
+          <button
+            key={d.instanceId}
+            type="button"
+            disabled={inSelectionMode && !canInteract && !selected}
+            onClick={() => handleTap(d)}
+            className="min-h-[44px] min-w-[44px] rounded-md disabled:cursor-not-allowed"
+          >
+            {tile}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Expanded overlay for a character in play — shows stats, abilities, die faces. */
+function CardDetailOverlay({
+  char,
+  game,
+  catalogById,
+  onClose,
+}: {
+  char: CharacterState;
+  game: GameState;
+  catalogById: Map<string, Card>;
+  onClose: () => void;
+}) {
+  const catalogId = game.cardCatalogIds[char.id];
+  const card = catalogId ? catalogById.get(catalogId) : undefined;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+      />
+      <div
+        className="relative z-10 flex w-full max-w-sm flex-col overflow-hidden rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:rounded-2xl"
+        style={{ maxHeight: '90dvh' }}
+      >
+        <div className="flex shrink-0 items-center justify-between px-4 py-3">
+          <h2 className="text-sm font-semibold text-neutral-100">{card?.name ?? '—'}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] min-w-[44px] rounded-md px-3 text-xs uppercase tracking-wider text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
+          {/* art */}
+          <div className={`shrink-0 rounded-xl bg-gradient-to-b ${cardArtGradient(card?.type ?? 'character')} aspect-[3/2]`} />
+
+          {/* type / faction row */}
+          {card && (
+            <div className="flex flex-wrap gap-1">
+              <span className={`rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(card.type)}`}>
+                {card.type}{card.subtype ? ` · ${card.subtype}` : ''}
+              </span>
+              <span className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-400">
+                {card.faction}{card.color ? ` · ${card.color}` : ''}
+              </span>
+            </div>
+          )}
+
+          {/* stats */}
+          <dl className="grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <dt className="text-[10px] uppercase tracking-wider text-neutral-500">Health</dt>
+              <dd className="font-mono text-neutral-200">{char.health - char.damage} / {char.health}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] uppercase tracking-wider text-neutral-500">Shields</dt>
+              <dd className="font-mono text-neutral-200">{char.shields} / 3</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] uppercase tracking-wider text-neutral-500">Status</dt>
+              <dd className="font-mono text-neutral-200">{char.exhausted ? 'Exhausted' : 'Ready'}</dd>
+            </div>
+          </dl>
+
+          {/* ability text */}
+          {card?.displayText ? (
+            <p className="text-sm leading-relaxed text-neutral-300">{card.displayText}</p>
+          ) : (
+            <p className="text-sm italic text-neutral-600">No ability text.</p>
+          )}
+
+          {/* die faces */}
+          {card?.dieFaces && (
+            <div>
+              <div className="mb-1.5 text-[10px] uppercase tracking-wider text-neutral-500">Die faces</div>
+              <div className="flex flex-wrap gap-1.5">
+                {card.dieFaces.map((face, i) => (
+                  <DieFaceChip key={i} face={face} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Overlay for a played upgrade card. */
+function UpgradeDetailOverlay({
+  card,
+  onClose,
+}: {
+  card: Card;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div
+        className="relative z-10 flex w-full max-w-sm flex-col overflow-hidden rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:rounded-2xl"
+        style={{ maxHeight: '90dvh' }}
+      >
+        <div className="flex shrink-0 items-center justify-between px-4 py-3">
+          <h2 className="text-sm font-semibold text-neutral-100">{card.name}</h2>
+          <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] rounded-md px-3 text-xs uppercase tracking-wider text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100">Close</button>
+        </div>
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
+          <div className={`shrink-0 rounded-xl bg-gradient-to-b ${cardArtGradient(card.type)} aspect-[3/2]`} />
+          <div className="flex flex-wrap gap-1">
+            <span className={`rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(card.type)}`}>
+              {card.type}{card.subtype ? ` · ${card.subtype}` : ''}
+            </span>
+          </div>
+          {card.displayText ? (
+            <p className="text-sm leading-relaxed text-neutral-300">{card.displayText}</p>
+          ) : (
+            <p className="text-sm italic text-neutral-600">No ability text.</p>
+          )}
+          {card.dieFaces && (
+            <div>
+              <div className="mb-1.5 text-[10px] uppercase tracking-wider text-neutral-500">Die faces</div>
+              <div className="flex flex-wrap gap-1.5">
+                {card.dieFaces.map((face, i) => <DieFaceChip key={i} face={face} />)}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

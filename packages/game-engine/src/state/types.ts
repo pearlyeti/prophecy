@@ -75,6 +75,8 @@ export interface DieInPool {
   readonly faceIndex: number;
   readonly face: DieFace;
   readonly transient?: boolean;
+  /** Character instance id that rolled this die. Absent for transient/event dice. */
+  readonly ownerInstanceId?: string;
 }
 
 /**
