@@ -6,7 +6,7 @@
 // This module never mutates state. It encodes the same guards each
 // action handler enforces, hoisted into a single struct.
 
-import type { DieSymbol, GameState } from './types';
+import type { DieSymbol, GameState } from './types.js';
 
 export interface LegalActions {
   /**

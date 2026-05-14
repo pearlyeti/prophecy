@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import { applyAction } from '../reducers/apply-action';
+import { applyAction } from '../reducers/apply-action.js';
 import {
   CardSetSchema,
   type CardFixture,
-} from '../__fixtures__/synthetic-set/schema';
-import { newGameInActionPhase } from '../state/new-game';
+} from '../__fixtures__/synthetic-set/schema.js';
+import { newGameInActionPhase } from '../state/new-game.js';
 
 // Loads the committed synthetic-set fixtures, validates them against
 // the Zod schema, and pushes a sample through the engine to confirm

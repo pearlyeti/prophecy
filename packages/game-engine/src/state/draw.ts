@@ -1,4 +1,4 @@
-import type { GameState, PlayerState } from './types';
+import type { GameState, PlayerState } from './types.js';
 
 /**
  * Draw up to `n` cards from the top of the player's deck into their

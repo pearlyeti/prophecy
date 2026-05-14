@@ -1,7 +1,7 @@
-import type { EngineEvent } from '../events';
-import type { GameState } from '../state/types';
-import { IllegalActionError } from './illegal';
-import type { ApplyResult } from './pass';
+import type { EngineEvent } from '../events.js';
+import type { GameState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
+import type { ApplyResult } from './pass.js';
 
 /**
  * Concede. Voluntary surrender. v1 is 1v1 only — the conceding player

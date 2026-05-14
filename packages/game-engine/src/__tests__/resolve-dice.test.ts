@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { IllegalActionError } from '../actions/illegal';
-import { applyAction } from '../reducers/apply-action';
-import { newGameInActionPhase } from '../state/new-game';
-import type { DieFace, DieInPool, GameState } from '../state/types';
-import { basicGameInput } from './fixtures';
+import { IllegalActionError } from '../actions/illegal.js';
+import { applyAction } from '../reducers/apply-action.js';
+import { newGameInActionPhase } from '../state/new-game.js';
+import type { DieFace, DieInPool, GameState } from '../state/types.js';
+import { basicGameInput } from './fixtures.js';
 
 function face(
   symbol: DieFace['symbol'],

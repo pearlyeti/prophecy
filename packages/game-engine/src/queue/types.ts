@@ -7,7 +7,7 @@
 //
 // See README "Engine implementation notes" and rules-reference Part 7.
 
-import type { Effect } from '../abilities/types';
+import type { Effect } from '../abilities/types.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Queue entries

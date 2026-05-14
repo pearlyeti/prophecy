@@ -1,8 +1,8 @@
-import type { EngineEvent } from '../events';
-import { endTurn } from '../state/turn';
-import type { GameState } from '../state/types';
-import { IllegalActionError } from './illegal';
-import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass';
+import type { EngineEvent } from '../events.js';
+import { endTurn } from '../state/turn.js';
+import type { GameState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
+import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass.js';
 
 /**
  * Claim the battlefield.

@@ -1,6 +1,6 @@
 // Core type definitions for the rules engine.
-import type { Ability } from '../abilities/types';
-import type { Queue, PendingTriggers } from '../queue/types';
+import type { Ability } from '../abilities/types.js';
+import type { Queue, PendingTriggers } from '../queue/types.js';
 // These mirror the abstract game system in docs/rules-reference.md.
 // Implementation comes incrementally; this file exists so dependent
 // packages can refer to the public surface.

@@ -7,8 +7,8 @@
 // `applyEffects` sequences an array, threading state and consuming
 // character targets in order.
 
-import type { EngineEvent } from '../events';
-import { drawCards } from '../state/draw';
+import type { EngineEvent } from '../events.js';
+import { drawCards } from '../state/draw.js';
 import {
   addShields,
   adjustResources,
@@ -17,8 +17,8 @@ import {
   opponentOf,
   ownerOf,
   removeShields,
-} from '../state/combat';
-import type { GameState } from '../state/types';
+} from '../state/combat.js';
+import type { GameState } from '../state/types.js';
 import type {
   AddShieldsEffect,
   DealDamageEffect,
@@ -29,7 +29,7 @@ import type {
   LoseResourcesEffect,
   RemoveShieldsEffect,
   TargetSpec,
-} from './types';
+} from './types.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Public API

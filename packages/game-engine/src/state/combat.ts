@@ -2,8 +2,8 @@
 // dispatcher. Keeping them here avoids duplication and ensures the two
 // code paths apply damage, shields, and resources identically.
 
-import type { EngineEvent } from '../events';
-import type { CharacterState, GameState, PlayerState } from './types';
+import type { EngineEvent } from '../events.js';
+import type { CharacterState, GameState, PlayerState } from './types.js';
 
 export const MAX_SHIELDS = 3;
 

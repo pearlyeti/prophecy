@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { getLegalActions } from '../state/legal-actions';
-import { applyAction } from '../reducers/apply-action';
-import { newGame, newGameInActionPhase } from '../state/new-game';
-import { basicGameInput } from './fixtures';
+import { getLegalActions } from '../state/legal-actions.js';
+import { applyAction } from '../reducers/apply-action.js';
+import { newGame, newGameInActionPhase } from '../state/new-game.js';
+import { basicGameInput } from './fixtures.js';
 
 describe('getLegalActions', () => {
   describe('setup phase', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { newGame, newGameInActionPhase } from '../state/new-game';
-import { basicGameInput } from './fixtures';
+import { newGame, newGameInActionPhase } from '../state/new-game.js';
+import { basicGameInput } from './fixtures.js';
 
 describe('newGame', () => {
   it('starts in the setup phase with the roll-off already resolved', () => {

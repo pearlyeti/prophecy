@@ -3,8 +3,8 @@
 // and by the api / game-server before instantiating newGame on a
 // player-submitted deck.
 
-import type { DeckFixture } from '../__fixtures__/synthetic-set/schema';
-import type { CardFixture } from '../__fixtures__/synthetic-set/schema';
+import type { DeckFixture } from '../__fixtures__/synthetic-set/schema.js';
+import type { CardFixture } from '../__fixtures__/synthetic-set/schema.js';
 
 export interface DeckValidationResult {
   readonly valid: boolean;

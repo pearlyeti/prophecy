@@ -1,12 +1,12 @@
-import { applyEffects } from '../abilities/dispatch';
-import type { EngineEvent } from '../events';
-import { drainQueue } from '../queue/drain';
-import { collectAfterTriggers, commitTriggers } from '../queue/scan';
-import { endTurn } from '../state/turn';
-import type { GameState, PlayerState } from '../state/types';
-import { IllegalActionError } from './illegal';
-import { guardCanAct, runUpkeepAndStartRound } from './pass';
-import type { ApplyResult } from './pass';
+import { applyEffects } from '../abilities/dispatch.js';
+import type { EngineEvent } from '../events.js';
+import { drainQueue } from '../queue/drain.js';
+import { collectAfterTriggers, commitTriggers } from '../queue/scan.js';
+import { endTurn } from '../state/turn.js';
+import type { GameState, PlayerState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
+import { guardCanAct, runUpkeepAndStartRound } from './pass.js';
+import type { ApplyResult } from './pass.js';
 
 /**
  * Play-card action.

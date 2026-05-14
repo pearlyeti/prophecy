@@ -1,12 +1,12 @@
-import { applyEffects } from '../abilities/dispatch';
-import type { EngineEvent } from '../events';
-import { drainQueue } from '../queue/drain';
-import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan';
-import { addShields, adjustResources, dealDamage, ownerOf } from '../state/combat';
-import { endTurn } from '../state/turn';
-import type { DieInPool, GameState, PlayerState } from '../state/types';
-import { IllegalActionError } from './illegal';
-import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass';
+import { applyEffects } from '../abilities/dispatch.js';
+import type { EngineEvent } from '../events.js';
+import { drainQueue } from '../queue/drain.js';
+import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
+import { addShields, adjustResources, dealDamage, ownerOf } from '../state/combat.js';
+import { endTurn } from '../state/turn.js';
+import type { DieInPool, GameState, PlayerState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
+import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass.js';
 
 /**
  * Resolve one or more dice in the player's pool.

@@ -5,15 +5,15 @@
 // Before-triggers use a separate path (applyBeforeTriggers) and never
 // enter this scan. This file only handles 'after' triggers.
 
-import type { TriggeredAbility } from '../abilities/types';
-import type { EngineEvent } from '../events';
-import type { GameState } from '../state/types';
+import type { TriggeredAbility } from '../abilities/types.js';
+import type { EngineEvent } from '../events.js';
+import type { GameState } from '../state/types.js';
 import {
   emptyQueue,
   type PendingTriggers,
   type PendingTriggerGroup,
   type QueueEntry,
-} from './types';
+} from './types.js';
 
 // ────────────────────────────────────────────────────────────────────
 // After-trigger collection

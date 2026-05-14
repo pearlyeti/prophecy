@@ -28,7 +28,7 @@ import {
   CardSetSchema,
   type CardFixture,
   type DieFaceSchema,
-} from './schema';
+} from './schema.js';
 import type { z } from 'zod';
 
 type DieFace = z.infer<typeof DieFaceSchema>;

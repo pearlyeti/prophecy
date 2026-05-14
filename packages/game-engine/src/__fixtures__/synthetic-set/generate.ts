@@ -15,7 +15,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createRng, type SeededRng } from '../../rng/seeded-rng';
+import { createRng, type SeededRng } from '../../rng/seeded-rng.js';
 import {
   BATTLEFIELD_NAMES,
   CHARACTER_NAMES,
@@ -25,14 +25,14 @@ import {
   UPGRADE_NAMES,
   assertPoolSize,
   type NamePool,
-} from './names';
+} from './names.js';
 import {
   CardSetSchema,
   type AbilityAst,
   type CardFixture,
   type CostAst,
   type EffectAst,
-} from './schema';
+} from './schema.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Constants

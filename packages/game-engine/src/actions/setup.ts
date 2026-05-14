@@ -1,7 +1,7 @@
-import type { EngineEvent } from '../events';
-import type { CharacterState, GameState, PlayerState } from '../state/types';
-import { IllegalActionError } from './illegal';
-import type { ApplyResult } from './pass';
+import type { EngineEvent } from '../events.js';
+import type { CharacterState, GameState, PlayerState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
+import type { ApplyResult } from './pass.js';
 
 /**
  * setup.choose-first-player

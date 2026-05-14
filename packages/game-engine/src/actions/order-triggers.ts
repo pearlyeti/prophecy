@@ -1,8 +1,8 @@
-import { drainQueue } from '../queue/drain';
-import { applyOrderTriggers } from '../queue/scan';
-import type { GameState } from '../state/types';
-import { IllegalActionError } from './illegal';
-import type { ApplyResult } from './pass';
+import { drainQueue } from '../queue/drain.js';
+import { applyOrderTriggers } from '../queue/scan.js';
+import type { GameState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
+import type { ApplyResult } from './pass.js';
 
 /**
  * Submit an ordering for simultaneous pending triggers.

@@ -1,9 +1,9 @@
-import type { EngineEvent } from '../events';
-import { createRng } from '../rng/seeded-rng';
-import { endTurn } from '../state/turn';
-import type { DieFace, DieInPool, GameState, PlayerState } from '../state/types';
-import { IllegalActionError } from './illegal';
-import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass';
+import type { EngineEvent } from '../events.js';
+import { createRng } from '../rng/seeded-rng.js';
+import { endTurn } from '../state/turn.js';
+import type { DieFace, DieInPool, GameState, PlayerState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
+import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass.js';
 
 /**
  * Reroll-dice action.

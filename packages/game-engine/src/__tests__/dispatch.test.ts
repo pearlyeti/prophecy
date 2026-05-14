@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyEffect, applyEffects, NotImplementedError } from '../abilities/dispatch';
-import type { DispatchContext } from '../abilities/dispatch';
-import { applyAction } from '../reducers/apply-action';
-import { newGameInActionPhase } from '../state/new-game';
-import { basicGameInput } from './fixtures';
+import { applyEffect, applyEffects, NotImplementedError } from '../abilities/dispatch.js';
+import type { DispatchContext } from '../abilities/dispatch.js';
+import { applyAction } from '../reducers/apply-action.js';
+import { newGameInActionPhase } from '../state/new-game.js';
+import { basicGameInput } from './fixtures.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Test helpers

@@ -6,11 +6,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { Ability } from '../abilities/types';
-import { drainQueue } from '../queue/drain';
-import { applyAction } from '../reducers/apply-action';
-import { newGameInActionPhase } from '../state/new-game';
-import { basicGameInput } from './fixtures';
+import type { Ability } from '../abilities/types.js';
+import { drainQueue } from '../queue/drain.js';
+import { applyAction } from '../reducers/apply-action.js';
+import { newGameInActionPhase } from '../state/new-game.js';
+import { basicGameInput } from './fixtures.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Helpers

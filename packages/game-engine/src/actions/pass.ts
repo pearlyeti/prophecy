@@ -1,8 +1,8 @@
-import type { EngineEvent } from '../events';
-import { drawCards } from '../state/draw';
-import { endTurn } from '../state/turn';
-import type { GameState, PlayerState } from '../state/types';
-import { IllegalActionError } from './illegal';
+import type { EngineEvent } from '../events.js';
+import { drawCards } from '../state/draw.js';
+import { endTurn } from '../state/turn.js';
+import type { GameState, PlayerState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
 
 const UPKEEP_RESOURCES = 2;
 

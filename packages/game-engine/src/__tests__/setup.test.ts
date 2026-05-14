@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { IllegalActionError } from '../actions/illegal';
-import { applyAction } from '../reducers/apply-action';
-import { newGame } from '../state/new-game';
-import { basicGameInput } from './fixtures';
+import { IllegalActionError } from '../actions/illegal.js';
+import { applyAction } from '../reducers/apply-action.js';
+import { newGame } from '../state/new-game.js';
+import { basicGameInput } from './fixtures.js';
 
 describe('setup phase', () => {
   describe('setup.choose-first-player', () => {

@@ -5,8 +5,8 @@ import {
   CardSetSchema,
   DeckSetSchema,
   type DeckFixture,
-} from '../__fixtures__/synthetic-set/schema';
-import { validateDeck } from '../validators/deck';
+} from '../__fixtures__/synthetic-set/schema.js';
+import { validateDeck } from '../validators/deck.js';
 
 const CARDS_PATH = new URL(
   '../__fixtures__/synthetic-set/cards.json',

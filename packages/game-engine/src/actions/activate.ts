@@ -1,13 +1,13 @@
-import { applyEffects } from '../abilities/dispatch';
-import type { EngineEvent } from '../events';
-import { drainQueue } from '../queue/drain';
-import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan';
-import { createRng } from '../rng/seeded-rng';
-import { endTurn } from '../state/turn';
-import { guardCanAct, runUpkeepAndStartRound } from './pass';
-import type { ApplyResult } from './pass';
-import type { CharacterState, DieFace, DieInPool, GameState, PlayerState } from '../state/types';
-import { IllegalActionError } from './illegal';
+import { applyEffects } from '../abilities/dispatch.js';
+import type { EngineEvent } from '../events.js';
+import { drainQueue } from '../queue/drain.js';
+import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
+import { createRng } from '../rng/seeded-rng.js';
+import { endTurn } from '../state/turn.js';
+import { guardCanAct, runUpkeepAndStartRound } from './pass.js';
+import type { ApplyResult } from './pass.js';
+import type { CharacterState, DieFace, DieInPool, GameState, PlayerState } from '../state/types.js';
+import { IllegalActionError } from './illegal.js';
 
 /**
  * Activate action.

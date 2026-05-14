@@ -1,4 +1,4 @@
-import type { NewGameInput } from '../state/new-game';
+import type { NewGameInput } from '../state/new-game.js';
 
 /**
  * Minimal test input for two players, each with one non-elite character

@@ -7,7 +7,7 @@
 // it — TypeScript's exhaustiveness check on a `switch (event.type)`
 // keeps consumers honest.
 
-import type { DieFace } from './state/types';
+import type { DieFace } from './state/types.js';
 
 export type EngineEvent =
   | { readonly type: 'setup.first-player-chosen'; readonly payload: SetupFirstPlayerChosenPayload }

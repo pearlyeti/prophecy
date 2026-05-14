@@ -1,5 +1,5 @@
-import type { EngineEvent } from '../events';
-import type { GameState } from './types';
+import type { EngineEvent } from '../events.js';
+import type { GameState } from './types.js';
 
 /**
  * Resolve the player who should be active after the current player's

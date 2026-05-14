@@ -1,12 +1,12 @@
-export * from './state/types';
-export * from './state/new-game';
-export * from './state/legal-actions';
-export * from './rng/seeded-rng';
-export * from './events';
-export { applyAction } from './reducers/apply-action';
-export type { ApplyResult } from './reducers/apply-action';
-export type { Action } from './actions/types';
-export { IllegalActionError } from './actions/illegal';
+export * from './state/types.js';
+export * from './state/new-game.js';
+export * from './state/legal-actions.js';
+export * from './rng/seeded-rng.js';
+export * from './events.js';
+export { applyAction } from './reducers/apply-action.js';
+export type { ApplyResult } from './reducers/apply-action.js';
+export type { Action } from './actions/types.js';
+export { IllegalActionError } from './actions/illegal.js';
 export type {
   Ability,
   ImmediateAbility,
@@ -30,5 +30,5 @@ export type {
   ActionCost,
   ValueRef,
   CardDisposition,
-} from './abilities/types';
-export { NotImplementedError } from './abilities/dispatch';
+} from './abilities/types.js';
+export { NotImplementedError } from './abilities/dispatch.js';

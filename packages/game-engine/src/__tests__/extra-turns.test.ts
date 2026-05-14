@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyAction } from '../reducers/apply-action';
-import { newGameInActionPhase } from '../state/new-game';
-import { endTurn, grantExtraTurn } from '../state/turn';
-import { basicGameInput } from './fixtures';
+import { applyAction } from '../reducers/apply-action.js';
+import { newGameInActionPhase } from '../state/new-game.js';
+import { endTurn, grantExtraTurn } from '../state/turn.js';
+import { basicGameInput } from './fixtures.js';
 
 // Verify the extra-turn / Ambush mechanism in isolation. No card or
 // ability AST in the engine grants extra turns yet — we synthesize

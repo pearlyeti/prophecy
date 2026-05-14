@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyAction } from '../reducers/apply-action';
-import { newGameInActionPhase } from '../state/new-game';
-import { basicGameInput } from './fixtures';
+import { applyAction } from '../reducers/apply-action.js';
+import { newGameInActionPhase } from '../state/new-game.js';
+import { basicGameInput } from './fixtures.js';
 
 // End-of-round loss check: a player with hand=0 and deck=0 after upkeep
 // loses. Controller wins ties.

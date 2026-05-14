@@ -1,18 +1,18 @@
-import { applyActivate } from '../actions/activate';
-import { applyOrderTriggersAction } from '../actions/order-triggers';
-import { applyClaim } from '../actions/claim';
-import { applyConcede } from '../actions/concede';
-import { applyPass } from '../actions/pass';
-import { applyPlayCard } from '../actions/play-card';
-import { applyRerollDice } from '../actions/reroll-dice';
-import { applyResolveDice } from '../actions/resolve-dice';
-import { applyChooseFirstPlayer, applyPlaceShield } from '../actions/setup';
-import { IllegalActionError } from '../actions/illegal';
-import type { Action } from '../actions/types';
-import type { EngineEvent } from '../events';
-import type { GameState } from '../state/types';
+import { applyActivate } from '../actions/activate.js';
+import { applyOrderTriggersAction } from '../actions/order-triggers.js';
+import { applyClaim } from '../actions/claim.js';
+import { applyConcede } from '../actions/concede.js';
+import { applyPass } from '../actions/pass.js';
+import { applyPlayCard } from '../actions/play-card.js';
+import { applyRerollDice } from '../actions/reroll-dice.js';
+import { applyResolveDice } from '../actions/resolve-dice.js';
+import { applyChooseFirstPlayer, applyPlaceShield } from '../actions/setup.js';
+import { IllegalActionError } from '../actions/illegal.js';
+import type { Action } from '../actions/types.js';
+import type { EngineEvent } from '../events.js';
+import type { GameState } from '../state/types.js';
 
-export type { EngineEvent } from '../events';
+export type { EngineEvent } from '../events.js';
 
 export interface ApplyResult {
   readonly state: GameState;

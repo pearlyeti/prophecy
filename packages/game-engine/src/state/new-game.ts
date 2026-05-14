@@ -1,8 +1,8 @@
-import type { Ability } from '../abilities/types';
-import type { CardFixture, DeckFixture } from '../__fixtures__/synthetic-set/schema';
-import { emptyQueue } from '../queue/types';
-import { applyAction } from '../reducers/apply-action';
-import { createRng, type SeededRng } from '../rng/seeded-rng';
+import type { Ability } from '../abilities/types.js';
+import type { CardFixture, DeckFixture } from '../__fixtures__/synthetic-set/schema.js';
+import { emptyQueue } from '../queue/types.js';
+import { applyAction } from '../reducers/apply-action.js';
+import { createRng, type SeededRng } from '../rng/seeded-rng.js';
 import type {
   CardDie,
   CharacterState,
@@ -10,7 +10,7 @@ import type {
   GameState,
   PlayerState,
   SetupContext,
-} from './types';
+} from './types.js';
 
 export interface CharacterInput {
   /** Stable instance id; unique per game. */
