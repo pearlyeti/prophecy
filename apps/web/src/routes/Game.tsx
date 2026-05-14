@@ -1367,6 +1367,42 @@ function HandOverlay({
 // Battle zone — four-column board layout (WEB-10)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Small icon + stat helpers ───────────────────────────────────────────────
+
+function HeartIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M8 14S1 9.5 1 5a4 4 0 0 1 7-2.65A4 4 0 0 1 15 5c0 4.5-7 9-7 9Z" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="10" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M8 1 14 3.5V8c0 3.5-3 6-6 7C5 14 2 11.5 2 8V3.5Z" />
+    </svg>
+  );
+}
+
+/** HP and optional shield count, centered above a character card. */
+function CharStatsRow({ hp, shields }: { hp: number; shields: number }) {
+  return (
+    <div className="flex items-center justify-center gap-3 text-[11px] font-semibold leading-none">
+      {shields > 0 && (
+        <span className="flex items-center gap-1 text-blue-300">
+          <ShieldIcon />
+          {shields}
+        </span>
+      )}
+      <span className="flex items-center gap-1 text-red-300">
+        <HeartIcon />
+        {hp}
+      </span>
+    </div>
+  );
+}
+
 /**
  * Build a map of characterId → pool dice for one player.
  * Uses ownerInstanceId when present; otherwise falls back to matching
@@ -1466,21 +1502,26 @@ function BattleZone({
           {myPlayer?.characterOrder.map((cid) => {
             const char = myPlayer.characters[cid]!;
             const charDice = myDiceByOwner.get(cid) ?? [];
+            const hp = char.health - char.damage;
             return (
               <div
                 key={cid}
                 className="flex min-h-0 items-center gap-1"
                 style={{ maxHeight: `${Math.floor(100 / myN)}%` }}
               >
-                <CharacterCard
-                  char={char}
-                  game={game}
-                  catalogById={catalogById}
-                  className="flex-[9] min-w-0"
-                  tipDirection="right"
-                  onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
-                  onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
-                />
+                {/* Card column: stats above, card below */}
+                <div className="flex flex-[9] min-w-0 flex-col items-center gap-1">
+                  <CharStatsRow hp={hp} shields={char.shields} />
+                  <CharacterCard
+                    char={char}
+                    game={game}
+                    catalogById={catalogById}
+                    className="w-full"
+                    tipDirection="right"
+                    onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
+                    onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
+                  />
+                </div>
                 <div className="flex flex-[7] min-w-0 items-center justify-center">
                   <DiceStack
                     dice={charDice}
@@ -1498,6 +1539,7 @@ function BattleZone({
           {oppPlayer?.characterOrder.map((cid) => {
             const char = oppPlayer.characters[cid]!;
             const charDice = oppDiceByOwner.get(cid) ?? [];
+            const hp = char.health - char.damage;
             return (
               <div
                 key={cid}
@@ -1511,15 +1553,18 @@ function BattleZone({
                     selectionMode={selectionMode}
                   />
                 </div>
-                <CharacterCard
-                  char={char}
-                  game={game}
-                  catalogById={catalogById}
-                  className="flex-[9] min-w-0"
-                  tipDirection="left"
-                  onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
-                  onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
-                />
+                <div className="flex flex-[9] min-w-0 flex-col items-center gap-1">
+                  <CharStatsRow hp={hp} shields={char.shields} />
+                  <CharacterCard
+                    char={char}
+                    game={game}
+                    catalogById={catalogById}
+                    className="w-full"
+                    tipDirection="left"
+                    onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
+                    onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
+                  />
+                </div>
               </div>
             );
           })}
@@ -1566,7 +1611,6 @@ function CharacterCard({
 }) {
   const catalogId = game.cardCatalogIds[char.id];
   const card = catalogId ? catalogById.get(catalogId) : undefined;
-  const hp = char.health - char.damage;
 
   // 6° tilt toward the dice pool — clear exhaustion indicator without layout disruption.
   const exhaustedTransform = tipDirection === 'right' ? 'rotate(6deg)' : 'rotate(-6deg)';
@@ -1592,11 +1636,6 @@ function CharacterCard({
           <span className="line-clamp-2 text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
         </div>
       </button>
-
-      {/* Health badge — outside the rotating button so it's always upright and visible */}
-      <span className="absolute left-1 top-1 z-10 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold leading-tight text-white">
-        ♥&thinsp;{hp}
-      </span>
 
       {/* Upgrade badges */}
       {char.upgradeIds.length > 0 && (
