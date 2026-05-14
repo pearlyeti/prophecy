@@ -20,7 +20,7 @@ Dependencies between cards are noted under **Depends on**. If a card lists one, 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- **WEB-8** — Drag-to-play Pass 1 (2026-05-14, pearlyeti)
+- _(none — claim a card from Up next.)_
 
 ### Up next — task cards
 
@@ -377,6 +377,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-14 — WEB-8 — Drag-to-play Pass 1** (`78c03ce`). `useDragToPlay` hook handles touch and mouse globally on document — avoids iOS's "events fire on originating element" limitation. Drag starts after 8px movement or 120ms hold. Affordable cards in hand strip gain `onTouchStart`/`onMouseDown` handlers; others stay tap-only. Floating `DragArtifact` portal follows the finger imperatively via ref (no per-frame setState). Game board (`<main data-droptarget="play">`) glows emerald when card is dragged over it. Release over board plays the card; release elsewhere cancels. Taps still open the expanded overlay. Typecheck clean.
 - **2026-05-14 — WEB-4 — Hand strip, expanded view, play-card integration** (`10d2fc2`). `cardCatalogIds` added to `GameState` (instance-id → catalog-card-id); `newGameFromDecks` populates it for characters + deck cards and now correctly wires `cardCosts` from the catalog. Persistent `HandStrip` at bottom shows compact card tiles with type color band, cost badge, and affordability highlight. Tapping a tile or the Play card / Discard to reroll buttons opens `HandOverlay` — bottom-sheet with scrollable card row and focused-card detail panel (name, type, faction, cost, ability text, die face chips). Long-press / right-click focuses a card for reading. `ActionPanel`'s old inline play-card and reroll target grids removed. 152 engine tests green; workspace typecheck clean.
 - **2026-05-14 — OPS-1 — External hosting: Vercel (web) + Railway (game-server)**. Vercel frontend deployed and Railway socket server deployed. Dynamic `PORT` fallback added to game-server, `WEB_PUBLIC_URL` configured for CORS, and `VITE_GAME_SERVER_URL` configured in Vite. `package.json` entry points mapped to `dist/index.js` and `prebuild` hooks added for workspace dependencies to resolve production builds. Real-time multiplayer verified across devices.
 - **2026-05-13 — SERVER-2 + WEB-3 — FIFO matchmaking queue + Find Match UI** (`c3ea317`). In-memory FIFO queue in `apps/game-server/src/index.ts` (`lobby.findMatch` / `lobby.leaveQueue` socket events, disconnect handler clears the queue). Match fires `lobby.matchFound` unicast to both players with full lobby + game state. New protocol types: `LobbyFindMatchReq`, `LobbyLeaveQueueReq`, `MatchFoundPayload`. `SocketBridge` in `App.tsx` handles `matchFound` identically to rejoin. Splash rewritten: Find Match is the primary CTA, searching state shows spinner + Cancel, invite-code flow demoted to secondary. Typecheck clean.
