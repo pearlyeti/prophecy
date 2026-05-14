@@ -21,7 +21,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "BFD_003",
@@ -44,11 +50,17 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "CHAR_003",
-      "name": "Iron Conscript",
+      "name": "War Hound",
       "type": "character",
       "subtype": "Soldier",
       "faction": "shadow",
@@ -59,7 +71,7 @@
       "pointValue": 13,
       "elitePointValue": 18,
       "plotPointValue": null,
-      "isUnique": true,
+      "isUnique": false,
       "keywords": [],
       "displayText": "",
       "dieFaces": [
@@ -101,16 +113,22 @@
         }
       ],
       "abilities": [],
-      "artUrl": null,
-      "artFrameX": null,
-      "artFrameY": null,
-      "artFrameZoom": null
+      "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_003.webp",
+      "artFrameX": 66.22474747474743,
+      "artFrameY": 43.5606060606061,
+      "artFrameZoom": 2.4,
+      "cardFrameX": 41.71974522292997,
+      "cardFrameY": 50,
+      "cardFrameZoom": 1,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "CHAR_011",
-      "name": "Voidcutter Pilot",
+      "name": "Berserker",
       "type": "character",
-      "subtype": "Pilot, Vehicle",
+      "subtype": "Warrior",
       "faction": "shadow",
       "color": "yellow",
       "rarity": "rare",
@@ -161,14 +179,20 @@
         }
       ],
       "abilities": [],
-      "artUrl": null,
-      "artFrameX": null,
-      "artFrameY": null,
-      "artFrameZoom": null
+      "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_011.webp",
+      "artFrameX": 54.7520661157025,
+      "artFrameY": 17.148760330578543,
+      "artFrameZoom": 2.3,
+      "cardFrameX": 38.53503184713381,
+      "cardFrameY": 41.08280254777073,
+      "cardFrameZoom": 1,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "CHAR_016",
-      "name": "Spark Initiate",
+      "name": "Shield Maiden",
       "type": "character",
       "subtype": "Apprentice",
       "faction": "light",
@@ -179,7 +203,7 @@
       "pointValue": 8,
       "elitePointValue": null,
       "plotPointValue": null,
-      "isUnique": true,
+      "isUnique": false,
       "keywords": [],
       "displayText": "",
       "dieFaces": [
@@ -221,16 +245,22 @@
         }
       ],
       "abilities": [],
-      "artUrl": null,
-      "artFrameX": null,
-      "artFrameY": null,
-      "artFrameZoom": null
+      "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_016.webp",
+      "artFrameX": 44.834087481146334,
+      "artFrameY": 26.99849170437417,
+      "artFrameZoom": 1.7,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "CHAR_017",
-      "name": "Mira of Hollow Pass",
+      "name": "Loki, Trickster God",
       "type": "character",
-      "subtype": "Warrior",
+      "subtype": "God",
       "faction": "light",
       "color": "blue",
       "rarity": "legendary",
@@ -282,9 +312,15 @@
       ],
       "abilities": [],
       "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_017.webp",
-      "artFrameX": null,
-      "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameX": 64.2633228840125,
+      "artFrameY": 10.344827586206895,
+      "artFrameZoom": 2.9,
+      "cardFrameX": 55.307855626326976,
+      "cardFrameY": 22.39915074309979,
+      "cardFrameZoom": 1,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_001",
@@ -323,7 +359,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_002",
@@ -360,7 +402,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_004",
@@ -397,7 +445,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_005",
@@ -433,7 +487,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_007",
@@ -469,7 +529,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_018",
@@ -503,7 +569,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_019",
@@ -537,7 +609,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_020",
@@ -574,7 +652,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_022",
@@ -613,7 +697,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_026",
@@ -649,7 +739,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_028",
@@ -686,7 +782,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_029",
@@ -720,7 +822,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_032",
@@ -756,7 +864,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_033",
@@ -795,7 +909,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_038",
@@ -834,7 +954,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_039",
@@ -871,7 +997,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_044",
@@ -907,7 +1039,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "EVT_055",
@@ -946,7 +1084,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_001",
@@ -1006,7 +1150,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_002",
@@ -1066,7 +1216,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_007",
@@ -1126,7 +1282,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_009",
@@ -1186,7 +1348,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_011",
@@ -1246,7 +1414,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_013",
@@ -1306,7 +1480,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_014",
@@ -1366,7 +1546,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_017",
@@ -1426,7 +1612,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_022",
@@ -1486,7 +1678,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_024",
@@ -1546,7 +1744,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_026",
@@ -1606,7 +1810,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_030",
@@ -1666,7 +1876,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     },
     {
       "id": "UPG_039",
@@ -1689,7 +1905,13 @@
       "artUrl": null,
       "artFrameX": null,
       "artFrameY": null,
-      "artFrameZoom": null
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null
     }
   ]
 }
