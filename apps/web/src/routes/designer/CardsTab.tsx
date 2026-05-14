@@ -267,7 +267,16 @@ export function CardsTab({
             }}
             className="space-y-4"
           >
+            {/* ── Identity ──────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <Field label="Name" wide>
+                <input
+                  type="text"
+                  value={draft.name}
+                  onChange={(e) => updateDraft({ name: e.target.value })}
+                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                />
+              </Field>
               <Field label="Id">
                 <input
                   type="text"
@@ -275,14 +284,6 @@ export function CardsTab({
                   onChange={(e) => updateDraft({ id: e.target.value })}
                   className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                   disabled={selectedId !== null}
-                />
-              </Field>
-              <Field label="Name" wide>
-                <input
-                  type="text"
-                  value={draft.name}
-                  onChange={(e) => updateDraft({ name: e.target.value })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                 />
               </Field>
               <Field label="Type">
@@ -295,12 +296,53 @@ export function CardsTab({
                   className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                 >
                   {CARD_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </Field>
+            </div>
+
+            {/* ── Art + compact frames ──────────────────────────── */}
+            <div className="flex flex-wrap items-start gap-4">
+              <div className="flex flex-col gap-1.5">
+                <ArtUploader
+                  cardId={draft.id}
+                  artUrl={draft.artUrl ?? null}
+                  onUploaded={(artUrl) => updateDraft({ artUrl })}
+                />
+                {draft.artUrl && (
+                  <button
+                    type="button"
+                    onClick={() => updateDraft({ artUrl: null })}
+                    className="text-center text-[11px] text-neutral-600 hover:text-red-400"
+                  >
+                    Remove image
+                  </button>
+                )}
+              </div>
+
+              {draft.artUrl && (
+                <div className="flex flex-wrap gap-4">
+                  <FrameEditor compact shape="square" artUrl={draft.artUrl}
+                    frameX={draft.artFrameX ?? null} frameY={draft.artFrameY ?? null} frameZoom={draft.artFrameZoom ?? null}
+                    onChange={(x, y, zoom) => updateDraft({ artFrameX: x, artFrameY: y, artFrameZoom: zoom })}
+                  />
+                  <FrameEditor compact shape="portrait" artUrl={draft.artUrl}
+                    frameX={draft.cardFrameX ?? null} frameY={draft.cardFrameY ?? null} frameZoom={draft.cardFrameZoom ?? null}
+                    onChange={(x, y, zoom) => updateDraft({ cardFrameX: x, cardFrameY: y, cardFrameZoom: zoom })}
+                  />
+                  {draft.type === 'upgrade' && (
+                    <FrameEditor compact shape="circle" artUrl={draft.artUrl}
+                      frameX={draft.badgeFrameX ?? null} frameY={draft.badgeFrameY ?? null} frameZoom={draft.badgeFrameZoom ?? null}
+                      onChange={(x, y, zoom) => updateDraft({ badgeFrameX: x, badgeFrameY: y, badgeFrameZoom: zoom })}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Classification ────────────────────────────────── */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="Faction">
                 <select
                   value={draft.faction}
@@ -342,45 +384,24 @@ export function CardsTab({
                 options={attributes.subtypes}
                 onChange={(subtypes) => updateDraft({ subtypes })}
               />
+            </div>
+
+            {/* ── Stats ─────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="Cost">
-                <NullableNumber
-                  value={draft.cost}
-                  min={0}
-                  max={20}
-                  onChange={(cost) => updateDraft({ cost })}
-                />
+                <NullableNumber value={draft.cost} min={0} max={20} onChange={(cost) => updateDraft({ cost })} />
               </Field>
               <Field label="Health">
-                <NullableNumber
-                  value={draft.health}
-                  min={1}
-                  max={99}
-                  onChange={(health) => updateDraft({ health })}
-                />
+                <NullableNumber value={draft.health} min={1} max={99} onChange={(health) => updateDraft({ health })} />
               </Field>
               <Field label="Point value">
-                <NullableNumber
-                  value={draft.pointValue}
-                  min={1}
-                  max={99}
-                  onChange={(pointValue) => updateDraft({ pointValue })}
-                />
+                <NullableNumber value={draft.pointValue} min={1} max={99} onChange={(pointValue) => updateDraft({ pointValue })} />
               </Field>
               <Field label="Elite point value">
-                <NullableNumber
-                  value={draft.elitePointValue}
-                  min={1}
-                  max={99}
-                  onChange={(elitePointValue) => updateDraft({ elitePointValue })}
-                />
+                <NullableNumber value={draft.elitePointValue} min={1} max={99} onChange={(elitePointValue) => updateDraft({ elitePointValue })} />
               </Field>
               <Field label="Plot point value">
-                <NullableNumber
-                  value={draft.plotPointValue}
-                  min={-5}
-                  max={5}
-                  onChange={(plotPointValue) => updateDraft({ plotPointValue })}
-                />
+                <NullableNumber value={draft.plotPointValue} min={-5} max={5} onChange={(plotPointValue) => updateDraft({ plotPointValue })} />
               </Field>
               <label className="flex min-h-[60px] items-center gap-2 self-end text-xs text-neutral-300">
                 <input
@@ -391,45 +412,6 @@ export function CardsTab({
                 <span>Unique</span>
               </label>
             </div>
-
-            <ArtUploader
-              cardId={draft.id}
-              artUrl={draft.artUrl ?? null}
-              onUploaded={(artUrl) => updateDraft({ artUrl })}
-            />
-
-            {draft.artUrl && (
-              <FrameEditor
-                shape="square"
-                artUrl={draft.artUrl}
-                frameX={draft.artFrameX ?? null}
-                frameY={draft.artFrameY ?? null}
-                frameZoom={draft.artFrameZoom ?? null}
-                onChange={(x, y, zoom) => updateDraft({ artFrameX: x, artFrameY: y, artFrameZoom: zoom })}
-              />
-            )}
-
-            {draft.artUrl && (
-              <FrameEditor
-                shape="portrait"
-                artUrl={draft.artUrl}
-                frameX={draft.cardFrameX ?? null}
-                frameY={draft.cardFrameY ?? null}
-                frameZoom={draft.cardFrameZoom ?? null}
-                onChange={(x, y, zoom) => updateDraft({ cardFrameX: x, cardFrameY: y, cardFrameZoom: zoom })}
-              />
-            )}
-
-            {draft.type === 'upgrade' && draft.artUrl && (
-              <FrameEditor
-                shape="circle"
-                artUrl={draft.artUrl}
-                frameX={draft.badgeFrameX ?? null}
-                frameY={draft.badgeFrameY ?? null}
-                frameZoom={draft.badgeFrameZoom ?? null}
-                onChange={(x, y, zoom) => updateDraft({ badgeFrameX: x, badgeFrameY: y, badgeFrameZoom: zoom })}
-              />
-            )}
 
             <Field label="Display text">
               <textarea
@@ -604,7 +586,7 @@ function ArtUploader({
           const file = e.dataTransfer.files[0];
           if (file) void handleFile(file);
         }}
-        className={`relative aspect-square w-[512px] max-w-full cursor-pointer overflow-hidden rounded-lg border-2 border-dashed transition ${
+        className={`relative aspect-square w-[160px] cursor-pointer overflow-hidden rounded-lg border-2 border-dashed transition ${
           dragOver
             ? 'border-emerald-500 bg-emerald-950/20'
             : 'border-neutral-700 bg-neutral-900 hover:border-neutral-500'
@@ -654,10 +636,10 @@ function ArtUploader({
 
 type FrameShape = 'square' | 'portrait' | 'circle';
 
-const FRAME_CONFIGS: Record<FrameShape, { label: string; w: number; h: number; radius: string; hint: string }> = {
-  square:   { label: 'Square frame',   w: 220, h: 220, radius: 'rounded-lg',   hint: 'Battle zone character cards' },
-  portrait: { label: 'Portrait frame', w: 157, h: 220, radius: 'rounded-lg',   hint: 'Hand overlay & detail views' },
-  circle:   { label: 'Circle frame',   w: 120, h: 120, radius: 'rounded-full', hint: 'Upgrade badges' },
+const FRAME_CONFIGS: Record<FrameShape, { label: string; w: number; h: number; cw: number; ch: number; radius: string; hint: string }> = {
+  square:   { label: 'Square',   w: 220, h: 220, cw: 96,  ch: 96,  radius: 'rounded-lg',   hint: 'Battle zone character cards' },
+  portrait: { label: 'Portrait', w: 157, h: 220, cw: 68,  ch: 96,  radius: 'rounded-lg',   hint: 'Hand overlay & detail views' },
+  circle:   { label: 'Circle',   w: 120, h: 120, cw: 80,  ch: 80,  radius: 'rounded-full', hint: 'Upgrade badges' },
 };
 
 function FrameEditor({
@@ -667,6 +649,7 @@ function FrameEditor({
   frameY,
   frameZoom,
   onChange,
+  compact = false,
 }: {
   shape: FrameShape;
   artUrl: string;
@@ -674,6 +657,7 @@ function FrameEditor({
   frameY: number | null;
   frameZoom: number | null;
   onChange: (x: number, y: number, zoom: number) => void;
+  compact?: boolean;
 }) {
   const x = frameX ?? 50;
   const y = frameY ?? 50;
@@ -713,6 +697,30 @@ function FrameEditor({
     onChange(cx, cy, Math.max(1, Math.min(4, Math.round((cz + (e.deltaY < 0 ? 0.1 : -0.1)) * 10) / 10)));
   };
 
+  const pw = compact ? cfg.cw : cfg.w;
+  const ph = compact ? cfg.ch : cfg.h;
+
+  if (compact) {
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <span className="text-[10px] text-neutral-500">{cfg.label}</span>
+        <div
+          onMouseDown={onMouseDown}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onWheel={onWheel}
+          style={{ width: pw, height: ph, touchAction: 'none' }}
+          className={`relative shrink-0 cursor-grab overflow-hidden border border-neutral-600 active:cursor-grabbing ${cfg.radius}`}
+        >
+          <img src={artUrl} alt="" aria-hidden draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${x}% ${y}%`, transform: zoom > 1 ? `scale(${zoom})` : undefined, transformOrigin: `${x}% ${y}%`, pointerEvents: 'none', userSelect: 'none' }} />
+        </div>
+        <input type="range" min={1} max={4} step={0.1} value={zoom} onChange={(e) => onChange(x, y, Number(e.target.value))} className="w-20 accent-emerald-500" title={`Zoom ${zoom.toFixed(1)}×`} />
+        <button type="button" onClick={() => onChange(50, 50, 1)} className="text-[10px] text-neutral-600 hover:text-neutral-300">Reset</button>
+      </div>
+    );
+  }
+
   return (
     <div className="col-span-full">
       <div className="mb-1 text-[11px] text-neutral-400">{cfg.label}</div>
@@ -724,16 +732,10 @@ function FrameEditor({
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
           onWheel={onWheel}
-          style={{ width: cfg.w, height: cfg.h, touchAction: 'none' }}
+          style={{ width: pw, height: ph, touchAction: 'none' }}
           className={`relative shrink-0 cursor-grab overflow-hidden border border-neutral-500 active:cursor-grabbing ${cfg.radius}`}
         >
-          <img
-            src={artUrl}
-            alt=""
-            aria-hidden
-            draggable={false}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${x}% ${y}%`, transform: zoom > 1 ? `scale(${zoom})` : undefined, transformOrigin: `${x}% ${y}%`, pointerEvents: 'none', userSelect: 'none' }}
-          />
+          <img src={artUrl} alt="" aria-hidden draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${x}% ${y}%`, transform: zoom > 1 ? `scale(${zoom})` : undefined, transformOrigin: `${x}% ${y}%`, pointerEvents: 'none', userSelect: 'none' }} />
         </div>
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-[11px] text-neutral-400">
