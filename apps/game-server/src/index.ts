@@ -42,9 +42,9 @@ import {
 } from './rooms.js';
 
 const httpServer = createServer(async (req, res) => {
-  // CORS preflight + headers for /admin and /card-art routes.
+  // CORS preflight + headers for /designer and /card-art routes.
   const origin = (req.headers.origin as string | undefined) ?? '*';
-  if (req.url?.startsWith('/admin') || req.url?.startsWith('/card-art/')) {
+  if (req.url?.startsWith('/designer') || req.url?.startsWith('/card-art/')) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -79,7 +79,7 @@ const httpServer = createServer(async (req, res) => {
   }
 
   // ── Card art upload (binary PUT body, Content-Type = image/*) ────────
-  const artUploadMatch = req.url?.match(/^\/admin\/card-art\/([^/]+)$/);
+  const artUploadMatch = req.url?.match(/^\/designer\/card-art\/([^/]+)$/);
   if (artUploadMatch && req.method === 'PUT') {
     const cardId = decodeURIComponent(artUploadMatch[1]!);
     if (!/^[A-Za-z0-9_-]{1,60}$/.test(cardId)) {
@@ -130,12 +130,12 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  if (req.url === '/admin/cards' && req.method === 'GET') {
+  if (req.url === '/designer/cards' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ cards: getCards() }));
     return;
   }
-  if (req.url === '/admin/cards' && req.method === 'PUT') {
+  if (req.url === '/designer/cards' && req.method === 'PUT') {
     try {
       const body = await readJsonBody(req);
       const parsed = cardCatalogSchema.parse(body);
@@ -148,12 +148,12 @@ const httpServer = createServer(async (req, res) => {
     }
     return;
   }
-  if (req.url === '/admin/decks' && req.method === 'GET') {
+  if (req.url === '/designer/decks' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ decks: getDecks() }));
     return;
   }
-  if (req.url === '/admin/decks' && req.method === 'PUT') {
+  if (req.url === '/designer/decks' && req.method === 'PUT') {
     try {
       const body = await readJsonBody(req);
       const parsed = deckCatalogSchema.parse(body);

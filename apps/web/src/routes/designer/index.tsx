@@ -1,7 +1,7 @@
-// Admin shell — two tabs (Cards / Decks) on a single page. Loads the
+// Designer shell — two tabs (Cards / Decks) on a single page. Loads the
 // catalog once on mount; each tab can call `reload()` after a save so
 // the list reflects the latest server state. No URL routing inside
-// /admin in v1; tab state is local.
+// /designer in v1; tab state is local.
 
 import type { Card, Deck } from '@prophecy/protocol';
 import { useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ import { fetchCards, fetchDecks } from './api.js';
 
 type Tab = 'cards' | 'decks';
 
-export function Admin() {
+export function Designer() {
   const [tab, setTab] = useState<Tab>(() =>
     window.location.pathname.endsWith('/decks') ? 'decks' : 'cards',
   );
@@ -42,7 +42,7 @@ export function Admin() {
 
   const setTabAndUrl = (next: Tab) => {
     setTab(next);
-    const path = next === 'cards' ? '/admin/cards' : '/admin/decks';
+    const path = next === 'cards' ? '/designer/cards' : '/designer/decks';
     if (window.location.pathname !== path) {
       window.history.replaceState(null, '', path);
     }

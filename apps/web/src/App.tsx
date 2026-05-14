@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { ErrorBoundary } from './lib/ErrorBoundary.js';
 import { clearCachedLobby, loadCachedLobby, saveCachedLobby } from './lib/lobbyCache.js';
-import { Admin } from './routes/admin/index.js';
+import { Designer } from './routes/designer/index.js';
 import { Game } from './routes/Game.js';
 import { Lobby } from './routes/Lobby.js';
 import { Splash } from './routes/Splash.js';
@@ -33,8 +33,8 @@ function Router() {
   const lobby = useApp((s) => s.lobby);
   const game = useApp((s) => s.game);
 
-  // /admin/* is its own surface — bypass game state entirely.
-  if (window.location.pathname.startsWith('/admin')) return <Admin />;
+  // /designer/* is its own surface — bypass game state entirely.
+  if (window.location.pathname.startsWith('/designer')) return <Designer />;
 
   if (game) return <Game />;
   if (lobby) return <Lobby />;
