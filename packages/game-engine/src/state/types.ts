@@ -220,4 +220,11 @@ export interface GameState {
    * keyword resolver, not this card.
    */
   readonly ambushGrantedThisTurn: boolean;
+  /**
+   * Maps every card instance id (hand/deck/discard/character) to the
+   * catalog card id it was minted from. Populated by newGameFromDecks;
+   * empty for test games that use newGame directly. Used by the web
+   * client to look up card names, ability text, and die face specs.
+   */
+  readonly cardCatalogIds: Readonly<Record<string, string>>;
 }
