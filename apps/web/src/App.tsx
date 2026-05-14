@@ -159,12 +159,11 @@ function ErrorToast() {
 
 function ConnectionPill() {
   const status = useApp((s) => s.connectionStatus);
+  if (status === 'connected') return null;
   const color =
-    status === 'connected'
-      ? 'border-green-700 text-green-300'
-      : status === 'connecting' || status === 'reconnecting'
-        ? 'border-amber-700 text-amber-300'
-        : 'border-red-700 text-red-300';
+    status === 'connecting' || status === 'reconnecting'
+      ? 'border-amber-700 text-amber-300'
+      : 'border-red-700 text-red-300';
   return (
     <div
       className={`fixed bottom-3 right-3 rounded-full border bg-neutral-950/80 px-3 py-1 text-[11px] uppercase tracking-wider ${color}`}
