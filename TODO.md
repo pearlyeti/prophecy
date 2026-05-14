@@ -140,6 +140,50 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
+#### WEB-8 — Drag-to-play (Pass 1: gesture + no targeting)
+**Why now.** Tapping a card to open an overlay then tapping "Play" is two gestures too many. Every touch-first card game uses drag-to-play: press a card, drag it out of your hand, release to play. Pass 1 lands the gesture and the visual artifact without requiring engine-level targeting — the card plays identically to tapping "Play this card" in the overlay.
+
+**Scope.**
+- **Drag initiation:** `onTouchStart` (and `onMouseDown` for desktop) on each `HandCardTile` starts a drag after a 120 ms delay or 8 px of movement — whichever comes first. Short taps still open the expanded overlay (existing behaviour). The delay prevents accidental drags while scrolling.
+- **Drag artifact:** a `position: fixed` clone of the card tile that follows `touch.clientX / touch.clientY`. Rendered in a portal at `z-60` so it floats above everything. Scale up slightly (1.1×) to lift it above the hand.
+- **Hit-testing:** `touchmove` fires on the original element, so use `document.elementFromPoint(touch.clientX, touch.clientY)` each frame to find what's under the finger. Elements that accept a drop carry a `data-droptarget="play"` attribute (added to the game board area). Highlight that zone with a pulsing emerald ring while the finger is over it.
+- **Drop:** `touchend` / `mouseup` — if the finger is over a valid drop target and the card is affordable, dispatch `play-card` exactly as the overlay does. If the drop is invalid (wrong zone, unaffordable) or the drag is cancelled (finger lifted outside), animate the clone back to its origin and do nothing.
+- **Drop target for Pass 1:** a single `data-droptarget="play"` zone covering the main game board area above the hand strip. Upgrade and event cards both target here for now — they play cost-only regardless of card type. Character cards in play are NOT yet drop targets (that's Pass 2).
+- **Cancel:** Escape key or lifting finger outside any drop target cancels the drag.
+- Mouse and touch both work; no pointer-events API (too limited on iOS Safari).
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (HandCardTile, HandStrip, Game layout, send callback)
+- `apps/web/src/store.ts` (selectionMode — drag should not start if selectionMode is active)
+
+**Out of scope.** Dragging onto specific character targets (Pass 2). SVG arrow from card to finger (nice-to-have, defer). Reroll-discard via drag. Drag on opponent's cards.
+
+**Done when.** Typecheck clean. Manual smoke on mobile: press and drag a card out of the hand strip — clone follows finger, game board lights up as a drop zone, release plays the card. Desktop: same with mouse. Short tap still opens the expanded card view.
+
+---
+
+#### WEB-9 — Drag-to-play (Pass 2: character targeting)
+**Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
+
+**Scope.**
+- Add `data-droptarget="character:{instanceId}"` attributes to each character tile in `PlayerSummaries` and the activate overlay.
+- On drag-over a character tile: highlight it with a ring color-coded by legality (emerald = valid, red = invalid). Valid targets depend on card type: upgrades → own characters, damage events → opponent characters, shield events → own characters.
+- On drop over a valid character target: dispatch `play-card` with `targetCharacterId` (once the engine action accepts it — coordinate with the ENGINE card that wires targeted play).
+- Remove or deprioritize the generic `data-droptarget="play"` zone for cards that require a character target; keep it for cards with no target (resources, supports, events with no target spec).
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (drag system from WEB-8, PlayerSummaries, character tile rendering)
+- `packages/game-engine/src/actions/play-card.ts` (targeted play-card action shape)
+- `packages/protocol/src/events.ts` (PlayCardAction)
+
+**Out of scope.** Multi-target events. AoE effects. Drag to reroll-discard.
+
+**Depends on.** WEB-8. Engine card that adds `targetCharacterId` to `play-card` action and validates it.
+
+**Done when.** Typecheck clean. Manual smoke: drag an upgrade card onto an eligible character — it attaches. Drag a damage event onto an opponent character — damage is dealt. Drag a card onto an ineligible target — drag cancels with red feedback.
+
+---
+
 #### WEB-7 — Human-readable activity log
 **Why now.** The current event log renders raw JSON next to event type names — unreadable in play. Testers can't follow what happened or why a game state changed without decoding engine internals.
 

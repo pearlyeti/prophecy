@@ -1058,21 +1058,22 @@ function HandCardTile({
     <button
       type="button"
       onClick={onTap}
-      className={`relative flex h-[96px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border text-left transition active:scale-95 ${
+      className={`relative flex h-[96px] min-w-0 flex-1 overflow-hidden rounded-lg border text-left transition active:scale-95 ${
         eligible
           ? 'border-emerald-500 shadow-[0_0_8px_1px_rgba(16,185,129,0.3)]'
           : 'border-neutral-700'
       }`}
     >
-      {/* art placeholder */}
-      <div className={`flex-1 bg-gradient-to-b ${cardArtGradient(card?.type ?? '')}`} />
-      {/* name + cost row */}
-      <div className="flex shrink-0 items-center gap-1 bg-neutral-900 px-1.5 py-1">
-        <span className="line-clamp-1 flex-1 text-[9px] leading-tight text-neutral-200">
+      {/* art placeholder — fills the whole tile */}
+      <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card?.type ?? '')}`} />
+      {/* cost badge — top-right */}
+      <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">
+        {cost}
+      </span>
+      {/* name scrim — bottom of art */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-3">
+        <span className="line-clamp-2 text-[9px] leading-tight text-white">
           {card?.name ?? '—'}
-        </span>
-        <span className="shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-700 text-[9px] font-bold text-neutral-200">
-          {cost}
         </span>
       </div>
     </button>
