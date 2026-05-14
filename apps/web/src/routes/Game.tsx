@@ -859,7 +859,7 @@ interface DragCardInfo {
   name: string;
   type: string;
   cost: number;
-  artUrl?: string | null;
+  artUrl?: string | null | undefined;
 }
 
 type DragHandlers = Pick<React.HTMLAttributes<HTMLButtonElement>, 'onTouchStart' | 'onMouseDown'>;
@@ -1053,7 +1053,7 @@ function DragArtifact({
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Fills its parent with card art if available, or falls back to the type-color gradient. */
-function CardArtBg({ artUrl, type, className = '' }: { artUrl?: string | null; type: string; className?: string }) {
+function CardArtBg({ artUrl, type, className = '' }: { artUrl?: string | null | undefined; type: string; className?: string }) {
   if (artUrl) {
     return <img src={artUrl} alt="" aria-hidden className={`absolute inset-0 h-full w-full object-cover ${className}`} />;
   }
