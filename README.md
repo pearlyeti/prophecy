@@ -173,7 +173,7 @@ All rules from [docs/rules-reference.md](docs/rules-reference.md) are implemente
 | `game-server` | Fly.io | Regional deploy keeps WebSocket latency low; player routed to nearest region |
 | Postgres | Neon | Serverless Postgres with branching (preview deploys get their own DB) and PITR |
 | Redis | Upstash | Pay-per-request, regional, enough for live game state and queues |
-| Object storage | Cloudflare R2 | Card art, audio, replays, cosmetic assets |
+| Object storage | Cloudflare R2 | Card art, audio, replays, cosmetic assets. Card art source files: 512 × 512 px, JPEG / PNG / WebP, max 4 MB. |
 | Edge / WAF | Cloudflare | Sits in front of all public endpoints; DDoS, rate-limit rules, bot detection |
 | Email | Resend | Transactional |
 | Errors / traces | Sentry + OTel collector | Self-hosted collector → Sentry for errors, Honeycomb/Tempo for traces |
