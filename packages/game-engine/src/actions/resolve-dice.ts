@@ -193,7 +193,7 @@ export function applyResolveDice(
   const post = working.players[playerId];
   if (!post) throw new Error(`resolver lost track of player ${playerId}`);
   const removed = new Set(dieInstanceIds);
-  const remainingDice = post.diceInPool.filter((d) => !removed.has(d.instanceId));
+  const remainingDice = post.diceInPool.filter((d) => !removed.has(d.instanceId) && !d.transient);
   const finalPlayer: PlayerState = {
     ...post,
     resources: post.resources - totalCost,
@@ -230,4 +230,3 @@ export function applyResolveDice(
   }
   return { state: rotated.state, events: rotated.events };
 }
-

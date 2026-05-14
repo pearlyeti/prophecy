@@ -74,6 +74,7 @@ export interface DieInPool {
   readonly cardId: string;
   readonly faceIndex: number;
   readonly face: DieFace;
+  readonly transient?: boolean;
 }
 
 /**
