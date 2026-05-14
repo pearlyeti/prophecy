@@ -1545,7 +1545,7 @@ function BattleZone({
   );
 }
 
-/** CCG-ratio character card tile with art gradient, health badge, upgrade badges. */
+/** Square character card tile. Exhausted = slight inward tilt, not a full rotation. */
 function CharacterCard({
   char,
   game,
@@ -1559,7 +1559,7 @@ function CharacterCard({
   game: GameState;
   catalogById: Map<string, Card>;
   className?: string;
-  /** Which way the card 'tips over' when exhausted. 'right' = CW (left/player side), 'left' = CCW (right/opponent side). */
+  /** Tilt direction when exhausted. 'right' tilts CW (top toward dice on right), 'left' tilts CCW. */
   tipDirection?: 'right' | 'left';
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
@@ -1568,25 +1568,16 @@ function CharacterCard({
   const card = catalogId ? catalogById.get(catalogId) : undefined;
   const hp = char.health - char.damage;
 
-  // When exhausted: rotate full-size (no scale) and shift so the rotated
-  // card's tip-edge (top of the card art) aligns with the dice-facing edge
-  // of the column. The opposite side of the rotated card extends outward
-  // into the outer margin; the wrapper's overflow-hidden clips anything
-  // that sticks out past the column. Card stays the same size ready or
-  // exhausted — only its orientation changes.
-  const exhaustedTransform =
-    tipDirection === 'right'
-      ? 'translateX(-20%) rotate(90deg)'
-      : 'translateX(20%) rotate(-90deg)';
+  // 6° tilt toward the dice pool — clear exhaustion indicator without layout disruption.
+  const exhaustedTransform = tipDirection === 'right' ? 'rotate(6deg)' : 'rotate(-6deg)';
 
   return (
-    // overflow-hidden clips any rotation overshoot at the wrapper boundary.
-    <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio: '63/88' }}>
-      {/* Card art + name — rotates + scales when exhausted */}
+    // Square aspect ratio. overflow-visible so the 6° tilt corner isn't clipped.
+    <div className={`relative overflow-visible ${className}`} style={{ aspectRatio: '1' }}>
       <button
         type="button"
         onClick={onTap}
-        className={`absolute inset-0 overflow-hidden rounded-lg border text-left transition-transform ${
+        className={`absolute inset-0 overflow-hidden rounded-xl border text-left transition-transform ${
           char.exhausted ? 'border-neutral-600 opacity-70' : 'border-neutral-700'
         }`}
         style={{
