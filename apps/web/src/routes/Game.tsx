@@ -1058,7 +1058,7 @@ function HandCardTile({
     <button
       type="button"
       onClick={onTap}
-      className={`relative flex h-[96px] w-[64px] shrink-0 flex-col overflow-hidden rounded-lg border text-left transition active:scale-95 ${
+      className={`relative flex h-[96px] min-w-0 flex-1 flex-col overflow-hidden rounded-lg border text-left transition active:scale-95 ${
         eligible
           ? 'border-emerald-500 shadow-[0_0_8px_1px_rgba(16,185,129,0.3)]'
           : 'border-neutral-700'
@@ -1103,7 +1103,7 @@ function HandStrip({
         {hand.length === 0 ? (
           <div className="text-[11px] text-neutral-600">Hand empty</div>
         ) : (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex w-full gap-1">
             {hand.map((id) => {
               const cost = game.cardCosts[id] ?? 0;
               const affordable = (me?.resources ?? 0) >= cost;
