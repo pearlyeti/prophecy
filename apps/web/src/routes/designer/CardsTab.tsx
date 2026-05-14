@@ -76,6 +76,13 @@ function newCard(): Card {
   };
 }
 
+interface CardTab {
+  key: string;
+  selectedId: string | null; // null = unsaved new card
+  draft: Card;
+  savedAt: number | null;
+}
+
 export function CardsTab({
   cards,
   attributes,
@@ -85,15 +92,20 @@ export function CardsTab({
   attributes: AttributeCatalog;
   onReload: () => void;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Card | null>(null);
-  const [filter, setFilter] = useState<string>('');
+  const [tabs, setTabs] = useState<CardTab[]>([]);
+  const [activeTabKey, setActiveTabKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [filter, setFilter] = useState<string>('');
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const newMenuRef = useRef<HTMLDivElement>(null);
-  // Collapsed groups — starts with all collapsed.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set(CARD_TYPES));
+
+  const activeTab = tabs.find((t) => t.key === activeTabKey) ?? null;
+  const draft = activeTab?.draft ?? null;
+  const selectedId = activeTab?.selectedId ?? null;
+
+  // IDs open in any tab (for accordion highlights).
+  const openIds = new Set(tabs.map((t) => t.selectedId).filter(Boolean) as string[]);
 
   useEffect(() => {
     if (!newMenuOpen) return;
@@ -107,64 +119,75 @@ export function CardsTab({
   const toggleGroup = (type: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev);
-      if (next.has(type)) next.delete(type);
-      else next.add(type);
+      if (next.has(type)) next.delete(type); else next.add(type);
       return next;
     });
 
   const filtered = cards.filter((c) => {
     if (!filter) return true;
     const q = filter.toLowerCase();
-    return (
-      c.id.toLowerCase().includes(q) ||
-      c.name.toLowerCase().includes(q) ||
-      c.type.toLowerCase().includes(q)
-    );
+    return c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.type.toLowerCase().includes(q);
   });
 
-  // Group filtered cards by type, preserving CARD_TYPES order.
   const grouped = CARD_TYPES.map((type) => ({
     type,
     cards: filtered.filter((c) => c.type === type),
   })).filter((g) => g.cards.length > 0);
 
-  // When filtering, always show cards regardless of collapsed state.
   const isExpanded = (type: string) => !!filter || !collapsed.has(type);
 
-  const select = (id: string | null) => {
-    setSelectedId(id);
-    setDraft(id ? structuredClone(cards.find((c) => c.id === id) ?? null) : null);
+  const openTab = (id: string) => {
+    const existing = tabs.find((t) => t.selectedId === id);
+    if (existing) { setActiveTabKey(existing.key); return; }
+    const card = cards.find((c) => c.id === id);
+    if (!card) return;
+    const tab: CardTab = { key: id, selectedId: id, draft: structuredClone(card), savedAt: null };
+    setTabs((prev) => [...prev, tab]);
+    setActiveTabKey(id);
   };
 
   const startNew = (type: Card['type']) => {
     const fresh = { ...newCard(), type, ...TYPE_DEFAULTS[type] };
-    setSelectedId(null);
-    setDraft(fresh);
+    const key = `new-${Math.random().toString(36).slice(2, 7)}`;
+    const tab: CardTab = { key, selectedId: null, draft: fresh, savedAt: null };
+    setTabs((prev) => [...prev, tab]);
+    setActiveTabKey(key);
     setNewMenuOpen(false);
   };
 
+  const closeTab = (key: string) => {
+    setTabs((prev) => {
+      const next = prev.filter((t) => t.key !== key);
+      if (key === activeTabKey) {
+        const idx = prev.findIndex((t) => t.key === key);
+        setActiveTabKey(next[Math.max(0, idx - 1)]?.key ?? null);
+      }
+      return next;
+    });
+  };
+
   const updateDraft = (patch: Partial<Card>) => {
-    if (!draft) return;
-    setDraft({ ...draft, ...patch });
+    if (!activeTabKey) return;
+    setTabs((prev) => prev.map((t) => t.key === activeTabKey ? { ...t, draft: { ...t.draft, ...patch } } : t));
   };
 
   const saveCurrent = async () => {
-    if (!draft) return;
+    if (!draft || !activeTabKey) return;
     setSaving(true);
     try {
       let next: Card[];
       if (selectedId === null) {
-        // New card — append. Reject duplicate id.
-        if (cards.some((c) => c.id === draft.id)) {
-          throw new Error(`card id "${draft.id}" already exists`);
-        }
+        if (cards.some((c) => c.id === draft.id)) throw new Error(`card id "${draft.id}" already exists`);
         next = [...cards, draft];
       } else {
         next = cards.map((c) => (c.id === selectedId ? draft : c));
       }
       await saveCards(next);
-      setSelectedId(draft.id);
-      setSavedAt(Date.now());
+      // Promote tab key to the saved card id.
+      setTabs((prev) => prev.map((t) =>
+        t.key === activeTabKey ? { ...t, key: draft.id, selectedId: draft.id, savedAt: Date.now() } : t,
+      ));
+      setActiveTabKey(draft.id);
       onReload();
     } catch (e) {
       alert(`Save failed: ${(e as Error).message}`);
@@ -174,15 +197,12 @@ export function CardsTab({
   };
 
   const deleteSelected = async () => {
-    if (selectedId === null) return;
-    if (!confirm(`Delete ${selectedId}? This removes it from any deck that references it.`)) {
-      return;
-    }
+    if (!selectedId || !activeTabKey) return;
+    if (!confirm(`Delete ${selectedId}? This removes it from any deck that references it.`)) return;
     setSaving(true);
     try {
       await saveCards(cards.filter((c) => c.id !== selectedId));
-      setSelectedId(null);
-      setDraft(null);
+      closeTab(activeTabKey);
       onReload();
     } catch (e) {
       alert(`Delete failed: ${(e as Error).message}`);
@@ -247,16 +267,19 @@ export function CardsTab({
                 {expanded && (
                   <ul className="ml-3 mt-0.5 space-y-0.5 border-l border-neutral-800 pl-2">
                     {group.map((c) => {
-                      const isSelected = c.id === selectedId;
+                      const isActive = c.id === selectedId;
+                      const isOpen = openIds.has(c.id) && !isActive;
                       return (
                         <li key={c.id}>
                           <button
                             type="button"
-                            onClick={() => select(c.id)}
+                            onClick={() => openTab(c.id)}
                             className={`flex min-h-[44px] w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs ${
-                              isSelected
+                              isActive
                                 ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
-                                : 'border-neutral-800 bg-neutral-900 text-neutral-200 hover:border-neutral-600'
+                                : isOpen
+                                  ? 'border-neutral-600 bg-neutral-800/60 text-neutral-300'
+                                  : 'border-neutral-800 bg-neutral-900 text-neutral-200 hover:border-neutral-600'
                             }`}
                           >
                             <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded">
@@ -292,7 +315,45 @@ export function CardsTab({
         </div>
       </aside>
 
-      <section className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-4">
+      <section className="flex min-h-0 flex-col rounded-xl border border-neutral-800 bg-neutral-950/40">
+        {/* ── Tab bar ─────────────────────────────────────────── */}
+        {tabs.length > 0 && (
+          <div className="flex items-end gap-0.5 overflow-x-auto border-b border-neutral-800 px-2 pt-2 shrink-0">
+            {tabs.map((tab) => {
+              const isActive = tab.key === activeTabKey;
+              return (
+                <div
+                  key={tab.key}
+                  className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-xs transition ${
+                    isActive
+                      ? 'border-neutral-700 bg-neutral-950/80 text-neutral-100'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${TYPE_BADGE[tab.draft.type]}`} />
+                  <button
+                    type="button"
+                    onClick={() => setActiveTabKey(tab.key)}
+                    className="max-w-[140px] truncate text-left"
+                  >
+                    {tab.draft.name || 'New Card'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => closeTab(tab.key)}
+                    className="ml-0.5 text-neutral-600 hover:text-red-400"
+                    aria-label="Close tab"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Form area ───────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-4">
         {!draft ? (
           <div className="text-sm text-neutral-500">
             Select a card on the left, or click <span className="text-emerald-300">+ New</span>.
@@ -505,20 +566,25 @@ export function CardsTab({
               )}
               <button
                 type="button"
-                onClick={() => select(selectedId)}
+                onClick={() => {
+                  if (!selectedId || !activeTabKey) return;
+                  const original = cards.find((c) => c.id === selectedId);
+                  if (original) setTabs((prev) => prev.map((t) => t.key === activeTabKey ? { ...t, draft: structuredClone(original), savedAt: null } : t));
+                }}
                 disabled={saving || selectedId === null}
                 className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500 disabled:opacity-50"
               >
                 Revert
               </button>
-              {savedAt && (
+              {activeTab?.savedAt && (
                 <span className="self-center text-[11px] text-emerald-400">
-                  Saved {new Date(savedAt).toLocaleTimeString()}
+                  Saved {new Date(activeTab.savedAt).toLocaleTimeString()}
                 </span>
               )}
             </div>
           </form>
         )}
+        </div>
       </section>
     </div>
   );
