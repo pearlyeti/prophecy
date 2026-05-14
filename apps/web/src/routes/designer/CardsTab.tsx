@@ -81,6 +81,16 @@ export function CardsTab({
   const [filter, setFilter] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  // Collapsed groups — starts with all expanded.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (type: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
 
   const filtered = cards.filter((c) => {
     if (!filter) return true;
@@ -91,6 +101,15 @@ export function CardsTab({
       c.type.toLowerCase().includes(q)
     );
   });
+
+  // Group filtered cards by type, preserving CARD_TYPES order.
+  const grouped = CARD_TYPES.map((type) => ({
+    type,
+    cards: filtered.filter((c) => c.type === type),
+  })).filter((g) => g.cards.length > 0);
+
+  // When filtering, always show cards regardless of collapsed state.
+  const isExpanded = (type: string) => !!filter || !collapsed.has(type);
 
   const select = (id: string | null) => {
     setSelectedId(id);
@@ -173,32 +192,47 @@ export function CardsTab({
         <div className="text-[10px] uppercase tracking-wider text-neutral-500">
           {filtered.length} / {cards.length}
         </div>
-        <ul className="mt-2 max-h-[70vh] space-y-1 overflow-y-auto">
-          {filtered.map((c) => {
-            const isSelected = c.id === selectedId;
+        <div className="mt-2 max-h-[70vh] overflow-y-auto space-y-1">
+          {grouped.map(({ type, cards: group }) => {
+            const expanded = isExpanded(type);
             return (
-              <li key={c.id}>
+              <div key={type}>
                 <button
                   type="button"
-                  onClick={() => select(c.id)}
-                  className={`min-h-[44px] w-full rounded border px-2 py-1 text-left text-xs ${
-                    isSelected
-                      ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
-                      : 'border-neutral-800 bg-neutral-900 text-neutral-200 hover:border-neutral-600'
-                  }`}
+                  onClick={() => toggleGroup(type)}
+                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left hover:bg-neutral-800/60"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{c.name}</span>
-                    <span className="font-mono text-[10px] text-neutral-500">{c.id}</span>
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-neutral-500">
-                    {c.type} · {c.color} · cost {c.cost ?? '—'}
-                  </div>
+                  <span className="text-[10px] text-neutral-500 transition-transform" style={{ display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'none' }}>▶</span>
+                  <span className="flex-1 text-xs font-semibold capitalize text-neutral-300">{type}</span>
+                  <span className="text-[10px] text-neutral-600">{group.length}</span>
                 </button>
-              </li>
+                {expanded && (
+                  <ul className="ml-3 mt-0.5 space-y-0.5 border-l border-neutral-800 pl-2">
+                    {group.map((c) => {
+                      const isSelected = c.id === selectedId;
+                      return (
+                        <li key={c.id}>
+                          <button
+                            type="button"
+                            onClick={() => select(c.id)}
+                            className={`min-h-[44px] w-full rounded border px-2 py-1 text-left text-xs ${
+                              isSelected
+                                ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
+                                : 'border-neutral-800 bg-neutral-900 text-neutral-200 hover:border-neutral-600'
+                            }`}
+                          >
+                            <div className="font-medium leading-tight">{c.name}</div>
+                            <div className="font-mono text-[10px] text-neutral-500">{c.id}</div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             );
           })}
-        </ul>
+        </div>
       </aside>
 
       <section className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-4">
