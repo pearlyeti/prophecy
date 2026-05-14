@@ -67,18 +67,6 @@ export function writeDecks(decks: readonly Deck[]): void {
   cachedDecks = [...parsed.decks];
 }
 
-// Backwards-compat aliases used by rooms.ts. Phase out once rooms.ts
-// is updated to call getCards / getDecks directly.
-export const TESTING_CARDS = new Proxy([] as unknown as Card[], {
-  get(_t, prop) {
-    return Reflect.get(getCards(), prop);
-  },
-});
-export const TESTING_DECKS = new Proxy([] as unknown as Deck[], {
-  get(_t, prop) {
-    return Reflect.get(getDecks(), prop);
-  },
-});
 
 if (getDecks().length < 2) {
   throw new Error(

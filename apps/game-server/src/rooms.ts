@@ -9,7 +9,7 @@ import {
 import type { LobbyMember, LobbyPhase, LobbyState } from '@prophecy/protocol';
 import { randomBytes, randomUUID } from 'node:crypto';
 
-import { TESTING_CARDS, TESTING_DECKS } from './corpus.js';
+import { getCards, getDecks } from './corpus.js';
 
 // Two-player limit per the v1 scope (1v1 only).
 const ROOM_CAPACITY = 2;
@@ -116,8 +116,9 @@ export function startRoom(roomId: string, playerId: string, seed: string): Room 
   // which. This is the stand-in until the deckbuilder lands and players
   // bring their own.
   const playerIds = [...room.members.keys()] as [string, string];
-  const deckA = TESTING_DECKS[0];
-  const deckB = TESTING_DECKS[1];
+  const decks = getDecks();
+  const deckA = decks[0];
+  const deckB = decks[1];
   if (!deckA || !deckB) {
     throw new Error('corpus must expose at least two test decks');
   }
@@ -129,7 +130,7 @@ export function startRoom(roomId: string, playerId: string, seed: string): Room 
 
   room.game = newGameFromDecks({
     seed,
-    catalog: TESTING_CARDS as unknown as GameCatalog,
+    catalog: getCards() as unknown as GameCatalog,
     assignments: [
       { playerId: playerIds[0], deck: firstDeck as unknown as GameDeck },
       { playerId: playerIds[1], deck: secondDeck as unknown as GameDeck },
