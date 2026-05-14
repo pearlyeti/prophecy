@@ -1770,8 +1770,13 @@ function DiceStack({
     }
   };
 
+  // Horizontal mode: smaller tiles so multiple dice fit side-by-side over the card.
+  const tileSize = horizontal ? 'h-8 w-8' : 'h-12 w-12';
+  const tileText = horizontal ? 'text-[8px]' : 'text-[10px]';
+  const valueText = horizontal ? 'text-xs' : 'text-base';
+
   return (
-    <div className={`flex gap-1 ${horizontal ? 'flex-row flex-wrap justify-center' : 'flex-col'}`}>
+    <div className={`flex gap-1 ${horizontal ? 'w-full flex-row flex-wrap justify-center' : 'flex-col'}`}>
       {dice.map((d) => {
         const selected = !!selectedIds?.includes(d.instanceId);
         const inSelectionMode = selectionMode !== null;
@@ -1784,7 +1789,7 @@ function DiceStack({
         const interactive = diceInteractive || inSelectionMode;
         const tile = (
           <div
-            className={`flex h-12 w-12 flex-col items-center justify-center rounded-md border text-[10px] uppercase ${
+            className={`flex ${tileSize} flex-col items-center justify-center rounded border ${tileText} uppercase ${
               selected
                 ? 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500'
                 : interactive && inSelectionMode && !canInteract
@@ -1793,10 +1798,10 @@ function DiceStack({
             }`}
             title={`${d.face.symbol} ${d.face.value}${d.face.modifier ? ' +mod' : ''}`}
           >
-            <span className="font-mono text-base text-neutral-100">
+            <span className={`font-mono ${valueText} text-neutral-100`}>
               {d.face.modifier ? '+' : ''}{d.face.value || ''}
             </span>
-            <span className="text-[9px] leading-tight">{symbolLabel(d.face.symbol)}</span>
+            <span className="text-[7px] leading-tight">{symbolLabel(d.face.symbol)}</span>
           </div>
         );
 
@@ -1808,7 +1813,7 @@ function DiceStack({
             type="button"
             disabled={inSelectionMode && !canInteract && !selected}
             onClick={() => handleTap(d)}
-            className="min-h-[44px] min-w-[44px] rounded-md disabled:cursor-not-allowed"
+            className={`${horizontal ? 'min-h-[44px]' : 'min-h-[44px] min-w-[44px]'} rounded disabled:cursor-not-allowed`}
           >
             {tile}
           </button>
