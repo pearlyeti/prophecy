@@ -1,30 +1,34 @@
-// Designer shell — two tabs (Cards / Decks) on a single page. Loads the
-// catalog once on mount; each tab can call `reload()` after a save so
-// the list reflects the latest server state. No URL routing inside
-// /designer in v1; tab state is local.
+// Designer shell — three tabs (Cards / Decks / Attributes). Loads all
+// catalogs once on mount; each tab calls `reload()` after a save.
 
-import type { Card, Deck } from '@prophecy/protocol';
+import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
 import { useEffect, useState } from 'react';
 
+import { AttributesTab } from './AttributesTab.js';
 import { CardsTab } from './CardsTab.js';
 import { DecksTab } from './DecksTab.js';
-import { fetchCards, fetchDecks } from './api.js';
+import { fetchAttributes, fetchCards, fetchDecks } from './api.js';
 
-type Tab = 'cards' | 'decks';
+type Tab = 'cards' | 'decks' | 'attributes';
 
 export function Designer() {
-  const [tab, setTab] = useState<Tab>(() =>
-    window.location.pathname.endsWith('/decks') ? 'decks' : 'cards',
-  );
+  const [tab, setTab] = useState<Tab>(() => {
+    const p = window.location.pathname;
+    if (p.endsWith('/decks')) return 'decks';
+    if (p.endsWith('/attributes')) return 'attributes';
+    return 'cards';
+  });
   const [cards, setCards] = useState<readonly Card[] | null>(null);
   const [decks, setDecks] = useState<readonly Deck[] | null>(null);
+  const [attributes, setAttributes] = useState<AttributeCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = async () => {
     try {
-      const [c, d] = await Promise.all([fetchCards(), fetchDecks()]);
+      const [c, d, a] = await Promise.all([fetchCards(), fetchDecks(), fetchAttributes()]);
       setCards(c);
       setDecks(d);
+      setAttributes(a);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -42,7 +46,7 @@ export function Designer() {
 
   const setTabAndUrl = (next: Tab) => {
     setTab(next);
-    const path = next === 'cards' ? '/designer/cards' : '/designer/decks';
+    const path = next === 'cards' ? '/designer/cards' : next === 'decks' ? '/designer/decks' : '/designer/attributes';
     if (window.location.pathname !== path) {
       window.history.replaceState(null, '', path);
     }
@@ -61,12 +65,9 @@ export function Designer() {
       </header>
 
       <nav className="mb-4 flex gap-2 border-b border-neutral-800 pb-2">
-        <TabButton active={tab === 'cards'} onClick={() => setTabAndUrl('cards')}>
-          Cards
-        </TabButton>
-        <TabButton active={tab === 'decks'} onClick={() => setTabAndUrl('decks')}>
-          Decks
-        </TabButton>
+        <TabButton active={tab === 'cards'} onClick={() => setTabAndUrl('cards')}>Cards</TabButton>
+        <TabButton active={tab === 'decks'} onClick={() => setTabAndUrl('decks')}>Decks</TabButton>
+        <TabButton active={tab === 'attributes'} onClick={() => setTabAndUrl('attributes')}>Attributes</TabButton>
       </nav>
 
       {error && (
@@ -75,12 +76,14 @@ export function Designer() {
         </div>
       )}
 
-      {cards === null || decks === null ? (
+      {cards === null || decks === null || attributes === null ? (
         <div className="text-sm text-neutral-500">Loading catalog…</div>
       ) : tab === 'cards' ? (
-        <CardsTab cards={cards} onReload={reload} />
-      ) : (
+        <CardsTab cards={cards} attributes={attributes} onReload={reload} />
+      ) : tab === 'decks' ? (
         <DecksTab cards={cards} decks={decks} onReload={reload} />
+      ) : (
+        <AttributesTab attributes={attributes} onReload={reload} />
       )}
     </main>
   );

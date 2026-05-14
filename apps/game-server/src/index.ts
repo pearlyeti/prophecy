@@ -14,6 +14,7 @@ import { basename, extname, resolve } from 'node:path';
 import { Server } from 'socket.io';
 
 import { artDir, getCards, getDecks, initialize, writeCards, writeDecks } from './corpus.js';
+import { getAttributes, initializeAttributes, writeAttributes } from './attributeCorpus.js';
 import { isStorageConfigured, uploadFile } from './storage.js';
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
@@ -160,6 +161,25 @@ const httpServer = createServer(async (req, res) => {
       writeDecks(parsed.decks);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, count: parsed.decks.length }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
+    }
+    return;
+  }
+  if (req.url === '/designer/attributes' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(getAttributes()));
+    return;
+  }
+  if (req.url === '/designer/attributes' && req.method === 'PUT') {
+    try {
+      const body = await readJsonBody(req);
+      const { attributeCatalogSchema } = await import('@prophecy/protocol');
+      const parsed = attributeCatalogSchema.parse(body);
+      writeAttributes(parsed);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
     } catch (e) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
@@ -416,6 +436,7 @@ function toError(e: unknown): ErrorPayload {
 const port = Number(process.env.PORT ?? process.env.GAME_SERVER_PORT ?? 3001);
 
 await initialize();
+await initializeAttributes();
 
 httpServer.listen(port, () => {
   console.log(`game-server listening on http://localhost:${port}`);

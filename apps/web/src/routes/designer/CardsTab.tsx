@@ -4,9 +4,7 @@
 
 import {
   CARD_TYPES,
-  COLORS,
-  FACTIONS,
-  RARITIES,
+  type AttributeCatalog,
   type Card,
   type Ability,
   type DieFace,
@@ -42,7 +40,7 @@ function newCard(): Card {
     id: `CARD_${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
     name: 'New Card',
     type: 'event',
-    subtype: null,
+    subtypes: [],
     faction: 'neutral',
     color: 'gray',
     rarity: 'common',
@@ -71,9 +69,11 @@ function newCard(): Card {
 
 export function CardsTab({
   cards,
+  attributes,
   onReload,
 }: {
   cards: readonly Card[];
+  attributes: AttributeCatalog;
   onReload: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -301,28 +301,14 @@ export function CardsTab({
                   ))}
                 </select>
               </Field>
-              <Field label="Subtype">
-                <input
-                  type="text"
-                  value={draft.subtype ?? ''}
-                  onChange={(e) =>
-                    updateDraft({ subtype: e.target.value || null })
-                  }
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
-                />
-              </Field>
               <Field label="Faction">
                 <select
                   value={draft.faction}
-                  onChange={(e) =>
-                    updateDraft({ faction: e.target.value as Card['faction'] })
-                  }
+                  onChange={(e) => updateDraft({ faction: e.target.value as Card['faction'] })}
                   className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                 >
-                  {FACTIONS.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
+                  {attributes.factions.map((f) => (
+                    <option key={f} value={f}>{f}</option>
                   ))}
                 </select>
               </Field>
@@ -330,17 +316,12 @@ export function CardsTab({
                 <Field label="Color">
                   <select
                     value={draft.color ?? ''}
-                    onChange={(e) =>
-                      updateDraft({
-                        color: (e.target.value || null) as Card['color'],
-                      })
-                    }
+                    onChange={(e) => updateDraft({ color: (e.target.value || null) as Card['color'] })}
                     className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                   >
-                    {COLORS.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
+                    <option value="">—</option>
+                    {attributes.colors.map((c) => (
+                      <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
                 </Field>
@@ -348,18 +329,19 @@ export function CardsTab({
               <Field label="Rarity">
                 <select
                   value={draft.rarity}
-                  onChange={(e) =>
-                    updateDraft({ rarity: e.target.value as Card['rarity'] })
-                  }
+                  onChange={(e) => updateDraft({ rarity: e.target.value as Card['rarity'] })}
                   className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                 >
-                  {RARITIES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
+                  {attributes.rarities.map((r) => (
+                    <option key={r} value={r}>{r}</option>
                   ))}
                 </select>
               </Field>
+              <SubtypePicker
+                selected={draft.subtypes ?? []}
+                options={attributes.subtypes}
+                onChange={(subtypes) => updateDraft({ subtypes })}
+              />
               <Field label="Cost">
                 <NullableNumber
                   value={draft.cost}
@@ -763,6 +745,67 @@ function FrameEditor({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Subtype multi-select picker ──────────────────────────────────────────────
+
+function SubtypePicker({
+  selected,
+  options,
+  onChange,
+}: {
+  selected: string[];
+  options: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [input, setInput] = useState('');
+
+  const add = (val: string) => {
+    const v = val.trim();
+    if (!v || selected.includes(v)) return;
+    onChange([...selected, v]);
+    setInput('');
+  };
+
+  const remove = (val: string) => onChange(selected.filter((s) => s !== val));
+
+  const suggestions = options.filter((o) => !selected.includes(o) && (!input || o.toLowerCase().includes(input.toLowerCase())));
+
+  return (
+    <div className="col-span-full flex flex-col text-[11px] text-neutral-400">
+      <span className="mb-1">Subtypes</span>
+      <div className="flex min-h-[36px] flex-wrap gap-1 rounded border border-neutral-700 bg-neutral-900 px-2 py-1">
+        {selected.map((s) => (
+          <span key={s} className="flex items-center gap-1 rounded bg-neutral-700 px-1.5 py-0.5 text-[11px] text-neutral-100">
+            {s}
+            <button type="button" onClick={() => remove(s)} className="text-neutral-400 hover:text-red-400">×</button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={input}
+          placeholder={selected.length === 0 ? 'Add subtype…' : ''}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); add(input); }
+            if (e.key === 'Backspace' && !input && selected.length > 0) remove(selected[selected.length - 1]!);
+          }}
+          className="min-w-[80px] flex-1 bg-transparent text-xs text-neutral-200 outline-none"
+        />
+      </div>
+      {input && suggestions.length > 0 && (
+        <ul className="mt-0.5 rounded border border-neutral-700 bg-neutral-900 shadow">
+          {suggestions.slice(0, 6).map((s) => (
+            <li key={s}>
+              <button type="button" onClick={() => add(s)} className="w-full px-2 py-1.5 text-left text-xs text-neutral-200 hover:bg-neutral-800">
+                {s}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

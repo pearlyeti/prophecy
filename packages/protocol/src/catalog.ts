@@ -332,7 +332,7 @@ export const cardSchema = z
     id: z.string().min(1).max(40),
     name: z.string().min(1).max(80),
     type: cardTypeSchema,
-    subtype: z.string().max(80).nullable().default(null),
+    subtypes: z.array(z.string().max(80)).default([]),
     faction: factionSchema,
     color: colorSchema.nullable(),
     rarity: raritySchema,
@@ -372,6 +372,19 @@ export type Card = z.infer<typeof cardSchema>;
 
 export const cardCatalogSchema = z.object({ cards: z.array(cardSchema) });
 export type CardCatalog = z.infer<typeof cardCatalogSchema>;
+
+// ────────────────────────────────────────────────────────────────────
+// Attribute catalog
+// ────────────────────────────────────────────────────────────────────
+
+export const attributeCatalogSchema = z.object({
+  subtypes: z.array(z.string()).default([]),
+  colors: z.array(z.string()).default([]),
+  factions: z.array(z.string()).default([]),
+  rarities: z.array(z.string()).default([]),
+  keywords: z.array(z.string()).default([]),
+});
+export type AttributeCatalog = z.infer<typeof attributeCatalogSchema>;
 
 // ────────────────────────────────────────────────────────────────────
 // Deck

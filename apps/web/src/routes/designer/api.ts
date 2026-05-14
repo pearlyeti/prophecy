@@ -1,8 +1,6 @@
-// REST helpers for the /designer endpoints on the game-server. Resolves
-// the server URL the same way the socket client does so dev across
-// localhost and LAN IPs Just Works without re-baking the bundle.
+// REST helpers for the /designer endpoints on the game-server.
 
-import type { Card, Deck } from '@prophecy/protocol';
+import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
 
 function serverUrl(): string {
   return (
@@ -51,6 +49,24 @@ export async function uploadCardArt(cardId: string, file: File): Promise<string>
   }
   const body = (await r.json()) as { artUrl: string };
   return body.artUrl;
+}
+
+export async function fetchAttributes(): Promise<AttributeCatalog> {
+  const r = await fetch(`${serverUrl()}/designer/attributes`);
+  if (!r.ok) throw new Error(`GET /designer/attributes failed: ${r.status}`);
+  return (await r.json()) as AttributeCatalog;
+}
+
+export async function saveAttributes(attrs: AttributeCatalog): Promise<void> {
+  const r = await fetch(`${serverUrl()}/designer/attributes`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(attrs),
+  });
+  if (!r.ok) {
+    const body = (await r.json().catch(() => ({ error: r.statusText }))) as { error?: string };
+    throw new Error(body.error ?? `PUT /designer/attributes failed: ${r.status}`);
+  }
 }
 
 export async function saveDecks(decks: readonly Deck[]): Promise<void> {

@@ -1,0 +1,7 @@
+{
+  "subtypes": ["Soldier", "Warrior", "Pilot", "Vehicle", "Apprentice"],
+  "colors": ["red", "blue", "yellow", "gray"],
+  "factions": ["light", "shadow", "neutral"],
+  "rarities": ["fixed", "common", "uncommon", "rare", "legendary"],
+  "keywords": ["ambush", "guardian", "modify", "redeploy"]
+}

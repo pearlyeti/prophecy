@@ -1333,7 +1333,7 @@ function HandOverlay({
               {card && (
                 <div className="mt-1 flex flex-wrap gap-1">
                   <span className={`rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(card.type)}`}>
-                    {card.type}{card.subtype ? ` · ${card.subtype}` : ''}
+                    {card.type}{card.subtypes?.length ? ` · ${card.subtypes.join(', ')}` : ''}
                   </span>
                   <span className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-400">
                     {card.faction}{card.color ? ` · ${card.color}` : ''}
@@ -1856,7 +1856,7 @@ function CardDetailOverlay({
           {card && (
             <div className="flex flex-wrap gap-1">
               <span className={`rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(card.type)}`}>
-                {card.type}{card.subtype ? ` · ${card.subtype}` : ''}
+                {card.type}{card.subtypes?.length ? ` · ${card.subtypes.join(', ')}` : ''}
               </span>
               <span className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-400">
                 {card.faction}{card.color ? ` · ${card.color}` : ''}
@@ -1935,7 +1935,7 @@ function UpgradeDetailOverlay({
           </div>
           <div className="flex flex-wrap gap-1">
             <span className={`rounded px-1.5 py-0.5 text-[10px] text-white ${cardTypeBand(card.type)}`}>
-              {card.type}{card.subtype ? ` · ${card.subtype}` : ''}
+              {card.type}{card.subtypes?.length ? ` · ${card.subtypes.join(', ')}` : ''}
             </span>
           </div>
           {card.displayText ? (

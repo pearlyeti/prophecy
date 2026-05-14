@@ -35,6 +35,7 @@ export function isStorageConfigured(): boolean {
 }
 
 const CATALOG_KEY = 'catalog/cards.json';
+const ATTRIBUTES_KEY = 'catalog/attributes.json';
 
 /** Read the card catalog JSON from storage. Returns null if absent or storage not configured. */
 export async function readCatalogFromStorage(): Promise<string | null> {
@@ -46,6 +47,23 @@ export async function readCatalogFromStorage(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export async function readAttributesFromStorage(): Promise<string | null> {
+  const c = client();
+  if (!c) return null;
+  try {
+    const result = await c.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: ATTRIBUTES_KEY }));
+    return (await result.Body?.transformToString()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeAttributesToStorage(json: string): Promise<void> {
+  const c = client();
+  if (!c) return;
+  await c.send(new PutObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: ATTRIBUTES_KEY, Body: json, ContentType: 'application/json' }));
 }
 
 /** Persist the card catalog JSON to storage. No-op if storage not configured. */
