@@ -1477,6 +1477,7 @@ function BattleZone({
                   game={game}
                   catalogById={catalogById}
                   className="flex-[9] min-w-0"
+                  tipDirection="right"
                   onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
                   onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
                 />
@@ -1515,6 +1516,7 @@ function BattleZone({
                   game={game}
                   catalogById={catalogById}
                   className="flex-[9] min-w-0"
+                  tipDirection="left"
                   onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
                   onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
                 />
@@ -1549,6 +1551,7 @@ function CharacterCard({
   game,
   catalogById,
   className = '',
+  tipDirection = 'right',
   onTap,
   onUpgradeTap,
 }: {
@@ -1556,6 +1559,8 @@ function CharacterCard({
   game: GameState;
   catalogById: Map<string, Card>;
   className?: string;
+  /** Which way the card 'tips over' when exhausted. 'right' = CW (left/player side), 'left' = CCW (right/opponent side). */
+  tipDirection?: 'right' | 'left';
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -1563,17 +1568,30 @@ function CharacterCard({
   const card = catalogId ? catalogById.get(catalogId) : undefined;
   const hp = char.health - char.damage;
 
+  // When exhausted: rotate so the card's top points at the dice pool, and
+  // scale by 63/88 (CCG width:height) so the rotated landscape card fits
+  // exactly within the original portrait column width. The right edge of
+  // the rotated card (= top of the card art) lines up with the right edge
+  // of the original column — no overflow into the dice pool, on any width.
+  const exhaustedTransform =
+    tipDirection === 'right'
+      ? 'rotate(90deg) scale(0.7159)'
+      : 'rotate(-90deg) scale(0.7159)';
+
   return (
-    // overflow-hidden clips the rotated card art; the wrapper itself never rotates.
+    // overflow-hidden clips any rotation overshoot at the wrapper boundary.
     <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio: '63/88' }}>
-      {/* Card art + name — rotates 90° when exhausted */}
+      {/* Card art + name — rotates + scales when exhausted */}
       <button
         type="button"
         onClick={onTap}
         className={`absolute inset-0 overflow-hidden rounded-lg border text-left transition-transform ${
           char.exhausted ? 'border-neutral-600 opacity-70' : 'border-neutral-700'
         }`}
-        style={{ transform: char.exhausted ? 'rotate(90deg)' : 'none', transformOrigin: 'center center' }}
+        style={{
+          transform: char.exhausted ? exhaustedTransform : 'none',
+          transformOrigin: 'center center',
+        }}
         aria-label={`${card?.name ?? 'Character'} — ${hp} HP${char.exhausted ? ' (exhausted)' : ''}`}
       >
         <div className={`absolute inset-0 bg-gradient-to-b ${cardArtGradient(card?.type ?? 'character')}`} />
