@@ -320,7 +320,39 @@ export function CardsTab({
       <section className="flex min-h-0 flex-col rounded-xl border border-neutral-800 bg-neutral-950/40">
         {/* ── Tab bar ─────────────────────────────────────────── */}
         {tabs.length > 0 && (
-          <div className="flex items-end gap-0.5 overflow-x-auto border-b border-neutral-800 px-2 pt-2 shrink-0">
+          <div
+            className="flex items-end gap-0.5 overflow-x-auto border-b border-neutral-800 px-2 pt-2 shrink-0"
+            onDragOver={(e) => {
+              e.preventDefault();
+              // Find nearest tab by cursor X — works even in gaps between tabs.
+              const els = e.currentTarget.querySelectorAll<HTMLElement>('[data-tabkey]');
+              let nearestKey: string | null = null;
+              let nearestDist = Infinity;
+              els.forEach((el) => {
+                const rect = el.getBoundingClientRect();
+                const dist = Math.abs(e.clientX - (rect.left + rect.width / 2));
+                if (dist < nearestDist) { nearestDist = dist; nearestKey = el.dataset.tabkey ?? null; }
+              });
+              setDragOverKey(nearestKey);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverKey(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (dragKey && dragOverKey && dragKey !== dragOverKey) {
+                setTabs((prev) => {
+                  const next = [...prev];
+                  const from = next.findIndex((t) => t.key === dragKey);
+                  const to = next.findIndex((t) => t.key === dragOverKey);
+                  next.splice(to, 0, next.splice(from, 1)[0]!);
+                  return next;
+                });
+              }
+              setDragKey(null);
+              setDragOverKey(null);
+            }}
+          >
             {tabs.map((tab) => {
               const isActive = tab.key === activeTabKey;
               const isDragging = tab.key === dragKey;
@@ -328,26 +360,11 @@ export function CardsTab({
               return (
                 <div
                   key={tab.key}
+                  data-tabkey={tab.key}
                   draggable
                   onDragStart={(e) => {
                     setDragKey(tab.key);
                     e.dataTransfer.effectAllowed = 'move';
-                  }}
-                  onDragOver={(e) => { e.preventDefault(); setDragOverKey(tab.key); }}
-                  onDragLeave={() => setDragOverKey(null)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (dragKey && dragKey !== tab.key) {
-                      setTabs((prev) => {
-                        const next = [...prev];
-                        const from = next.findIndex((t) => t.key === dragKey);
-                        const to = next.findIndex((t) => t.key === tab.key);
-                        next.splice(to, 0, next.splice(from, 1)[0]!);
-                        return next;
-                      });
-                    }
-                    setDragKey(null);
-                    setDragOverKey(null);
                   }}
                   onDragEnd={() => { setDragKey(null); setDragOverKey(null); }}
                   className={`flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-sm transition select-none ${
