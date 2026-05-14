@@ -1568,15 +1568,16 @@ function CharacterCard({
   const card = catalogId ? catalogById.get(catalogId) : undefined;
   const hp = char.health - char.damage;
 
-  // When exhausted: rotate so the card's top points at the dice pool, and
-  // scale by 63/88 (CCG width:height) so the rotated landscape card fits
-  // exactly within the original portrait column width. The right edge of
-  // the rotated card (= top of the card art) lines up with the right edge
-  // of the original column — no overflow into the dice pool, on any width.
+  // When exhausted: rotate full-size (no scale) and shift so the rotated
+  // card's tip-edge (top of the card art) aligns with the dice-facing edge
+  // of the column. The opposite side of the rotated card extends outward
+  // into the outer margin; the wrapper's overflow-hidden clips anything
+  // that sticks out past the column. Card stays the same size ready or
+  // exhausted — only its orientation changes.
   const exhaustedTransform =
     tipDirection === 'right'
-      ? 'rotate(90deg) scale(0.7159)'
-      : 'rotate(-90deg) scale(0.7159)';
+      ? 'translateX(-20%) rotate(90deg)'
+      : 'translateX(20%) rotate(-90deg)';
 
   return (
     // overflow-hidden clips any rotation overshoot at the wrapper boundary.
