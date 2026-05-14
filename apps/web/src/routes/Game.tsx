@@ -27,6 +27,7 @@ export function Game() {
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
   const [handFocusId, setHandFocusId] = useState<string | null>(null);
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
 
   useEffect(() => {
     fetchCards().then(setCatalog).catch(() => {});
@@ -48,6 +49,11 @@ export function Game() {
   useEffect(() => {
     if (!inActionPhase) { setHandMode(null); setHandFocusId(null); }
   }, [inActionPhase]);
+
+  // Close action panel when it's no longer relevant.
+  useEffect(() => {
+    if (!isMyTurn || !inActionPhase) setActionPanelOpen(false);
+  }, [isMyTurn, inActionPhase]);
 
   if (!lobby || !game) return null;
 
@@ -98,40 +104,63 @@ export function Game() {
       data-droptarget="play"
       className={`flex h-dvh flex-col overflow-hidden px-4 pt-3 sm:px-6 ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
     >
-      {/* ── Header ───────────────────────────────────────────────── */}
-      <header className="mb-2 shrink-0 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold">
+      {/* ── Header: name | ⚡ actions button | status ────────────── */}
+      <header className="mb-2 shrink-0 flex items-center gap-2">
+        <h1 className="flex-1 truncate text-base font-semibold">
           {me?.displayName ?? 'You'}{' '}
           <span className="text-neutral-500">vs</span>{' '}
           {opponent?.displayName ?? '…'}
         </h1>
-        <div className="text-xs uppercase tracking-wider text-neutral-500">
-          {game.phase === 'setup' && `Setup · ${game.setup?.step}`}
-          {game.phase === 'action' && `Round ${game.roundNumber} · ${isMyTurn ? 'your turn' : 'opponent'}`}
-          {game.phase === 'upkeep' && `Upkeep · round ${game.roundNumber}`}
-          {ended && 'Game ended'}
+
+        {/* Action trigger — only visible on my action-phase turn */}
+        {!ended && game.phase === 'action' && !selectionMode && (
+          <button
+            type="button"
+            onClick={() => setActionPanelOpen(true)}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-lg hover:border-neutral-500 active:bg-neutral-800"
+            aria-label="Open actions"
+          >
+            ⚡
+          </button>
+        )}
+
+        <div className="shrink-0 text-right text-xs uppercase tracking-wider text-neutral-500">
+          {game.phase === 'setup' && 'Setup'}
+          {game.phase === 'action' && `R${game.roundNumber} · ${isMyTurn ? 'you' : 'opp'}`}
+          {game.phase === 'upkeep' && `Upkeep`}
+          {ended && 'Ended'}
         </div>
       </header>
 
-      {/* ── Panels (EndedBanner / SetupPanel / ActionPanel) ──────── */}
-      {/* Capped height + internal scroll so they never push the board off-screen */}
-      <div className="shrink-0 overflow-y-auto" style={{ maxHeight: '42%' }}>
-        {ended && <EndedBanner game={game} playerId={playerId} />}
-
-        {!ended && game.phase === 'setup' && (
+      {/* ── Setup / ended banners (shrink-wrap, no scroll needed) ── */}
+      {ended && <EndedBanner game={game} playerId={playerId} />}
+      {!ended && game.phase === 'setup' && (
+        <div className="shrink-0 overflow-y-auto" style={{ maxHeight: '42%' }}>
           <SetupPanel game={game} playerId={playerId} send={send} />
-        )}
+        </div>
+      )}
 
-        {!ended && game.phase === 'action' && !selectionMode && (
-          <ActionPanel
-            game={game}
-            playerId={playerId}
-            send={send}
-            isMyTurn={isMyTurn}
-            onOpenHand={openHand}
+      {/* ── Actions overlay ──────────────────────────────────────── */}
+      {actionPanelOpen && !ended && game.phase === 'action' && !selectionMode && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center">
+          <button
+            type="button"
+            aria-label="Close actions"
+            onClick={() => setActionPanelOpen(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-        )}
-      </div>
+          <div className="relative z-10 w-full max-w-md rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:rounded-2xl">
+            <ActionPanel
+              game={game}
+              playerId={playerId}
+              send={send}
+              isMyTurn={isMyTurn}
+              onOpenHand={openHand}
+              onActionDispatched={() => setActionPanelOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── Battle zone — fills all remaining space ───────────────── */}
       <BattleZone game={game} playerId={playerId} catalogById={catalogById} className="min-h-0 flex-1" />
@@ -287,22 +316,24 @@ function ActionPanel({
   send,
   isMyTurn,
   onOpenHand,
+  onActionDispatched,
 }: {
   game: GameState;
   playerId: string;
   send: (a: Action) => void;
   isMyTurn: boolean;
   onOpenHand: (mode: HandMode) => void;
+  onActionDispatched?: () => void;
 }) {
   const [overlay, setOverlay] = useState<OpenOverlay | null>(null);
   const enterResolveMode = useApp((s) => s.enterResolveMode);
   const legal = getLegalActions(game, playerId);
   const close = () => setOverlay(null);
-  const dispatch = (a: Action) => { send(a); close(); };
+  const dispatch = (a: Action) => { send(a); close(); onActionDispatched?.(); };
   const me = game.players[playerId];
 
   return (
-    <section className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
+    <div className="p-4">
       <div className="mb-3 text-sm text-neutral-300">
         {isMyTurn ? 'Your turn — pick an action:' : 'Waiting for opponent…'}
       </div>
@@ -317,13 +348,13 @@ function ActionPanel({
           label="Resolve dice"
           subLabel={legal.resolvableSymbols.length > 0 ? `${me?.diceInPool.length ?? 0} in pool` : 'pool empty'}
           enabled={legal.resolvableSymbols.length > 0}
-          onClick={enterResolveMode}
+          onClick={() => { enterResolveMode(); onActionDispatched?.(); }}
         />
         <ActionButton
           label="Play card"
           subLabel={legal.canPlayCard ? `${me?.hand.length ?? 0} in hand` : 'no card affordable'}
           enabled={legal.canPlayCard}
-          onClick={() => onOpenHand('play')}
+          onClick={() => { onOpenHand('play'); onActionDispatched?.(); }}
         />
         <ActionButton
           label="Discard to reroll"
@@ -335,7 +366,7 @@ function ActionPanel({
               : ''
           }
           enabled={isMyTurn && (me?.hand.length ?? 0) > 0}
-          onClick={() => onOpenHand('reroll')}
+          onClick={() => { onOpenHand('reroll'); onActionDispatched?.(); }}
         />
         <ActionButton
           label="Pass"
@@ -403,7 +434,7 @@ function ActionPanel({
           onCancel={close}
         />
       )}
-    </section>
+    </div>
   );
 }
 
