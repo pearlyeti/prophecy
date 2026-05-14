@@ -1,10 +1,9 @@
 import type { EngineEvent } from '../events';
+import { addShields, adjustResources, dealDamage, ownerOf } from '../state/combat';
 import { endTurn } from '../state/turn';
-import type { CharacterState, DieInPool, GameState, PlayerState } from '../state/types';
+import type { DieInPool, GameState, PlayerState } from '../state/types';
 import { IllegalActionError } from './illegal';
 import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass';
-
-const MAX_SHIELDS = 3;
 
 /**
  * Resolve one or more dice in the player's pool.
@@ -197,126 +196,3 @@ export function applyResolveDice(
   return { state: rotated.state, events: rotated.events };
 }
 
-// ────────────────────────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────────────────────────
-
-function ownerOf(state: GameState, characterId: string): string | null {
-  for (const id of state.playerOrder) {
-    if (state.players[id]?.characters[characterId]) return id;
-  }
-  return null;
-}
-
-function adjustResources(state: GameState, playerId: string, delta: number): GameState {
-  const p = state.players[playerId];
-  if (!p) return state;
-  const next: PlayerState = { ...p, resources: Math.max(0, p.resources + delta) };
-  return { ...state, players: { ...state.players, [playerId]: next } };
-}
-
-function addShields(
-  state: GameState,
-  playerId: string,
-  characterId: string,
-  amount: number,
-  events: EngineEvent[],
-): GameState {
-  const player = state.players[playerId]!;
-  const c = player.characters[characterId]!;
-  const added = Math.min(MAX_SHIELDS - c.shields, amount);
-  if (added <= 0) {
-    // No room — rules: excess shields are ignored. Still emit the
-    // event so the UI knows the action resolved.
-    events.push({ type: 'shields.placed', payload: { characterId, amount: 0 } });
-    return state;
-  }
-  const updated: CharacterState = { ...c, shields: c.shields + added };
-  events.push({ type: 'shields.placed', payload: { characterId, amount: added } });
-  return {
-    ...state,
-    players: {
-      ...state.players,
-      [playerId]: {
-        ...player,
-        characters: { ...player.characters, [characterId]: updated },
-      },
-    },
-  };
-}
-
-function dealDamage(
-  state: GameState,
-  ownerId: string,
-  characterId: string,
-  amount: number,
-  events: EngineEvent[],
-): GameState {
-  const owner = state.players[ownerId]!;
-  const c = owner.characters[characterId]!;
-  const shieldsUsed = Math.min(c.shields, amount);
-  const damageDealt = amount - shieldsUsed;
-  const newDamage = c.damage + damageDealt;
-  const newShields = c.shields - shieldsUsed;
-
-  events.push({
-    type: 'damage.dealt',
-    payload: { characterId, amount: damageDealt, shieldsBlocked: shieldsUsed },
-  });
-
-  if (newDamage >= c.health) {
-    return defeatCharacter(state, ownerId, characterId, events);
-  }
-
-  const updated: CharacterState = { ...c, damage: newDamage, shields: newShields };
-  return {
-    ...state,
-    players: {
-      ...state.players,
-      [ownerId]: {
-        ...owner,
-        characters: { ...owner.characters, [characterId]: updated },
-      },
-    },
-  };
-}
-
-function defeatCharacter(
-  state: GameState,
-  ownerId: string,
-  characterId: string,
-  events: EngineEvent[],
-): GameState {
-  const owner = state.players[ownerId]!;
-  const character = owner.characters[characterId];
-  if (!character) return state;
-
-  events.push({ type: 'character.defeated', payload: { playerId: ownerId, characterId } });
-
-  const dieIds = new Set(character.dice.map((d) => d.instanceId));
-  const newOrder = owner.characterOrder.filter((id) => id !== characterId);
-  const { [characterId]: _dropped, ...remainingChars } = owner.characters;
-  const newPool = owner.diceInPool.filter((d) => !dieIds.has(d.instanceId));
-
-  const updated: PlayerState = {
-    ...owner,
-    characters: remainingChars,
-    characterOrder: newOrder,
-    diceInPool: newPool,
-  };
-
-  let next: GameState = {
-    ...state,
-    players: { ...state.players, [ownerId]: updated },
-  };
-
-  if (newOrder.length === 0) {
-    const winnerId = state.playerOrder.find((p) => p !== ownerId) ?? null;
-    events.push({
-      type: 'game.ended',
-      payload: { winnerId, reason: 'all-characters-defeated' },
-    });
-    next = { ...next, winnerId, phase: 'ended' };
-  }
-  return next;
-}

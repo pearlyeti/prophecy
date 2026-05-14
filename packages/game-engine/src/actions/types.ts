@@ -14,7 +14,13 @@ export type Action =
       targetCharacterId?: string;
     }
   | { type: 'reroll-dice'; playerId: string; discardCardId: string; dieInstanceIds: readonly string[] }
-  | { type: 'play-card'; playerId: string; cardId: string; targetId?: string }
+  | {
+      type: 'play-card';
+      playerId: string;
+      cardId: string;
+      /** Pre-resolved character instance IDs consumed by targeting effects in order. */
+      characterTargets?: readonly string[];
+    }
   | { type: 'use-card-action'; playerId: string; cardId: string }
   | { type: 'claim-battlefield'; playerId: string }
   | { type: 'concede'; playerId: string };

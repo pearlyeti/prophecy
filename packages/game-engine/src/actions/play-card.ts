@@ -1,3 +1,4 @@
+import { applyEffects } from '../abilities/dispatch';
 import type { EngineEvent } from '../events';
 import { endTurn } from '../state/turn';
 import type { GameState, PlayerState } from '../state/types';
@@ -6,18 +7,24 @@ import { guardCanAct, runUpkeepAndStartRound } from './pass';
 import type { ApplyResult } from './pass';
 
 /**
- * Play-card action — vanilla cost-only.
+ * Play-card action.
  *
- * Pays the card's resource cost, moves the instance from hand → discard,
- * and rotates the turn. Card abilities (ongoing effects, triggered
- * abilities, special-die abilities) do not fire here; the AST resolver
- * lands as a separate piece of work. Cards whose cost is not in
- * `state.cardCosts` are treated as cost 0.
+ * Pays the card's resource cost, moves the instance from hand → discard
+ * (or set-aside if the ability's `cardDisposition` says so), then fires
+ * any `immediate` abilities on the card in sequence. Triggered /
+ * action / powerAction abilities do not fire here; the queue wiring
+ * lands in ENGINE-7.
+ *
+ * `characterTargets` is an ordered list of pre-resolved character
+ * instance IDs for effects that need a character selection. Tests
+ * supply these directly; the game-server collects them from the client
+ * before dispatching.
  */
 export function applyPlayCard(
   state: GameState,
   playerId: string,
   cardId: string,
+  characterTargets: readonly string[] = [],
 ): ApplyResult {
   guardCanAct(state, playerId);
 
@@ -25,9 +32,7 @@ export function applyPlayCard(
   if (!player) throw new Error(`player ${playerId} missing from state`);
 
   if (!player.hand.includes(cardId)) {
-    throw new IllegalActionError(
-      `card ${cardId} is not in ${playerId}'s hand`,
-    );
+    throw new IllegalActionError(`card ${cardId} is not in ${playerId}'s hand`);
   }
 
   const cost = state.cardCosts[cardId] ?? 0;
@@ -37,27 +42,48 @@ export function applyPlayCard(
     );
   }
 
+  const events: EngineEvent[] = [
+    { type: 'card.played', payload: { playerId, cardId, costPaid: cost } },
+  ];
+
+  // Determine card disposition from the first immediate ability that
+  // specifies one, defaulting to 'discard'.
+  const abilities = state.cardAbilities[cardId] ?? [];
+  const immediateAbilities = abilities.filter((a) => a.kind === 'immediate');
+  const disposition =
+    immediateAbilities.find((a) => a.kind === 'immediate' && a.cardDisposition)?.cardDisposition ??
+    'discard';
+
+  // Pay cost and move card from hand.
+  const handAfter = player.hand.filter((id) => id !== cardId);
+  const discardAfter = disposition === 'discard' ? [...player.discard, cardId] : player.discard;
+
   const updatedPlayer: PlayerState = {
     ...player,
     resources: player.resources - cost,
-    hand: player.hand.filter((id) => id !== cardId),
-    discard: [...player.discard, cardId],
+    hand: handAfter,
+    discard: discardAfter,
   };
 
-  const events: EngineEvent[] = [
-    {
-      type: 'card.played',
-      payload: { playerId, cardId, costPaid: cost },
-    },
-  ];
-
-  const stateAfterPlay: GameState = {
+  let working: GameState = {
     ...state,
     players: { ...state.players, [playerId]: updatedPlayer },
     consecutivePasses: 0,
   };
 
-  const rotated = endTurn(stateAfterPlay, playerId, events);
+  // Run immediate abilities in order.
+  const ctx = { playerId, characterTargets };
+  for (const ability of immediateAbilities) {
+    if (ability.kind !== 'immediate') continue;
+    const result = applyEffects(working, ctx, ability.effects);
+    working = result.state;
+    events.push(...result.events);
+    if (working.winnerId !== null) {
+      return { state: working, events };
+    }
+  }
+
+  const rotated = endTurn(working, playerId, events);
   if (rotated.allPlayersPassed) {
     return runUpkeepAndStartRound(rotated.state, rotated.events);
   }

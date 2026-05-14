@@ -46,11 +46,6 @@ export type DieSymbol = z.infer<typeof dieSymbolSchema>;
 export type Rarity = z.infer<typeof raritySchema>;
 export type Keyword = z.infer<typeof keywordSchema>;
 
-// Ability AST shape. Open-ended for now (only `kind` is required) so the
-// schema can store ability rows that the engine doesn't yet have a
-// resolver for. Concrete subtypes are added as resolvers land.
-export const abilityAstSchema = z
-  .object({ kind: z.string() })
-  .passthrough();
-
-export type AbilityAst = z.infer<typeof abilityAstSchema>;
+// AbilityAst is the canonical Ability type from the engine, re-exported
+// here for backwards compatibility (packages/db imports this name).
+export type { Ability as AbilityAst } from '@prophecy/game-engine';

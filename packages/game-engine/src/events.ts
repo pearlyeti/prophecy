@@ -23,6 +23,9 @@ export type EngineEvent =
   | { readonly type: 'dice.rerolled'; readonly payload: DiceRerolledPayload }
   | { readonly type: 'damage.dealt'; readonly payload: DamageDealtPayload }
   | { readonly type: 'shields.placed'; readonly payload: ShieldsPlacedPayload }
+  | { readonly type: 'shields.removed'; readonly payload: ShieldsRemovedPayload }
+  | { readonly type: 'damage.healed'; readonly payload: DamageHealedPayload }
+  | { readonly type: 'cards.drawn'; readonly payload: CardsDrawnPayload }
   | { readonly type: 'resources.gained'; readonly payload: ResourcesGainedPayload }
   | { readonly type: 'resources.lost'; readonly payload: ResourcesLostPayload }
   | { readonly type: 'upkeep.begin'; readonly payload: Empty }
@@ -133,6 +136,21 @@ export interface DamageDealtPayload {
 export interface ShieldsPlacedPayload {
   readonly characterId: string;
   readonly amount: number;
+}
+
+export interface ShieldsRemovedPayload {
+  readonly characterId: string;
+  readonly amount: number;
+}
+
+export interface DamageHealedPayload {
+  readonly characterId: string;
+  readonly amount: number;
+}
+
+export interface CardsDrawnPayload {
+  readonly playerId: string;
+  readonly count: number;
 }
 
 export interface ResourcesGainedPayload {

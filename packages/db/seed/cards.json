@@ -284,9 +284,12 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "deal_damage",
+              "op": "dealDamage",
               "amount": 1,
-              "kind": "melee"
+              "damageType": "melee",
+              "target": {
+                "kind": "opponentCharacter"
+              }
             }
           ]
         }
@@ -314,8 +317,11 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "give_shields",
-              "amount": 2
+              "op": "addShields",
+              "amount": 2,
+              "target": {
+                "kind": "ownCharacter"
+              }
             }
           ]
         }
@@ -343,8 +349,11 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "remove_shields",
-              "amount": "all"
+              "op": "removeShields",
+              "amount": "all",
+              "target": {
+                "kind": "anyCharacter"
+              }
             }
           ]
         }
@@ -372,8 +381,8 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "draw_cards",
-              "scope": "self",
+              "op": "drawCards",
+              "player": "self",
               "amount": 1
             }
           ]
@@ -402,8 +411,8 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "draw_cards",
-              "scope": "each_player",
+              "op": "drawCards",
+              "player": "eachPlayer",
               "amount": 2
             }
           ]
@@ -432,7 +441,7 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "gain_resources",
+              "op": "gainResources",
               "amount": 3
             }
           ]
@@ -461,7 +470,7 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "gain_resources",
+              "op": "gainResources",
               "amount": 1
             }
           ]
@@ -490,8 +499,11 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "heal_damage",
-              "amount": 1
+              "op": "healDamage",
+              "amount": 1,
+              "target": {
+                "kind": "ownCharacter"
+              }
             }
           ]
         }
@@ -519,9 +531,12 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "deal_damage",
+              "op": "dealDamage",
               "amount": 2,
-              "kind": "melee"
+              "damageType": "melee",
+              "target": {
+                "kind": "opponentCharacter"
+              }
             }
           ]
         }
@@ -549,8 +564,8 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "draw_cards",
-              "scope": "self",
+              "op": "drawCards",
+              "player": "self",
               "amount": 2
             }
           ]
@@ -579,8 +594,11 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "heal_damage",
-              "amount": 2
+              "op": "healDamage",
+              "amount": 2,
+              "target": {
+                "kind": "ownCharacter"
+              }
             }
           ]
         }
@@ -608,7 +626,7 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "gain_resources",
+              "op": "gainResources",
               "amount": 2
             }
           ]
@@ -637,8 +655,8 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "draw_cards",
-              "scope": "self",
+              "op": "drawCards",
+              "player": "self",
               "amount": 1
             }
           ]
@@ -667,9 +685,12 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "deal_damage",
+              "op": "dealDamage",
               "amount": 3,
-              "kind": "melee"
+              "damageType": "melee",
+              "target": {
+                "kind": "opponentCharacter"
+              }
             }
           ]
         }
@@ -697,9 +718,12 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "deal_damage",
+              "op": "dealDamage",
               "amount": 1,
-              "kind": "ranged"
+              "damageType": "ranged",
+              "target": {
+                "kind": "opponentCharacter"
+              }
             }
           ]
         }
@@ -727,8 +751,11 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "give_shields",
-              "amount": 1
+              "op": "addShields",
+              "amount": 1,
+              "target": {
+                "kind": "ownCharacter"
+              }
             }
           ]
         }
@@ -756,9 +783,9 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "draw_cards",
-              "scope": "self_to_hand_size",
-              "amount": null
+              "op": "drawCards",
+              "player": "self",
+              "toHandSize": true
             }
           ]
         }
@@ -786,9 +813,12 @@
           "kind": "immediate",
           "effects": [
             {
-              "op": "deal_damage",
+              "op": "dealDamage",
               "amount": 2,
-              "kind": "ranged"
+              "damageType": "ranged",
+              "target": {
+                "kind": "opponentCharacter"
+              }
             }
           ]
         }

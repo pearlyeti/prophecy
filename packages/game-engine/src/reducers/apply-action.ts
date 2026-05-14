@@ -45,7 +45,7 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
         action.targetCharacterId,
       );
     case 'play-card':
-      return applyPlayCard(state, action.playerId, action.cardId);
+      return applyPlayCard(state, action.playerId, action.cardId, action.characterTargets);
     case 'reroll-dice':
       return applyRerollDice(
         state,

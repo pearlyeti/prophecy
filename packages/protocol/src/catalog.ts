@@ -1,17 +1,23 @@
-// Canonical schemas for the original-IP card catalog and deck registry.
-// The same shapes are used by:
-//   - `apps/game-server` when reading `packages/db/seed/{cards,decks}.json`
-//   - The `/admin` UX in `apps/web` for create / edit forms
-//   - The engine's `newGameFromDecks` (structurally compatible with the
-//     synthetic-set `CardFixture` / `DeckFixture`; cast at the call site)
+// Canonical Zod schemas for the Prophecy card catalog and deck registry.
+// The Ability / Effect types are defined as pure TypeScript in
+// @prophecy/game-engine/src/abilities/types.ts; the Zod schemas here
+// validate JSON (corpus files, admin API payloads) into those same types.
 //
-// Looser than the synthetic-set's `CardFixtureSchema`: no min-cards
-// requirement, no strict ID regex, dieFaces optional / nullable so a
-// freshly-typed event card can save without forcing the user to author
-// six faces. Production deck-build rule enforcement (color / faction /
-// 30-card / 2-copy) is handled by `validateDeck`, not at the schema
-// layer — saving an in-progress deck shouldn't fail validation.
+// Used by:
+//   - apps/game-server corpus loader
+//   - apps/web admin card editor
+//   - packages/db for the cardAbilities JSONB type
 
+import type {
+  Ability,
+  ActionCost,
+  CardDisposition,
+  Effect,
+  PlayCondition,
+  TargetSpec,
+  TriggerEvent,
+  ValueRef,
+} from '@prophecy/game-engine';
 import { z } from 'zod';
 
 import {
@@ -24,7 +30,7 @@ import {
 } from './schemas.js';
 
 // ────────────────────────────────────────────────────────────────────
-// Die face — six per dice-bearing card.
+// Die face
 // ────────────────────────────────────────────────────────────────────
 
 export const dieFaceSchema = z.object({
@@ -36,101 +42,289 @@ export const dieFaceSchema = z.object({
 export type DieFace = z.infer<typeof dieFaceSchema>;
 
 // ────────────────────────────────────────────────────────────────────
-// Effect AST — one engine-executable instruction. Discriminated on `op`.
-//
-// The `(new)` variant is a deliberate placeholder for cards designed
-// against engine ops that don't exist yet. It's not executable; if the
-// engine encounters one mid-resolution it throws `IllegalActionError`.
-// Treat the set of `op: 'new'` entries across the catalog as the
-// running TODO list for which engine ops to build next.
+// Building blocks
 // ────────────────────────────────────────────────────────────────────
 
-const gainResourcesEffect = z.object({
-  op: z.literal('gain_resources'),
-  amount: z.number().int().min(1).max(99),
-});
+export const targetSpecSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('opponent') }),
+  z.object({ kind: z.literal('self') }),
+  z.object({ kind: z.literal('ownCharacter') }),
+  z.object({ kind: z.literal('opponentCharacter') }),
+  z.object({ kind: z.literal('anyCharacter') }),
+  z.object({ kind: z.literal('eachOpponentCharacter') }),
+  z.object({ kind: z.literal('eachCharacter') }),
+  z.object({ kind: z.literal('attachedCharacter') }),
+  z.object({ kind: z.literal('thisCharacter') }),
+]);
 
-const drawCardsEffect = z.object({
-  op: z.literal('draw_cards'),
-  scope: z.enum(['self', 'each_player', 'self_to_hand_size']),
-  // `amount` is required for self / each_player; ignored for self_to_hand_size.
-  amount: z.number().int().min(1).max(20).nullable().default(null),
-});
+export const playConditionSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('controlsBattlefield') }),
+  z.object({
+    kind: z.literal('spotCharacter'),
+    color: colorSchema.optional(),
+    unique: z.boolean().optional(),
+    count: z.number().int().min(1).optional(),
+  }),
+  z.object({ kind: z.literal('spotCard'), cardId: z.string() }),
+  z.object({ kind: z.literal('moreReadyCharacters') }),
+  z.object({ kind: z.literal('firstActionOfRound') }),
+  z.object({ kind: z.literal('opponentHasNoCards') }),
+  z.object({ kind: z.literal('haveNCharactersInPlay'), count: z.number().int().min(1) }),
+  z.object({ kind: z.literal('opponentHasNCharacters'), count: z.number().int().min(1) }),
+]);
+
+export const triggerEventSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('afterActivateCharacter'), ownOnly: z.boolean().optional() }),
+  z.object({ kind: z.literal('afterActivateSupport'), ownOnly: z.boolean().optional() }),
+  z.object({
+    kind: z.literal('afterPlayCard'),
+    cardType: cardTypeSchema.optional(),
+    color: colorSchema.optional(),
+  }),
+  z.object({ kind: z.literal('afterPlayUpgrade') }),
+  z.object({
+    kind: z.literal('afterCharacterDefeated'),
+    whose: z.enum(['own', 'opponent', 'any']).optional(),
+  }),
+  z.object({ kind: z.literal('afterDieRolledSymbol'), symbol: dieSymbolSchema }),
+  z.object({ kind: z.literal('afterResolveDie') }),
+  z.object({ kind: z.literal('afterClaimBattlefield') }),
+  z.object({ kind: z.literal('afterRemoveDice') }),
+  z.object({ kind: z.literal('afterDealDamage') }),
+  z.object({ kind: z.literal('afterTakeDamage') }),
+  z.object({
+    kind: z.literal('beforeCharacterDefeated'),
+    whose: z.enum(['own', 'opponent', 'any']).optional(),
+  }),
+  z.object({ kind: z.literal('beforeTakeDamage') }),
+  z.object({ kind: z.literal('beforeActivate') }),
+  z.object({ kind: z.literal('beforeResolve') }),
+  z.object({ kind: z.literal('setup') }),
+]);
+
+export const actionCostSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('exhaust') }),
+  z.object({ kind: z.literal('removeDie') }).passthrough(),
+  z.object({ kind: z.literal('spendResources'), amount: z.number().int().min(1) }),
+  z.object({ kind: z.literal('discardCard') }),
+  z.object({ kind: z.literal('dealDamageToSelf'), amount: z.number().int().min(1) }),
+]);
+
+export const valueRefSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('literal'), value: z.number().int().min(0) }),
+  z.object({ kind: z.literal('countDice') }).passthrough(),
+  z.object({ kind: z.literal('countCharacters') }).passthrough(),
+  z.object({ kind: z.literal('countCards') }).passthrough(),
+  z.object({ kind: z.literal('dieValue') }),
+]);
+
+export const cardDispositionSchema = z.enum([
+  'discard',
+  'setAside',
+  'returnToDeckBottom',
+]);
+
+// ────────────────────────────────────────────────────────────────────
+// Effect — discriminated on `op`
+// First-wave ops are fully typed. Stub ops use passthrough() so card
+// authors can add fields before the engine implements them.
+// ────────────────────────────────────────────────────────────────────
 
 const dealDamageEffect = z.object({
-  op: z.literal('deal_damage'),
+  op: z.literal('dealDamage'),
   amount: z.number().int().min(1).max(99),
-  kind: z.enum(['melee', 'ranged', 'indirect', 'unspecified']),
-  // Target is supplied by the play-card action at runtime; the AST
-  // just declares that a character target is required.
+  damageType: z.enum(['melee', 'ranged', 'indirect', 'unspecified']).default('unspecified'),
+  target: targetSpecSchema.default({ kind: 'opponentCharacter' }),
+  unblockable: z.boolean().default(false),
+  optional: z.boolean().default(false),
 });
 
-const giveShieldsEffect = z.object({
-  op: z.literal('give_shields'),
+const addShieldsEffect = z.object({
+  op: z.literal('addShields'),
   amount: z.number().int().min(1).max(3),
-});
-
-const healDamageEffect = z.object({
-  op: z.literal('heal_damage'),
-  amount: z.number().int().min(1).max(99),
+  target: targetSpecSchema.default({ kind: 'ownCharacter' }),
+  optional: z.boolean().default(false),
 });
 
 const removeShieldsEffect = z.object({
-  op: z.literal('remove_shields'),
-  // 'all' wipes the character's shields; a number removes up to that many.
+  op: z.literal('removeShields'),
   amount: z.union([z.literal('all'), z.number().int().min(1).max(3)]),
+  target: targetSpecSchema.default({ kind: 'anyCharacter' }),
+  optional: z.boolean().default(false),
 });
 
+const drawCardsEffect = z.object({
+  op: z.literal('drawCards'),
+  player: z.enum(['self', 'eachPlayer', 'opponent']).default('self'),
+  amount: z.number().int().min(1).max(20).nullable().default(null),
+  toHandSize: z.boolean().default(false),
+  optional: z.boolean().default(false),
+});
+
+const gainResourcesEffect = z.object({
+  op: z.literal('gainResources'),
+  amount: z.number().int().min(1).max(99),
+  optional: z.boolean().default(false),
+});
+
+const loseResourcesEffect = z.object({
+  op: z.literal('loseResources'),
+  amount: z.union([z.literal('all'), z.number().int().min(1).max(99)]),
+  target: z.enum(['opponent', 'self']).default('opponent'),
+  optional: z.boolean().default(false),
+});
+
+const healDamageEffect = z.object({
+  op: z.literal('healDamage'),
+  amount: z.number().int().min(1).max(99),
+  target: targetSpecSchema.default({ kind: 'ownCharacter' }),
+  optional: z.boolean().default(false),
+});
+
+// Stub helper: op name + optional flag + any additional fields.
+function stub(op: string) {
+  return z.object({ op: z.literal(op), optional: z.boolean().default(false) }).passthrough();
+}
+
+// Authoring placeholder — not dispatched, records intent for future ops.
 const newOpEffect = z.object({
   op: z.literal('new'),
   workingName: z.string().min(1).max(60),
   notes: z.string().default(''),
 });
 
-export const effectSchema = z.discriminatedUnion('op', [
-  gainResourcesEffect,
-  drawCardsEffect,
+export const effectSchema: z.ZodType<Effect> = z.discriminatedUnion('op', [
+  // First-wave (ENGINE-6)
   dealDamageEffect,
-  giveShieldsEffect,
-  healDamageEffect,
+  addShieldsEffect,
   removeShieldsEffect,
+  drawCardsEffect,
+  gainResourcesEffect,
+  loseResourcesEffect,
+  healDamageEffect,
+  // Stub ops (ENGINE-6b and beyond)
+  stub('removeDie'),
+  stub('rerollDice'),
+  stub('turnDie'),
+  stub('resolveDie'),
+  stub('resolveWithoutRemoving'),
+  stub('rollDie'),
+  stub('rollCardDie'),
+  stub('activateCharacter'),
+  stub('exhaustCard'),
+  stub('readyCard'),
+  stub('moveDamage'),
+  stub('moveShields'),
+  stub('discardCards'),
+  stub('discardFromDeck'),
+  stub('lookAtCards'),
+  stub('revealTopCard'),
+  stub('searchDeck'),
+  stub('playCard'),
+  stub('returnToHand'),
+  stub('takeBattlefieldControl'),
+  stub('claimBattlefield'),
+  stub('endActionPhase'),
+  stub('takeAdditionalActions'),
+  stub('forceActivate'),
+  stub('grantKeyword'),
+  stub('modifyDieValue'),
+  stub('setAsideDie'),
+  stub('placeDamageOnCard'),
+  stub('placeResourceOnCard'),
+  stub('returnDefeatedCharacter'),
+  stub('choice'),
   newOpEffect,
-]);
-export type Effect = z.infer<typeof effectSchema>;
+] as const) as z.ZodType<Effect>;
 
-/** Known op identifiers the engine can dispatch. Useful for UI dropdowns. */
+/** Op names with live dispatcher support. Used by the admin UI. */
 export const KNOWN_OPS = [
-  'gain_resources',
-  'draw_cards',
-  'deal_damage',
-  'give_shields',
-  'heal_damage',
-  'remove_shields',
+  'gainResources',
+  'loseResources',
+  'drawCards',
+  'dealDamage',
+  'addShields',
+  'removeShields',
+  'healDamage',
 ] as const;
 export type KnownOp = (typeof KNOWN_OPS)[number];
 
-/** Which ops require a character target supplied at play-card time. */
-export const OPS_NEEDING_CHARACTER_TARGET: ReadonlySet<KnownOp> = new Set([
-  'deal_damage',
-  'give_shields',
-  'heal_damage',
-  'remove_shields',
+/** Which target kinds require a character to be pre-selected by the player. */
+export const CHARACTER_SELECTION_TARGETS: ReadonlySet<TargetSpec['kind']> = new Set([
+  'ownCharacter',
+  'opponentCharacter',
+  'anyCharacter',
+  'attachedCharacter',
+  'thisCharacter',
 ]);
 
 // ────────────────────────────────────────────────────────────────────
-// Ability AST — one paragraph of effect on a card.
+// Ability — discriminated on `kind`
 // ────────────────────────────────────────────────────────────────────
 
 const immediateAbility = z.object({
   kind: z.literal('immediate'),
+  playCondition: playConditionSchema.optional(),
   effects: z.array(effectSchema),
+  cardDisposition: cardDispositionSchema.optional(),
 });
 
-export const abilitySchema = z.discriminatedUnion('kind', [immediateAbility]);
-export type Ability = z.infer<typeof abilitySchema>;
+const triggeredAbility = z.object({
+  kind: z.literal('triggered'),
+  triggerEvent: triggerEventSchema,
+  playCondition: playConditionSchema.optional(),
+  effects: z.array(effectSchema),
+  optional: z.boolean().default(false),
+});
+
+const actionAbility = z.object({
+  kind: z.literal('action'),
+  costs: z.array(actionCostSchema).default([]),
+  playCondition: playConditionSchema.optional(),
+  effects: z.array(effectSchema),
+  optional: z.boolean().default(false),
+});
+
+const powerActionAbility = z.object({
+  kind: z.literal('powerAction'),
+  costs: z.array(actionCostSchema).default([]),
+  playCondition: playConditionSchema.optional(),
+  effects: z.array(effectSchema),
+  optional: z.boolean().default(false),
+});
+
+const specialAbility = z.object({
+  kind: z.literal('special'),
+  effects: z.array(effectSchema),
+  optional: z.boolean().default(false),
+});
+
+// Passive abilities describe always-on state. The engine reads `description`
+// as a tag; other fields are open-ended for future resolver config.
+const passiveAbility = z
+  .object({ kind: z.literal('passive'), description: z.string() })
+  .passthrough();
+
+const claimAbility = z.object({
+  kind: z.literal('claim'),
+  effects: z.array(effectSchema),
+  optional: z.boolean().default(false),
+});
+
+export const abilitySchema: z.ZodType<Ability> = z.discriminatedUnion('kind', [
+  immediateAbility,
+  triggeredAbility,
+  actionAbility,
+  powerActionAbility,
+  specialAbility,
+  passiveAbility,
+  claimAbility,
+] as const) as z.ZodType<Ability>;
+
+export type { Ability } from '@prophecy/game-engine';
 
 // ────────────────────────────────────────────────────────────────────
-// Card — one entry in the catalog. Original Prophecy IP.
+// Card
 // ────────────────────────────────────────────────────────────────────
 
 export const cardSchema = z
@@ -138,31 +332,27 @@ export const cardSchema = z
     id: z.string().min(1).max(40),
     name: z.string().min(1).max(80),
     type: cardTypeSchema,
-    // Free-form, optional. Comma-separated if a card has multiple
-    // (e.g., "Soldier, Vehicle"). The engine doesn't dispatch on this.
     subtype: z.string().max(80).nullable().default(null),
     faction: factionSchema,
-    // Battlefields don't have a color (they're brought independently
-    // of the deck and don't go through color-gating).
     color: colorSchema.nullable(),
     rarity: raritySchema,
-    /** Play cost (events / upgrades / supports). null for characters / battlefields / plots. */
     cost: z.number().int().min(0).max(20).nullable().default(null),
-    /** Health (characters only). null otherwise. */
     health: z.number().int().min(1).max(99).nullable().default(null),
-    /** Non-elite point value (characters). null otherwise. */
     pointValue: z.number().int().min(1).max(99).nullable().default(null),
-    /** Elite point value (characters with 2 dice). null otherwise. */
     elitePointValue: z.number().int().min(1).max(99).nullable().default(null),
-    /** Plot cost (plots only). null otherwise. Often 0 or negative. */
     plotPointValue: z.number().int().min(-5).max(5).nullable().default(null),
     isUnique: z.boolean().default(false),
     keywords: z.array(keywordSchema).default([]),
-    /** Human-readable description. The engine resolves the AST, not this. */
     displayText: z.string().default(''),
-    /** Six die faces. null for cards without dice (most events, plots). */
     dieFaces: z
-      .tuple([dieFaceSchema, dieFaceSchema, dieFaceSchema, dieFaceSchema, dieFaceSchema, dieFaceSchema])
+      .tuple([
+        dieFaceSchema,
+        dieFaceSchema,
+        dieFaceSchema,
+        dieFaceSchema,
+        dieFaceSchema,
+        dieFaceSchema,
+      ])
       .nullable()
       .default(null),
     abilities: z.array(abilitySchema).default([]),
@@ -170,13 +360,11 @@ export const cardSchema = z
   .strict();
 export type Card = z.infer<typeof cardSchema>;
 
-export const cardCatalogSchema = z.object({
-  cards: z.array(cardSchema),
-});
+export const cardCatalogSchema = z.object({ cards: z.array(cardSchema) });
 export type CardCatalog = z.infer<typeof cardCatalogSchema>;
 
 // ────────────────────────────────────────────────────────────────────
-// Deck — one player's team / battlefield / plot / card list.
+// Deck
 // ────────────────────────────────────────────────────────────────────
 
 export const deckCharacterSchema = z.object({
@@ -205,7 +393,5 @@ export const deckSchema = z
   .strict();
 export type Deck = z.infer<typeof deckSchema>;
 
-export const deckCatalogSchema = z.object({
-  decks: z.array(deckSchema),
-});
+export const deckCatalogSchema = z.object({ decks: z.array(deckSchema) });
 export type DeckCatalog = z.infer<typeof deckCatalogSchema>;

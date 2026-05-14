@@ -1,4 +1,5 @@
 // Core type definitions for the rules engine.
+import type { Ability } from '../abilities/types';
 // These mirror the abstract game system in docs/rules-reference.md.
 // Implementation comes incrementally; this file exists so dependent
 // packages can refer to the public surface.
@@ -181,11 +182,15 @@ export interface GameState {
   readonly winnerId: string | null;
   /**
    * Per-card-instance cost lookup keyed by instance id. Cards whose id
-   * is not present here are treated as cost 0. This will grow into a
-   * fuller per-instance card-data map (kind, ability AST, etc.) when
-   * the AST resolver lands.
+   * is not present here are treated as cost 0.
    */
   readonly cardCosts: Readonly<Record<string, number>>;
+  /**
+   * Per-card-instance ability AST keyed by instance id. Cards not listed
+   * here have no abilities. Populated by newGameFromDecks (game-server
+   * passes this from the corpus); tests set it directly on NewGameInput.
+   */
+  readonly cardAbilities: Readonly<Record<string, readonly Ability[]>>;
   /**
    * How many extra turns each player has banked. The turn-rotation
    * path consumes one before rotating; a count > 0 means the same

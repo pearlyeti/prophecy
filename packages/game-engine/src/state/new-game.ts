@@ -1,3 +1,4 @@
+import type { Ability } from '../abilities/types';
 import type { CardFixture, DeckFixture } from '../__fixtures__/synthetic-set/schema';
 import { applyAction } from '../reducers/apply-action';
 import { createRng, type SeededRng } from '../rng/seeded-rng';
@@ -43,6 +44,12 @@ export interface NewGameInput {
    * directly.
    */
   readonly cardCosts?: Readonly<Record<string, number>>;
+  /**
+   * Optional per-instance ability AST map. Cards not listed have no
+   * abilities. Tests that exercise the dispatcher set this directly;
+   * production callers (newGameFromDecks) populate it from the corpus.
+   */
+  readonly cardAbilities?: Readonly<Record<string, readonly Ability[]>>;
 }
 
 const DEFAULT_HAND_SIZE = 5;
@@ -85,6 +92,7 @@ export function newGame(input: NewGameInput): GameState {
     playerBattlefieldCardIds,
     playerOverrides,
     cardCosts,
+    cardAbilities,
   } = input;
 
   for (const id of playerIds) {
@@ -176,6 +184,7 @@ export function newGame(input: NewGameInput): GameState {
     setup,
     winnerId: null,
     cardCosts: cardCosts ?? {},
+    cardAbilities: cardAbilities ?? {},
     extraTurnsPending: {},
     ambushGrantedThisTurn: false,
   };

@@ -24,29 +24,66 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ### Up next — task cards
 
-#### ENGINE-6 — Ability AST: schema, first effects, immediate-event dispatcher
-**Why now.** Cards currently cost resources to play but have no effects. Before card content can land, we need a structured ability AST and a dispatcher that interprets it. The Zod schema in `@prophecy/protocol` is intentionally `.passthrough()` today (only `kind` required); this card replaces it with concrete shapes for the first wave of effects.
+#### ENGINE-6 — Ability AST framework + first-wave event dispatcher
+**Why now.** Cards currently cost resources to play but have no effects. ADMIN-1 already authored ~18 event card ASTs in `packages/db/seed/cards.json` using informal snake_case op names; this card formalises the schema, canonicalises naming to camelCase, and builds the dispatcher for the first wave of ops. The schema is designed as a *framework* — all known op shapes are defined up front (even ops whose dispatchers don't land until later cards) so future card authors always have a valid schema to write against.
 
 **Scope.**
-- Tighten `abilityAstSchema` in `packages/protocol/src/schemas.ts` from passthrough to a discriminated union of concrete `kind` values (start with `immediate` for play-then-discard events).
-- Define the `Effect` AST shape (discriminated on `op`) covering the first wave of effect ops — pick names that fit existing engine helpers (`actions/resolve-dice.ts`: `dealDamage`, `addShields`, `adjustResources`; `state/draw.ts`: `drawCards`). The dispatcher composes those helpers rather than re-implementing them.
-- Create `packages/game-engine/src/abilities/` (new directory): `types.ts` mirroring the protocol types and `dispatch.ts` exposing `applyEffect(state, ctx, effect) → { state, events }`.
-- Wire dispatcher invocation into `applyPlayCard` — when an event-type card resolves, run its `effect[]` array sequentially.
-- Author ability ASTs on a few synthetic-set `EVT_*` fixtures (current `abilities: []` arrays are all empty) so an end-to-end "play event → damage lands" test can run.
+- Replace `abilityAstSchema` in `packages/protocol/src/schemas.ts` with a comprehensive discriminated union. All known `Effect` ops are schema-defined; unimplemented ops parse cleanly but throw a descriptive `NotImplementedError` at dispatch time — they are never silently skipped.
+- **Naming:** camelCase op names throughout. Fix the seed file (`deal_damage` → `dealDamage`, `give_shields` → `addShields`, etc.) and any op-name strings in the admin card editor.
+- Schema building blocks to define in `packages/protocol/src/schemas.ts`:
+  - `TargetSpec` — discriminated union: `opponent`, `self`, `ownCharacter`, `opponentCharacter`, `anyCharacter`, `eachOpponentCharacter`, `eachCharacter`, `attachedCharacter`, `thisCharacter`.
+  - `PlayCondition` — card-level precondition checked before any effects fire. Variants (add more as card content demands; field is optional): `controlsBattlefield`, `spotCharacter` (with optional `color`, `unique`, `count`), `spotCard` (by cardId), `moreReadyCharacters`, `firstActionOfRound`, `opponentHasNoCards`, `haveNCharactersInPlay`, `opponentHasNCharacters`.
+  - `TriggerEvent` — discriminated union describing what fires a `triggered` or `before`-trigger ability. Variants: `afterActivateCharacter`, `afterActivateSupport`, `afterPlayCard` (with optional `cardType`, `color` filter), `afterPlayUpgrade`, `afterCharacterDefeated` (own or opponent's), `afterDieRolledSymbol` (with `symbol` filter), `afterResolveDie`, `afterClaimBattlefield`, `afterRemoveDice`, `afterDealDamage`, `afterTakeDamage`, `beforeCharacterDefeated`, `beforeTakeDamage`, `beforeActivate`, `beforeResolve`, `setup` (fires once at game start).
+  - `ActionCost` — what a player pays to use an `action` or `powerAction` ability. Variants: `exhaust`, `removeDie` (with optional die filter), `spendResources` (with `amount`), `discardCard`, `dealDamageToSelf` (with `amount`). Multiple costs are an array.
+  - `ValueRef` — stub for computed values: `{ kind: 'literal', value: number }` only for now. Richer variants (`countDice`, `countCharacters`, `countCards`, `dieValue`) are schema-defined but their dispatch is deferred; all first-wave ops use `number` literals.
+  - `CardDisposition` — `'discard' | 'setAside' | 'returnToDeckBottom'` (default `'discard'`; governs what happens to the event card after it resolves).
+  - `Effect` — discriminated union on `op`. `optional: boolean` field on every effect (default `false`; when `true`, the active player may choose to skip it). **First-wave ops (dispatcher required):** `dealDamage`, `addShields`, `removeShields`, `drawCards`, `gainResources`, `loseResources`, `healDamage`. **Schema-only stubs (parse, `NotImplementedError` at dispatch):** `removeDie`, `rerollDice`, `turnDie`, `resolveDie`, `resolveWithoutRemoving`, `rollDie` (roll an existing character's die into pool), `rollCardDie` (ENGINE-6b), `activateCharacter`, `exhaustCard`, `readyCard`, `moveDamage`, `moveShields`, `discardCards`, `discardFromDeck`, `lookAtCards`, `revealTopCard`, `searchDeck`, `playCard` (from hand or discard with optional cost modifier), `returnToHand`, `takeBattlefieldControl`, `claimBattlefield`, `endActionPhase`, `takeAdditionalActions`, `forceActivate`, `grantKeyword`, `modifyDieValue`, `setAsideDie`, `placeDamageOnCard`, `placeResourceOnCard`, `returnDefeatedCharacter`, `choice` (two-branch fork where opponent or active player picks a branch).
+  - `Ability` — six kinds: `immediate` (events: effects fire on play, card then discarded/set aside), `action` (character/support/upgrade: player activates at a cost), `powerAction` (same, once per round), `triggered` (fires automatically on a `TriggerEvent`), `passive` (always-on; describes a state the engine checks, not an effect sequence), `special` (fires when this card's special die face is resolved), `claim` (battlefield: fires when this card's battlefield is claimed). All kinds except `passive` carry an `effects: Effect[]`. `action`/`powerAction` carry `costs: ActionCost[]`. `triggered` carries `triggerEvent: TriggerEvent`. All carry optional `playCondition?: PlayCondition`. `cardDisposition` applies to `immediate` only.
+- Create `packages/game-engine/src/abilities/`: `types.ts` (narrows protocol types for engine use) and `dispatch.ts` exposing `applyEffect(state, ctx, effect) → { state; events }`.
+- Wire dispatcher into `applyPlayCard` — event cards run their `effect[]` array sequentially, threading state through.
+- Update `packages/db/seed/cards.json` op names. Update `apps/web` admin card editor if it hard-codes any op strings.
+- Run the protocol-drift test and update the `packages/db` mirror if the schema changed.
 
 **Context to load.**
-- `packages/protocol/src/schemas.ts` (`abilityAstSchema`, currently passthrough)
-- `packages/db/src/schema/cards.ts` (`card_abilities` table uses `AbilityAst`)
+- `packages/protocol/src/schemas.ts`
+- `packages/db/src/schema/cards.ts`
+- `packages/db/seed/cards.json`
 - `packages/game-engine/src/actions/play-card.ts`
 - `packages/game-engine/src/actions/resolve-dice.ts` (`dealDamage`, `addShields`, `adjustResources` helpers to compose)
 - `packages/game-engine/src/state/draw.ts` (`drawCards`)
-- `packages/game-engine/src/__fixtures__/synthetic-set/cards.json` (current ASTs are `[]`; fill in a handful)
+- `apps/web/src/routes/admin/Cards.tsx` (check for hardcoded op strings)
 
-**Out of scope.** The queue, triggered abilities (before / after), replacement effects ("instead"), targeting prompts that need a follow-up user interaction. Immediate, fully-resolved-on-play events only — that gates ENGINE-7's queue work cleanly.
+**Out of scope.** Queue, triggered abilities, replacement effects. Targeting-prompt UI (targets are passed in the action dispatch or pre-specified in tests — the player is never interactively asked to pick a target in this card). Event-owned / cross-card dice (ENGINE-6b). `ValueRef` computed values beyond `literal`.
 
 **Depends on.** ENGINE-2.
 
-**Done when.** Typecheck clean. New `dispatch.test.ts` covers each first-wave op against a synthesized state. New integration test: play an `EVT_*` fixture whose AST deals damage and assert the damage lands on the target. Protocol schema drift test passes (`packages/db` mirror still matches).
+**Done when.** Typecheck clean. `dispatch.test.ts` covers each first-wave op against a synthesised state. Integration test: play an `EVT_*` fixture with `dealDamage` and assert damage lands on the specified target. Protocol schema drift test passes.
+
+---
+
+#### ENGINE-6b — Event-owned dice + cross-card die roll mechanic
+**Why now.** Some events should roll a die into the pool — either the event's own die (events can carry `dieFaces`, a mechanic not possible in the physical game) or a specific card's die by catalog reference (e.g. "Howl at the Moon" rolls a Werewolf die even if Werewolf isn't in the active player's deck). Neither case is handled by the existing pool machinery.
+
+**Scope.**
+- Add `transient: boolean` to `DieInPool` in `packages/game-engine/src/state/types.ts` and mirror in `@prophecy/protocol`. Transient dice are removed from the pool immediately after being resolved or removed (they do not persist like character/upgrade dice). Pipe this flag through the resolve-dice and remove-die paths.
+- Implement `rollEventDie` op in the dispatcher: the event card has `dieFaces` populated in the catalog; roll the event's own die into the active player's pool using the seeded RNG fork `event-die:${turnIndex}:${cardInstanceId}`, with `transient: true` and `cardId` set to the event's instance id.
+- Implement `rollCardDie` op: `{ op: 'rollCardDie', cardId: string }` — look up the referenced card's die faces from the catalog (thread a `catalog: CardCatalog` into the dispatcher context), roll it into the active player's pool, `transient: true`, `cardId` set to the referenced catalog id. If the card doesn't exist in catalog, throw a descriptive error.
+- `DispatchContext` (in `abilities/dispatch.ts`) gains a `catalog: CardCatalog` field. Tests pass a minimal inline catalog; the game-server passes the loaded corpus.
+- Author at least one seed event with `rollEventDie` (with `dieFaces`) and one with `rollCardDie` referencing another seed card.
+
+**Context to load.**
+- `packages/game-engine/src/state/types.ts` (`DieInPool`)
+- `packages/protocol/src/schemas.ts`
+- `packages/game-engine/src/abilities/dispatch.ts` (after ENGINE-6)
+- `packages/game-engine/src/actions/resolve-dice.ts` (transient removal path)
+- `apps/game-server/src/corpus.ts` (catalog shape to thread in)
+- `packages/db/seed/cards.json`
+
+**Out of scope.** Dice that persist across rounds (support dice). Die faces on plots or battlefields. UI for distinguishing transient dice in the pool — they look and act like any other die from the player's perspective.
+
+**Depends on.** ENGINE-6.
+
+**Done when.** Typecheck clean. Tests: (a) play an event with `rollEventDie` — die appears in pool with correct faces; after resolution it is removed; (b) play an event with `rollCardDie` — correct faces from catalog, `transient: true`, removed after resolution; (c) `rollCardDie` with an unknown `cardId` throws a descriptive error.
 
 ---
 
@@ -69,7 +106,7 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 **Out of scope.** Replacement effects ("instead" / "would be") — those interceptors run *before the event commits at all* and are their own card. Additional-action handling (Ambush) — see ENGINE-4. AST shape for triggered abilities is assumed defined by ENGINE-6.
 
-**Depends on.** ENGINE-6 (needs trigger / effect AST shape), ENGINE-4 (additional-actions outside the queue must already work).
+**Depends on.** ENGINE-6 (trigger / effect AST shape + dispatcher). ENGINE-4 is done; ENGINE-6b is not required but its catalog-context threading makes triggered `rollCardDie` effects work without extra wiring.
 
 **Done when.** Typecheck clean. Tests: (a) a before-trigger interrupts and modifies a damage event; (b) two after-triggers from the same player resolve in the order the player chose; (c) two after-triggers from different players resolve in the order the battlefield controller chose; (d) an after-trigger spawned mid-resolution still resolves at the queue's tail.
 
@@ -229,7 +266,75 @@ These are deferred service splits. Keep the boundaries clean now so the extracti
 - Extract `apps/matchmaker` from `apps/api` once queue throughput or pairing complexity warrants its own deploy/scale story.
 - Extract `apps/jobs` from `apps/api` once worker load makes co-location risky.
 
+### Ability op status
+
+Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stubs exist for all of these once ENGINE-6 lands; a checked box means the dispatcher handles it and tests cover it. Card authors: if an op isn't checked, author the AST shape but expect a `NotImplementedError` at runtime until the box is ticked.
+
+#### Ability kinds
+- [x] `immediate` — event plays, effects fire, card is discarded/set aside · _ENGINE-6_
+- [ ] `triggered` — before/after a game event fires this automatically · _ENGINE-7_
+- [ ] `action` — player activates (exhaust/remove-die/spend cost) · _future_
+- [ ] `powerAction` — same, once per round · _future_
+- [ ] `special` — fires when this card's special die face is resolved · _future_
+- [ ] `passive` — always-on predicate read by other engine paths; no dispatcher · _future_
+- [ ] `claim` — fires when this battlefield is claimed · _future_
+
+#### Effect ops
+**First-wave (ENGINE-6)**
+- [x] `dealDamage` — deal melee / ranged / indirect / unblockable damage to a target · _ENGINE-6_
+- [x] `addShields` — give a target N shields · _ENGINE-6_
+- [x] `removeShields` — remove N or all shields from a target · _ENGINE-6_
+- [x] `drawCards` — draw N cards, or draw up to hand size · _ENGINE-6_
+- [x] `gainResources` — active player gains N resources · _ENGINE-6_
+- [x] `loseResources` — target player loses N (or all) resources · _ENGINE-6_
+- [x] `healDamage` — remove N damage from a target character · _ENGINE-6_
+
+**Dice ops (ENGINE-6b)**
+- [ ] `rollEventDie` — roll the event card's own die into the active player's pool (transient)
+- [ ] `rollCardDie` — roll a named card's die into the active player's pool (transient; catalog lookup)
+
+**Dice manipulation — not yet assigned**
+- [ ] `removeDie` — remove a die matching a filter from a pool
+- [ ] `rerollDice` — reroll N dice matching a filter
+- [ ] `turnDie` — turn a die to a specific side or symbol
+- [ ] `resolveDie` — resolve a die (optionally as a different symbol / increased value)
+- [ ] `resolveWithoutRemoving` — resolve a die but leave it in the pool
+- [ ] `rollDie` — roll an existing character's die (already in team) into the pool
+- [ ] `setAsideDie` — remove a die from the pool and set it aside (not discarded, usable later)
+- [ ] `modifyDieValue` — increase or decrease a die's current value by N
+
+**Card plays — not yet assigned**
+- [ ] `playCard` — play a card from hand or discard with optional cost modifier
+- [ ] `returnToHand` — return a card or upgrade from play to its owner's hand
+- [ ] `searchDeck` — search a deck for a card matching a filter, reveal, add to hand
+- [ ] `discardCards` — force a player to choose and discard N cards from hand
+- [ ] `discardFromDeck` — discard N cards from the top of a deck
+- [ ] `lookAtCards` — look at the top N cards of a deck or random cards from a hand
+- [ ] `revealTopCard` — reveal the top card of a deck and optionally act on its cost/type
+- [ ] `returnDefeatedCharacter` — return a defeated character to play (with optional damage state)
+
+**Character / card state — not yet assigned**
+- [ ] `activateCharacter` — activate a character (roll its dice into the pool)
+- [ ] `exhaustCard` — exhaust a character, support, or upgrade
+- [ ] `readyCard` — ready an exhausted character, support, or upgrade
+- [ ] `moveDamage` — move N damage from one card to another (ignores shields unless specified)
+- [ ] `moveShields` — move N shields from one character to another
+- [ ] `placeDamageOnCard` — place N damage counters on a support (not dealt as combat damage)
+- [ ] `placeResourceOnCard` — place N resources on a support; or take all resources from it
+- [ ] `grantKeyword` — give a card a keyword for the rest of the game or current round
+- [ ] `forceActivate` — force an opponent to activate a character as their next action
+- [ ] `takeBattlefieldControl` — take control of the battlefield without claiming it
+- [ ] `claimBattlefield` — claim the battlefield (triggers claim ability)
+- [ ] `endActionPhase` — end the action phase immediately
+- [ ] `takeAdditionalActions` — grant the active player N additional actions
+
+**Branching — not yet assigned**
+- [ ] `choice` — present two effect branches; active player or opponent picks one
+
+---
+
 ### Done
+- **2026-05-13 — ENGINE-6 — Ability AST framework + first-wave event dispatcher**. Full `Ability`/`Effect` TypeScript type system in `game-engine/src/abilities/types.ts` (6 ability kinds, 7 first-wave ops + 28 stubs). Matching Zod schemas in `@prophecy/protocol/src/catalog.ts`. Shared combat helpers extracted to `state/combat.ts`; `applyResolveDice` updated to import from there. `applyEffect` / `applyEffects` dispatcher in `abilities/dispatch.ts` — first-wave ops implemented (`dealDamage`, `addShields`, `removeShields`, `drawCards`, `gainResources`, `loseResources`, `healDamage`); all other ops throw `NotImplementedError`. `applyPlayCard` wired to fire `immediate` abilities; `GameState` gains `cardAbilities` map; `play-card` action gains `characterTargets`. Op names migrated to camelCase in `packages/db/seed/cards.json`; admin `AbilityBuilder.tsx` updated. 3 new engine events (`shields.removed`, `damage.healed`, `cards.drawn`). 147 tests green; workspace typecheck clean.
 - **2026-05-13 — ADMIN-1 — Original-card / deck admin UX + JSON-backed catalog** (`a8abde9`). New canonical catalog at `packages/db/seed/cards.json` + `decks.json` (37 cards + 2 decks, mechanically ported from `synthetic-set` with rewritten original-IP names + ability text). Shared Zod schemas (`cardSchema`, `deckSchema`, `effectSchema`, `abilitySchema`) in `@prophecy/protocol`. Game-server loads + validates the catalog at boot via `corpus.ts`; `startRoom` now plays from `packages/db/seed/` instead of `synthetic-set` (which stays test-only). New REST endpoints on game-server: `GET/PUT /admin/cards`, `GET/PUT /admin/decks` — dev-only, no auth. Admin UX at `/admin/cards` and `/admin/decks` in `apps/web`: per-tab table + edit form, character / battlefield / plot pickers driven by card type, ability builder with a form per known op plus a `(new)` placeholder that doubles as the running TODO list of unimplemented effect ops. Deck-build rule enforcement (color / faction / 30-card / 2-copy) intentionally out of scope — author manually for now. Die-face editor deferred — characters keep their seeded faces read-only. 121 engine tests still green; workspace typecheck clean.
 - **2026-05-13 — ENGINE-5 — Modifier-with-parent enforcement + symbolless modifiers + Draw symbol** (`ac1d50d`). `DieSymbol` union extended with `'draw'` (new card-draw resolve path, currently rejected as "not yet implemented") and `'modifier'` (symbolless wild +N face). Mirrored in `@prophecy/protocol`, `@prophecy/db`, and the synthetic-set Zod schema. `applyResolveDice` replaces the implicit "all dice share a symbol + not all are modifiers" check with an explicit two-case rule: non-modifiers must share a symbol; each symboled modifier needs a same-symbol non-modifier; each symbolless `'modifier'` die needs any non-modifier with `value > 0` (special and blank are value 0 and never qualify). UI: `symbolGlyph` → `symbolLabel`, full words on the dice tiles (Melee, Ranged, Indirect, Shield, Resource, Disrupt, Discard, Draw, Focus, Special, Modifier, Blank); `canSelectDie` admits symbolless modifiers once a locked symbol is set. 121 engine tests green (5 new in `resolve-dice.test.ts`).
 - **2026-05-13 — ENGINE-4 — Ambush + extra-turn plumbing** (`8431bd2`). `GameState` gains `extraTurnsPending: Readonly<Record<string, number>>` and `ambushGrantedThisTurn: boolean` (both seeded by `newGame`). New `endTurn(state, fromPlayerId, events)` helper in `state/turn.ts`: if the leaving player has extras pending, decrement and keep them active (turnIndex bumps so seeded RNG forks stay distinct); otherwise delegate to `rotateAndCascade`. Either way, `ambushGrantedThisTurn` resets — fresh Ambush budget each turn. Round-start in `runUpkeepAndStartRound` also resets the flag. All six action handlers (`pass`, `activate`, `play-card`, `resolve-dice`, `reroll-dice`, `claim`) now route through `endTurn` instead of calling `rotateAndCascade` directly. New `grantExtraTurn(state, playerId)` helper exposes the seam for ability code (no callers yet — Ambush keyword wiring lands once the ability AST resolves). 116 engine tests green (7 new in `extra-turns.test.ts`).

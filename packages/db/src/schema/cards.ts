@@ -1,4 +1,4 @@
-import type { AbilityAst } from '@prophecy/protocol';
+import type { AbilityAst as Ability } from '@prophecy/protocol';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -62,7 +62,7 @@ export const cardAbilities = pgTable(
       .notNull()
       .references(() => cards.id, { onDelete: 'cascade' }),
     ordinal: smallint('ordinal').notNull(),
-    ast: jsonb('ast').$type<AbilityAst>().notNull(),
+    ast: jsonb('ast').$type<Ability>().notNull(),
     displayText: text('display_text').notNull().default(''),
   },
   (t) => [
