@@ -363,7 +363,7 @@ export function CardsTab({
                 <motion.div
                   key={tab.key}
                   layout
-                  transition={{ duration: 0.15, ease: 'easeInOut' }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
                   data-tabkey={tab.key}
                   draggable
                   onDragStart={(e) => {
