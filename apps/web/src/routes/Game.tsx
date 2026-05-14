@@ -1467,7 +1467,27 @@ function buildDiceByOwner(
   return m;
 }
 
-/** Four-column board: [player cards][player dice][opp dice][opp cards] */
+/**
+ * Split charIds into rows of at most maxPerRow, distributing extras into
+ * front rows. rows[0] is always the front row (closest to the opponent).
+ */
+function distributeToRows(charIds: readonly string[], maxPerRow = 4): string[][] {
+  if (charIds.length === 0) return [[]];
+  if (charIds.length <= maxPerRow) return [[...charIds]];
+  const numRows = Math.ceil(charIds.length / maxPerRow);
+  const base = Math.floor(charIds.length / numRows);
+  const extra = charIds.length % numRows;
+  const rows: string[][] = [];
+  let idx = 0;
+  for (let i = 0; i < numRows; i++) {
+    const size = base + (i < extra ? 1 : 0);
+    rows.push([...charIds].slice(idx, idx + size));
+    idx += size;
+  }
+  return rows;
+}
+
+/** Vertical board: opponent on top, player on bottom. */
 function BattleZone({
   game,
   playerId,
@@ -1524,87 +1544,81 @@ function BattleZone({
     : '—';
   void opponentName;
 
-  const myN = myPlayer?.characterOrder.length ?? 1;
-  const oppN = oppPlayer?.characterOrder.length ?? 1;
+  const myRows = distributeToRows(myPlayer?.characterOrder ?? []);
+  // Opponent front row sits at the bottom of the opponent zone (closest to player),
+  // so we render rows in reverse (back rows first, front row last).
+  const oppRows = distributeToRows(oppPlayer?.characterOrder ?? []).reverse();
 
   return (
     <>
-      {/* max-w-sm keeps desktop the same scale as mobile; h-full fills flex-1 from parent */}
       <section
-        className={`mx-auto flex h-full w-full max-w-sm gap-2 ${className}`}
+        className={`mx-auto flex h-full w-full max-w-2xl flex-col gap-2 ${className}`}
         aria-label="Battle zone"
       >
-        {/* ── Player side: [card 9fr | dice 7fr] per row ─────────── */}
-        <div className="flex h-full min-h-0 flex-1 flex-col" style={{ justifyContent: 'space-evenly' }}>
-          {myPlayer?.characterOrder.map((cid) => {
-            const char = myPlayer.characters[cid]!;
-            const charDice = myDiceByOwner.get(cid) ?? [];
-            const hp = char.health - char.damage;
-            return (
-              <div
-                key={cid}
-                className="flex min-h-0 items-center gap-1"
-                style={{ maxHeight: `${Math.floor(100 / myN)}%` }}
-              >
-                {/* Card column: stats above, card below */}
-                <div className="flex flex-[9] min-w-0 flex-col items-center gap-1">
-                  <CharStatsRow hp={hp} shields={char.shields} />
-                  <CharacterCard
-                    char={char}
-                    game={game}
-                    catalogById={catalogById}
-                    className="w-full"
-                    tipDirection="right"
-                    onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
-                    onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
-                  />
-                </div>
-                <div className="flex flex-[7] min-w-0 items-center justify-center">
-                  <DiceStack
-                    dice={charDice}
-                    diceInteractive={diceInteractive}
-                    selectionMode={selectionMode}
-                  />
-                </div>
-              </div>
-            );
-          })}
+        {/* ── Opponent zone (top): rows flow top→bottom with front row at bottom ── */}
+        <div className="flex min-h-0 flex-1 flex-col justify-end gap-1">
+          {oppRows.map((rowIds, ri) => (
+            <div key={ri} className="flex flex-row justify-center gap-1">
+              {rowIds.map((cid) => {
+                const char = oppPlayer!.characters[cid]!;
+                const charDice = oppDiceByOwner.get(cid) ?? [];
+                const hp = char.health - char.damage;
+                return (
+                  <div key={cid} className="flex min-w-0 flex-1 flex-col items-center gap-0.5" style={{ maxWidth: '25%' }}>
+                    <CharStatsRow hp={hp} shields={char.shields} />
+                    <CharacterCard
+                      char={char}
+                      game={game}
+                      catalogById={catalogById}
+                      className="w-full"
+                      tipDirection="left"
+                      onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
+                      onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
+                    />
+                    <DiceStack
+                      dice={charDice}
+                      diceInteractive={false}
+                      selectionMode={selectionMode}
+                      horizontal
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
-        {/* ── Opponent side: [dice 7fr | card 9fr] per row ────────── */}
-        <div className="flex h-full min-h-0 flex-1 flex-col" style={{ justifyContent: 'space-evenly' }}>
-          {oppPlayer?.characterOrder.map((cid) => {
-            const char = oppPlayer.characters[cid]!;
-            const charDice = oppDiceByOwner.get(cid) ?? [];
-            const hp = char.health - char.damage;
-            return (
-              <div
-                key={cid}
-                className="flex min-h-0 items-center gap-1"
-                style={{ maxHeight: `${Math.floor(100 / oppN)}%` }}
-              >
-                <div className="flex flex-[7] min-w-0 items-center justify-center">
-                  <DiceStack
-                    dice={charDice}
-                    diceInteractive={false}
-                    selectionMode={selectionMode}
-                  />
-                </div>
-                <div className="flex flex-[9] min-w-0 flex-col items-center gap-1">
-                  <CharStatsRow hp={hp} shields={char.shields} />
-                  <CharacterCard
-                    char={char}
-                    game={game}
-                    catalogById={catalogById}
-                    className="w-full"
-                    tipDirection="left"
-                    onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
-                    onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
-                  />
-                </div>
-              </div>
-            );
-          })}
+        {/* ── Player zone (bottom): rows flow top→bottom with front row at top ── */}
+        <div className="flex min-h-0 flex-1 flex-col justify-start gap-1">
+          {myRows.map((rowIds, ri) => (
+            <div key={ri} className="flex flex-row justify-center gap-1">
+              {rowIds.map((cid) => {
+                const char = myPlayer!.characters[cid]!;
+                const charDice = myDiceByOwner.get(cid) ?? [];
+                const hp = char.health - char.damage;
+                return (
+                  <div key={cid} className="flex min-w-0 flex-1 flex-col items-center gap-0.5" style={{ maxWidth: '25%' }}>
+                    <DiceStack
+                      dice={charDice}
+                      diceInteractive={diceInteractive}
+                      selectionMode={selectionMode}
+                      horizontal
+                    />
+                    <CharacterCard
+                      char={char}
+                      game={game}
+                      catalogById={catalogById}
+                      className="w-full"
+                      tipDirection="right"
+                      onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
+                      onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
+                    />
+                    <CharStatsRow hp={hp} shields={char.shields} />
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1719,15 +1733,17 @@ function CharacterCard({
   );
 }
 
-/** Vertical stack of die tiles for one character's pool dice. */
+/** Stack of die tiles for one character's pool dice. */
 function DiceStack({
   dice,
   diceInteractive,
   selectionMode,
+  horizontal = false,
 }: {
   dice: DieInPool[];
   diceInteractive: boolean;
   selectionMode: SelectionMode | null;
+  horizontal?: boolean;
 }) {
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
   const enterResolveMode = useApp((s) => s.enterResolveMode);
@@ -1755,7 +1771,7 @@ function DiceStack({
   };
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex gap-1 ${horizontal ? 'flex-row flex-wrap justify-center' : 'flex-col'}`}>
       {dice.map((d) => {
         const selected = !!selectedIds?.includes(d.instanceId);
         const inSelectionMode = selectionMode !== null;
