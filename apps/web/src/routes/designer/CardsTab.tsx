@@ -365,12 +365,10 @@ export function CardsTab({
                     frameX={draft.cardFrameX ?? null} frameY={draft.cardFrameY ?? null} frameZoom={draft.cardFrameZoom ?? null}
                     onChange={(x, y, zoom) => updateDraft({ cardFrameX: x, cardFrameY: y, cardFrameZoom: zoom })}
                   />
-                  {draft.type === 'upgrade' && (
-                    <FrameEditor compact shape="circle" artUrl={draft.artUrl}
-                      frameX={draft.badgeFrameX ?? null} frameY={draft.badgeFrameY ?? null} frameZoom={draft.badgeFrameZoom ?? null}
-                      onChange={(x, y, zoom) => updateDraft({ badgeFrameX: x, badgeFrameY: y, badgeFrameZoom: zoom })}
-                    />
-                  )}
+                  <FrameEditor compact shape="circle" artUrl={draft.artUrl}
+                    frameX={draft.badgeFrameX ?? null} frameY={draft.badgeFrameY ?? null} frameZoom={draft.badgeFrameZoom ?? null}
+                    onChange={(x, y, zoom) => updateDraft({ badgeFrameX: x, badgeFrameY: y, badgeFrameZoom: zoom })}
+                  />
                 </div>
               )}
             </div>
@@ -671,9 +669,9 @@ function ArtUploader({
 type FrameShape = 'square' | 'portrait' | 'circle';
 
 const FRAME_CONFIGS: Record<FrameShape, { label: string; w: number; h: number; cw: number; ch: number; radius: string; hint: string }> = {
-  square:   { label: 'Square',   w: 220, h: 220, cw: 96,  ch: 96,  radius: 'rounded-lg',   hint: 'Battle zone character cards' },
-  portrait: { label: 'Portrait', w: 157, h: 220, cw: 68,  ch: 96,  radius: 'rounded-lg',   hint: 'Hand overlay & detail views' },
-  circle:   { label: 'Circle',   w: 120, h: 120, cw: 80,  ch: 80,  radius: 'rounded-full', hint: 'Upgrade badges' },
+  square:   { label: 'Square',   w: 220, h: 220, cw: 160, ch: 160, radius: 'rounded-lg',   hint: 'Battle zone character cards' },
+  portrait: { label: 'Portrait', w: 157, h: 220, cw: 114, ch: 160, radius: 'rounded-lg',   hint: 'Hand overlay & detail views' },
+  circle:   { label: 'Circle',   w: 120, h: 120, cw: 160, ch: 160, radius: 'rounded-full', hint: 'Upgrade badges' },
 };
 
 function FrameEditor({
