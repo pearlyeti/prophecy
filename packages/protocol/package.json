@@ -4,22 +4,22 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./server": {
-      "types": "./src/server.ts",
+      "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
     },
     "./router": {
-      "types": "./src/router.ts",
+      "types": "./dist/router.d.ts",
       "default": "./dist/router.js"
     },
     "./events": {
-      "types": "./src/events.ts",
+      "types": "./dist/events.d.ts",
       "default": "./dist/events.js"
     }
   },
