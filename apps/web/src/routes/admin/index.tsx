@@ -32,6 +32,11 @@ export function Admin() {
   };
 
   useEffect(() => {
+    document.title = 'Prophecy Designer';
+    return () => { document.title = 'Prophecy'; };
+  }, []);
+
+  useEffect(() => {
     void reload();
   }, []);
 
