@@ -30,12 +30,39 @@ When the user hands you a task code (e.g. `ENGINE-2`, `WEB-1`), follow this prot
 4. **Load only the listed files.** The card's "Context to load" section is the contract for context — load those, plus what they transitively reveal. Don't grep the codebase for general "understanding" outside the card's scope.
 5. **Stay strictly in scope.** If you find related work that doesn't fit, surface it to the user and propose a new card — don't bundle it in. Scope creep is the #1 way a fresh context burns tokens for no value.
 6. **Run the listed checks.** "Done when" gates completion. Don't claim done if anything's red. For UI cards, "manual smoke" means actually run the dev server and verify in a browser — typecheck does not prove a feature works.
-7. **Merge cleanly.** Before merging your branch to `main`: run `git fetch origin && git rebase origin/main`, re-run all "Done when" checks, then merge. If the rebase has conflicts, stop and report to the user.
+7. **Merge cleanly.** For deployed-path cards (anything touching the paths listed in [Pull requests & self-healing main](#pull-requests--self-healing-main)), open a PR with Auto-fix and auto-merge — follow that section. For doc-only or fixture-only cards, rebase onto main (`git fetch origin && git rebase origin/main`), re-run "Done when" checks, then push directly. If the rebase has conflicts, stop and report to the user.
 8. **Close out in TODO.md.** Move the card from "In progress" to "Done" with today's date and a one-line summary. Don't leave stale "In progress" entries behind.
 9. **Commit, then backfill the hash.** Stage everything (including the README close-out) and commit. Then edit the Done entry to append the resulting short hash in backticks at the end of the line — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. The hash is non-negotiable for traceability; every Done entry must end up with one.
 10. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
 
 Cards are sized for one focused session — roughly 200–500 lines of changes including tests. If a card feels much bigger than that once you've loaded the files, that's a signal: flag it and propose splitting before you start writing code.
+
+## Pull requests & self-healing main
+
+`main` is the deployment branch. Vercel rebuilds and serves the web app on every push; Railway rebuilds `apps/game-server` when its watched paths change. A red CI run on `main` means production is broken until someone fixes it.
+
+To keep `main` green without manual policing, any change that can break a production deploy goes through a pull request with **Auto-fix enabled**. On CI failure, Anthropic's webhook handler spawns a Claude session that pushes a fix; GitHub's auto-merge lands the PR once CI is green.
+
+**Use a PR (not direct push to `main`) for changes touching:**
+
+- `apps/web/**` (Vercel build / runtime)
+- `apps/game-server/**` (Railway build / runtime)
+- `packages/game-engine/**`, `packages/protocol/**`, `packages/db/**` (transitive deps of both apps)
+- `pnpm-lock.yaml`, `turbo.json`, root `package.json`, root `tsconfig*.json` (build config that affects everything)
+
+Doc-only and test-fixture-only changes (`README.md`, `TODO.md`, `CLAUDE.md`, `docs/**`, `packages/game-engine/__fixtures__/**`) can push to `main` directly. When in doubt, use a PR.
+
+**The PR routine:**
+
+1. Push on a feature branch with a clear name (e.g. `engine/multi-target-resolve`, `web/results-cam-revamp`).
+2. Open a PR against `main`. Title is conventional-commit form (`feat(engine): …`). Body links to the task card if one applies.
+3. **Enable Auto-fix on the PR.** Non-negotiable for deployed-path PRs. The session opening the PR should turn it on in the same step — in chat say "auto-fix this PR"; in the session's CI status bar toggle **Auto-fix**; from a terminal session on the PR branch run `/autofix-pr`.
+4. **Enable auto-merge:** `gh pr merge --auto --squash` (or the GitHub UI button). The PR lands itself once required checks pass.
+5. Walk away. If CI fails, Auto-fix pushes commits until green; auto-merge then fires.
+
+If a session is closing out a task card via a PR, append the **merge** commit's short hash to the Done entry once auto-merge lands — same as the direct-push protocol, just sourced from the merge commit.
+
+The Claude GitHub App must be installed on the repo for Auto-fix webhooks to deliver. It is already installed on `pearlyeti/prophecy` (scope: this repo only).
 
 ## The README is the source of truth — keep it that way
 
