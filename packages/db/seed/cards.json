@@ -62,8 +62,21 @@
       "keywords": [],
       "displayText": "",
       "dieFaces": null,
-      "abilities": [],
-      "artUrl": null,
+      "abilities": [
+        {
+          "kind": "claim",
+          "effects": [
+            {
+              "op": "loseResources",
+              "amount": 1,
+              "target": "opponent",
+              "optional": false
+            }
+          ],
+          "optional": false
+        }
+      ],
+      "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/BFD_003.webp",
       "artFrameX": null,
       "artFrameY": null,
       "artFrameZoom": null,
@@ -73,9 +86,9 @@
       "badgeFrameX": null,
       "badgeFrameY": null,
       "badgeFrameZoom": null,
-      "landscapeFrameX": null,
-      "landscapeFrameY": null,
-      "landscapeFrameZoom": null
+      "landscapeFrameX": 42.85714285714286,
+      "landscapeFrameY": 15.584415584415584,
+      "landscapeFrameZoom": 1
     },
     {
       "id": "CHAR_003",
