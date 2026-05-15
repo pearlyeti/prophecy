@@ -17,41 +17,67 @@ Process:
 
 Dependencies between cards are noted under **Depends on**. If a card lists one, finish the dependency first or pick a different card.
 
-Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy).
+Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `AUTH-N` (auth + accounts), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy), `TEST-N` (test scaffolds and harnesses).
+
+### v1.0.0 launch criteria
+
+Explicit gates for what must ship before declaring 1.0. Cards in Up Next and Backlog should be traceable to one of these criteria; if a piece of work isn't, the default answer is to move it to [Backlog — post-v1.0](#backlog--post-v10).
+
+**Engine**
+- All v1 ability kinds dispatched: `immediate` ✅, `triggered` ✅, `action` ✅, `powerAction` ✅, `special`, `claim`. (`passive` may defer.)
+- Replacement-effect framework + simultaneous-ability tiebreak.
+- All v1 keywords resolved end-to-end: Ambush, Guardian, Modify, Redeploy.
+- Plot and battlefield (Claim) abilities.
+- Multi-target resolve (ENGINE-8).
+- Support card state + Stability (ENGINE-S1).
+- Replay reconstruction from seed + event log.
+
+**Persistence (apps/api + packages/db)**
+- Migrations applied to a live Postgres (API-1).
+- Auth + sessions live (AUTH-1).
+- Decks persisted to Postgres (CRUD via tRPC).
+- Card collection persisted; soft-currency pack opening.
+- Game results + event log persisted (API-2 minimum; API-3 for in-flight durability).
+- Stripe checkout + idempotent entitlements fulfillment.
+
+**Real-time (apps/game-server)**
+- Reconnect window (SERVER-1).
+- Graceful shutdown / in-flight drain on deploy (OPS-3).
+- Incremental event-log writes for in-flight durability (API-3).
+
+**Client (apps/web)**
+- Full turn UX for all action types ✅ (mostly).
+- Activity log readable in plain English (WEB-7).
+- Game-over screen + rematch.
+- Deckbuilder + collection browser.
+- Storefront UI (currency packs, season pass, cosmetic bundles).
+- Reduced-motion + color-blind modes.
+- PWA install + offline shell.
+
+**Ranked & tournaments**
+- Glicko-2 ranked queue + casual queue + private lobby ✅.
+- Season boundary + soft reset; rank tiers Bronze → Champion.
+- Tournament formats: Swiss, Single Elim, Double Elim + TO dashboard.
+
+**Content**
+- First original Prophecy set (~140 cards) covering all 5 keywords with faction/color balance.
+- Lore bible + naming conventions.
+
+**Ops & safety**
+- Sentry across all services (OPS-2).
+- Cloudflare in front of api / game-server with rate limits.
+- Turnstile on signup and high-value actions.
+- Replay-analysis worker (dice-roll bias, queue-dodge).
+- Backup/restore drill exercised at least once.
+
+**Test**
+- Playwright E2E covering a 1v1 match queue → game-end (TEST-1).
+- Engine unit suite green (168+ tests today).
 
 ### In progress
 - _(none — claim a card from Up next.)_
 
 ### Up next — task cards
-
----
-> **WEB-11 through WEB-17 are complete** — see Done section. WEB-4, WEB-5, and WEB-6 are superseded and should be skipped.
----
-
-#### WEB-18 — Card ability badges on in-play cards
-**Why now.** Characters and supports with `Action` abilities need a visible badge on their card. This is the last piece of the core turn interaction surface.
-
-**Scope.**
-- **Badge.** For each in-play character or support whose catalog entry has at least one ability with `kind: 'action'` or `kind: 'powerAction'`, render a circular badge (40×40pt, matching the existing upgrade badge size) on the bottom edge of their card. Use the card's `badgeArtUrl` from the catalog if set; otherwise use a colored circle (card's type color).
-- **Placement.** Same visual layer as upgrade badges but on the opposite corner (bottom-left vs bottom-right), or below the upgrade badge row if needed to avoid overlap.
-- **Green highlight.** When it's your turn and action phase and the ability is usable (not a power action already used, card is ready for actions requiring exhaust), the badge gets a green ring.
-- **Tap.** Tapping a green badge sets `activeFlow = { kind: 'cardAction', cardId, abilityIndex }` and clears all other highlights. Commit = "Use ability" (generic for now — refine once card action UX is designed further). Dispatch `use-card-action` on commit.
-- **Power action tracking.** The engine already tracks used power actions. Read from game state to grey out used power action badges (no green highlight, not tappable).
-- Update `AbilityBuilder.tsx` if any new badge-related field is introduced to the catalog schema.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (CharacterCard, BattleZone, activeFlow)
-- `packages/protocol/src/catalog.ts` (Card, Ability — action/powerAction kinds, badgeArtUrl)
-- `apps/web/src/routes/admin/AbilityBuilder.tsx` (sync if schema changes)
-- `packages/game-engine/src/legal-actions.ts` (use-card-action legality)
-
-**Out of scope.** Rendering the full card action effect chain in the UI (depends on which ops those abilities use). Support card activation badge (supports activate via the main card tap, not the badge — badge is for explicit Action abilities only).
-
-**Depends on.** WEB-17.
-
-**Done when.** Typecheck clean. Manual smoke: a character with an Action ability shows a circle badge; badge highlights green on your turn; tapping it enters the flow; Commit dispatches use-card-action; power action badge greys out after use and stays grey until next round.
-
----
 
 ---
 > **Multi-target resolution — ENGINE-8 + WEB-19.**
@@ -102,82 +128,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 **Done when.** Typecheck clean. Manual smoke: select 2 melee dice, tap opponent character A — dice dim, counter shows −X on A. Select 1 more melee die, tap opponent character B — counter shows −Y on B. Commit dispatches one resolve-dice with two target groups. Both characters take the correct damage.
 
----
-> **3D dice — WEB-3D-1 through WEB-3D-3.**
-> Three connected cards delivering the full 3D dice experience: persistent Three.js dice on the board, the physics-based Dice Results Cam via dice-box, and the face-picker UX for focus/event effects. Pick them up in order.
----
-
-#### WEB-3D-1 — Three.js board dice layer
-**Why now.** Flat 2D die tiles don't communicate the physical feel of the game. Dice sitting in the pool should look like real dice — 3D rounded cubes with the correct face showing up, proper lighting, subtle perspective angle as if looking down at a table.
-
-**Scope.**
-- Install `three` and `@react-three/fiber` + `@react-three/drei`. Lazy-load — only bundled when the game route is visited.
-- Replace the flat `DiceStack` tile rendering with a `<DicePool3D>` component: a `<Canvas>` element (react-three-fiber) that renders each die in the pool as a `RoundedBoxGeometry` (from drei) with chamfered edges matching physical dice.
-- **At rest:** die is static, correct face showing up, ambient + point light from above-right so the top face is brightest, side faces mid-tone. Subtle fixed tilt (~15° rotateX, ~10° rotateY) so the 3D shape reads clearly — like looking down at a die on a table.
-- **Pre-roll state:** when `activeFlow = { kind: 'activate', charId }` and these dice belong to that character — begin the Mario Party tumble. Rapid face-cycling, tumbling on all axes. This runs on the board in place, building anticipation before the player commits to Roll Dice.
-- Die faces show value + symbol label. Use card color (`getDieBaseClass` logic) for face color.
-- Touch targets: the Canvas is sized to the same footprint as the current tile area. Tap events map through to the existing `handleTap` logic.
-- Keep the existing flat `DiceStack` component as a fallback (`<Suspense fallback={<DiceStack ... />}>`).
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (DiceStack, BattlefieldRow, activeFlow wiring)
-- `packages/db/seed/cards.json` (card color field for die coloring)
-
-**Out of scope.** Roll animation / Results Cam (WEB-3D-2). Face picker (WEB-3D-3). Dice in the opponent pool are read-only — same 3D rendering, no interaction.
-
-**Done when.** Typecheck clean. Manual smoke: dice in pool appear as small 3D rounded cubes with correct face up; activating a character makes their unrolled dice tumble; non-activating dice remain static; fallback flat tiles show during canvas load.
-
----
-
-#### WEB-3D-2 — Dice Results Cam (dice-box physics overlay)
-**Why now.** Rolling dice is the central action of the game. It should feel like a real roll — tactile, unpredictable, satisfying. The Results Cam is a full-screen physics simulation that plays when the player commits Roll Dice, then cuts back to the board with dice already in position.
-
-**Scope.**
-- Install `@3d-dice/dice-box`. Lazy-load — only initialized when the first roll happens (background fetch starts at game-start so it's ready by the time the first activation occurs).
-- **Trigger:** when the player commits Roll Dice (`activeFlow = { kind: 'activate' }` + Commit), before dispatching the `activate` action:
-  1. Start the Results Cam overlay (full-screen, dark background, centered canvas).
-  2. Pass the number and type of dice to roll. Pass the server-determined result values so dice-box guides the physics to land on the correct faces.
-  3. The `activate` action dispatches to the server simultaneously — no waiting.
-- **Physics play:** dice-box runs the Ammo.js simulation. Dice tumble, bounce off each other and the surface, gradually settle.
-- **Results display:** once dice are still, briefly show the result (symbol + value) for each die on-screen.
-- **Dismiss:** player taps / swipes up to dismiss. The overlay fades/sweeps away. Hard cut back to the board — the Three.js board dice (WEB-3D-1) are already showing the correct faces since the game state has updated.
-- Server-determined result values: read from the `character.activated` engine event payload (`rolledDice`) which arrives via socket while the overlay is playing. Hold the overlay open until the event arrives if needed.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (activation flow, send dispatch, socket event handling)
-- `apps/web/src/store.ts` (activeFlow, appendEvents)
-- `packages/game-engine/src/events.ts` (`character.activated` event payload shape)
-
-**Out of scope.** Per-symbol particle effects on landing (post-launch polish). Opponent roll cam (show opponent's rolls too — backlog). Sound effects (separate card).
-
-**Depends on.** WEB-3D-1 (board dice layer must exist for the cut-back to work).
-
-**Done when.** Typecheck clean. Manual smoke: tap a ready character, commit Roll Dice — full-screen dice cam appears, dice tumble with real physics, settle on the server-determined faces, dismiss → board shows correct dice in pool. Bundle: dice-box WASM only loads after game start; measured load time on throttled connection is acceptable.
-
----
-
-#### WEB-3D-3 — Die face picker (focus + event card effects)
-**Why now.** Focus dice and many event cards let the player choose a new face for one or more dice in their pool. This needs clear UX: see all options, make a strategic choice, watch the die update.
-
-**Scope.**
-- **Trigger:** when resolving focus dice (or an event card effect that requires face selection), enter a `{ kind: 'face-pick', targetDieIds: string[], budget: number, chosen: Record<string, DieFace> }` flow.
-- **Panel:** tapping a die in face-pick mode opens a compact panel anchored to that die showing all 6 of its faces as small tiles (symbol + value). The current face is highlighted. Tapping any face selects it — the 3D die in WEB-3D-1 spins to show that face. The panel closes.
-- **Budget:** a visible counter shows "X dice remaining to focus." Once all budget is spent (or player skips remaining), Commit = "End focus" becomes active.
-- **Focus chaining:** if a newly chosen face is also a focus face, that die joins `targetDieIds` and adds to the budget. Keep a running total visible.
-- **Direct manipulation (secondary):** the player can also swipe/drag on the 3D die to rotate it and select a face that way. Tap to confirm. This is a power-user shortcut; the panel is always the primary path.
-- Dispatch the face assignments via `resolve-dice` with the focus dice and chosen face indices once "End focus" is committed.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (DiceStack / DicePool3D, activeFlow, ActionBar)
-- `apps/web/src/store.ts` (ActiveFlow — add face-pick kind)
-- `packages/game-engine/src/actions/resolve-dice.ts` (focus resolution path — verify face-index API)
-
-**Depends on.** WEB-3D-1 (3D die must exist to spin to chosen face).
-
-**Done when.** Typecheck clean. Manual smoke: resolve a focus die → budget counter appears → tap a die → panel shows all 6 faces → tap a face → 3D die spins to it → budget decrements → End focus commits correctly. Focus chaining: choosing a focus face adds to budget.
-
----
-
 #### ENGINE-6b — Event-owned dice + cross-card die roll mechanic
 **Why now.** Some events should roll a die into the pool — either the event's own die (events can carry `dieFaces`, a mechanic not possible in the physical game) or a specific card's die by catalog reference (e.g. "Howl at the Moon" rolls a Werewolf die even if Werewolf isn't in the active player's deck). Neither case is handled by the existing pool machinery.
 
@@ -222,10 +172,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 **Done when.** Typecheck clean. Manual smoke: in a live 2-device match, kill one device's network for 30 sec, restore, game continues. Kill it for >60 sec, the remaining player wins.
 
----
-
----
-> **WEB-4, WEB-5, and WEB-6 are superseded by the mobile-first redesign (WEB-11–18).** Skip these unless the redesign is reverted.
 ---
 
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
@@ -309,20 +255,153 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
+#### API-2 — Persist completed games on game-end
+**Why now.** The engine emits a full event log per game but nothing is ever written to Postgres. Without this the README's "rebuild any completed game from its seed + events" claim isn't true and the schema is dormant. Smallest possible end-to-end exercise of the persistence layer.
+
+**Scope.**
+- On `game.ended`, write one row to `game_sessions` (players, winner, duration, seed, summary) and one row per emitted `EngineEvent` to `game_events` (`session_id`, `sequence_number`, `event_type`, `payload jsonb`, `occurred_at`).
+- New `apps/game-server/src/persistence.ts` exposes a `GameWriter` that subscribes to a room's event stream and flushes at game-end in a single Drizzle transaction.
+- Index `game_events(session_id, sequence_number)` for replay reads.
+- Add `apps/game-server` as a Drizzle consumer if it isn't already; reuse `packages/db`.
+- One end-to-end test: spin up Postgres via the existing compose stack, play a deterministic concede game, assert both rows land.
+
+**Context to load.**
+- `apps/game-server/src/rooms.ts` (engine event stream)
+- `packages/db/src/schema.ts` (`game_sessions`, `game_events`)
+- `packages/game-engine/src/events.ts` (EngineEvent union)
+
+**Out of scope.** Incremental writes during the game (API-3). Replay UI. Anti-cheat post-processing.
+
+**Depends on.** API-1.
+
+**Done when.** Typecheck clean. Concede a game; `select count(*) from game_events where session_id = ?` returns the expected event count; `game_sessions` row has winner, duration, seed.
+
+---
+
+#### API-3 — Incremental event-log writes for in-flight durability
+**Why now.** If a game-server process crashes mid-match, the only durable copy of the event log is Redis (snapshot). README claims Postgres event-log replay can rebuild — that's only true if events are written incrementally, not just at game-end. This card closes that gap.
+
+**Scope.**
+- Replace the buffer-until-game-end approach from API-2 with a streaming write: after each engine event is broadcast to clients, append a `game_events` row.
+- Open `game_sessions` at game-start with `status='active'`, seed, and players; update `status='completed'` (or `abandoned`) on `game.ended`.
+- Per-room background write queue (in-process initially; switch to BullMQ if it becomes a bottleneck) so the broadcast path isn't blocked on the DB.
+- On game-server boot, scan `game_sessions where status = 'active'`: if the room is still alive in Redis, leave it; if not, mark `abandoned`.
+
+**Context to load.**
+- `apps/game-server/src/rooms.ts`
+- `apps/game-server/src/persistence.ts` (from API-2)
+- `packages/db/src/schema.ts`
+
+**Out of scope.** Cross-server resume (sticky-room coordinator). Live snapshots to Redis (already happen — this is the Postgres durability layer underneath).
+
+**Depends on.** API-2.
+
+**Done when.** Typecheck clean. Kill the game-server mid-match and restart; `game_events` for that session contains every event up to the crash; the session is marked `abandoned` on the next boot.
+
+---
+
+#### AUTH-1 — Sessions + Google/Discord OAuth via better-auth
+**Why now.** Nothing persistent works without identity: collection, ladder, deck saves, storefront, ranked all need it. Today the only "player" is a transient lobby UUID in localStorage. This is the foundation card for accounts.
+
+**Scope.**
+- Wire `better-auth` in `apps/api` with the Drizzle adapter pointed at our Postgres.
+- Add a `sessions` table to `packages/db/src/schema.ts` if not already present; confirm `users.oauth_provider`, `users.oauth_subject` columns match the README schema overview.
+- Configure Google + Discord OAuth providers (env-var driven: `GOOGLE_CLIENT_ID/SECRET`, `DISCORD_CLIENT_ID/SECRET`).
+- Expose `auth.session` on the tRPC router (returns `{ user, session } | null`) plus REST `/auth/*` for the OAuth callbacks.
+- `apps/web`: SessionProvider reads from tRPC on boot. Splash gains "Sign in with Google / Discord" buttons; the anonymous lobby flow is gated behind a session.
+- `apps/game-server`: socket handshake reads the session cookie via better-auth's `verifyRequest`; reject connections without a session. Replace transient client UUIDs with `userId` everywhere downstream (rooms, matchmaking).
+- Document the new env vars in `README.md` Local Development.
+
+**Context to load.**
+- `apps/api/src/*` (current Hono + tRPC setup)
+- `packages/db/src/schema.ts`
+- `apps/web/src/App.tsx`, `apps/web/src/splash.tsx`
+- `apps/game-server/src/index.ts` (socket handshake)
+- `packages/protocol/src/*`
+
+**Out of scope.** 2FA, email/password sign-up, account merge, profile editing, role-assignment UI, email verification.
+
+**Depends on.** API-1.
+
+**Done when.** Typecheck clean. Sign in with Google, sign in with Discord, refresh → still signed in, sign out → splash gates. Game-server socket rejects connections without a session.
+
+---
+
+#### OPS-2 — Sentry + OpenTelemetry exporter wiring
+**Why now.** We're past the toy-project stage but flying blind. Sentry alone is a half-day task and lets us see every error in test/prod. OTel exporters add tracing across the api ↔ game-server ↔ engine boundary. Cheap to land now, expensive to retrofit when something is on fire.
+
+**Scope.**
+- `apps/api`, `apps/game-server`, `apps/web`: init `@sentry/node` (services) / `@sentry/react` (web) keyed by `SENTRY_DSN`. Tag releases with the commit SHA from CI.
+- Configure source-maps upload in the web CI build so prod stack traces deminify.
+- Top-level React error boundary in `apps/web` that reports to Sentry and renders a "something went wrong" screen.
+- OTel SDK in each service (`@opentelemetry/sdk-node`), HTTP + tRPC + Socket.io instrumentation, OTLP exporter pointed at `OTEL_EXPORTER_OTLP_ENDPOINT` (no-op when unset).
+- Document required env vars in README Local Development.
+
+**Context to load.**
+- `apps/api/src/index.ts`, `apps/game-server/src/index.ts`, `apps/web/src/main.tsx`
+- `.env.example`
+- `infra/docker-compose.yml` (optional dev collector)
+
+**Out of scope.** Backend collector setup (Honeycomb/Tempo) — exporter is enough; the receiver is ops. Real-user monitoring (RUM). Performance budgets / alerting rules.
+
+**Done when.** Typecheck clean. Manually throw an error in each service; it surfaces in Sentry. Local dev with a stub collector: spans emitted for one Find Match → game-end round-trip.
+
+---
+
+#### OPS-3 — Game-server graceful shutdown on deploy
+**Why now.** Every deploy currently kills active matches. Pairs with SERVER-1 (reconnect) to give players a transparent experience across deploys. Pre-launch requirement.
+
+**Scope.**
+- On `SIGTERM`: stop accepting new connections and refuse new room creation.
+- Existing rooms keep running; the server waits up to a configurable drain timeout (default 5 min) for natural game-end.
+- Broadcast a "server will restart, your game is safe" event so the client can show a banner.
+- After timeout (or all rooms ended), exit cleanly. Fly / Railway routes new connections to the fresh instance.
+- The fresh instance picks up nothing — active games stay on the draining instance until SERVER-1's reconnect window handles drops. Cross-instance handoff is a separate (future) card.
+
+**Context to load.**
+- `apps/game-server/src/index.ts`
+- `apps/game-server/src/rooms.ts`
+
+**Out of scope.** Sticky-room ownership coordinator (Redis lock — separate card). Cross-region failover.
+
+**Depends on.** SERVER-1.
+
+**Done when.** Typecheck clean. `kill -TERM` on a running game-server: new connections refused, an in-flight match plays to completion, then the process exits within the drain window.
+
+---
+
+#### TEST-1 — Playwright E2E scaffold + 1v1 happy-path smoke
+**Why now.** The engine has 168+ unit tests but no automated coverage of the full Socket.io + web + game-server path. Multiplayer regressions are hard to catch in isolation. A scaffold + one happy-path test now means future flows can be added cheaply.
+
+**Scope.**
+- `apps/web/e2e/` directory with Playwright config.
+- `pnpm test:e2e` script: bring up Postgres + Redis via the existing compose stack, start `apps/api` + `apps/game-server` + `apps/web` in dev mode, run Playwright.
+- One test: launch two browser contexts, both press Find Match, wait for `lobby.matchFound`, play one deterministic concede game (player A concedes turn 1), assert both clients receive `game.ended` with player B as the winner.
+- GitHub Actions job that runs the suite on every PR to main, gated by a `skip-e2e` label for fast iteration.
+
+**Context to load.**
+- `apps/web/src/App.tsx` (SocketBridge, matchFound handling)
+- `infra/docker-compose.yml`
+- `apps/web/package.json` (scripts)
+- existing Vitest config(s)
+
+**Out of scope.** Visual regression. Mobile-viewport E2E. Anything beyond a single happy-path test — adding more is cheap once the scaffold exists.
+
+**Done when.** `pnpm test:e2e` passes locally with the dev stack up. CI runs it on PRs and blocks merge on failure (unless `skip-e2e` is set).
+
+---
+
 ### Backlog — engine (not yet sized)
-- Replacement-effect interceptor framework.
-- Queue + before/after triggers + additional-action handling.
+- Replacement-effect interceptor framework — "instead" / "would be" effects that fire before the original event, prevent it being considered to have happened, and disqualify any abilities that would have triggered off it. Encode as event interceptors that run before commit. See README §Engine implementation notes. Likely 2–3 cards once sized.
 - Battlefield controller tiebreak across simultaneous abilities.
-- Keyword resolvers: Guardian (redirect damage), Modify (modifier-die routing), Redeploy (upgrades move on defeat).
-- Special-ability registry with inherent-die semantics.
-- `use-card-action` handler (Action / Power Action ability invocation).
-- Ability AST resolver dispatch with full coverage of the type tag space.
+- Keyword resolvers wiring through the trigger queue: Ambush (caller for the existing extra-turn plumbing), Guardian (redirect damage), Modify (modifier-die routing), Redeploy (upgrades move on defeat).
+- Special-ability registry with inherent-die semantics (S face).
+- Ability AST resolver dispatch with full coverage of the type tag space (track via Ability op status below).
 - Replay reconstruction from seed + event log.
 - "After setup" trigger pass.
 - Plots / battlefield abilities (Claim).
 
 ### Backlog — services (not yet sized)
-- Auth flow (better-auth + Google/Discord OAuth) — `apps/api` middleware, `apps/web` login.
 - Deck builder API + validator (CRUD endpoints to save user decks to the database).
 - Card ownership logic (`card_collections` integration, tracking opened packs).
 - **Matchmaking logic:**
@@ -333,7 +412,6 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 - Sticky room ownership coordinator (Redis-based) — only needed once we run multi-instance.
 - Stripe integration: checkout, webhooks, entitlements, refunds.
 - Season pass + currency ledger.
-- Observability wiring (OpenTelemetry exporter, Sentry init).
 - Anti-cheat heuristics workers (queue dodging, dice-roll bias, AFK).
 - Cloudflare in front of api/game-server with rate-limit rules.
 - Turnstile on signup and high-value actions.
@@ -351,7 +429,6 @@ Render support cards in play inside `BattleZone` below their owning player's cha
 ### Backlog — client (not yet sized)
 - Phone-portrait layout pass (360×640): opponent strip, table, hand, dice tray.
 - Game over screen + rematch.
-- Pixi board renderer with zones and dice physics.
 - Combat-effect library (melee/ranged/indirect/special) keyed off engine events.
 - Pack-opening choreography (Pixi sprite-sheet driven).
 - Storefront UI (Stripe Elements, currency packs, bundles, season-pass page).
@@ -361,6 +438,7 @@ Render support cards in play inside `BattleZone` below their owning player's cha
 - PWA install + offline shell caching.
 - i18n scaffold (Paraglide); ship English first.
 - Screen-reader event narration in live match.
+- **Roll cam (revamp)** — the physics-based full-screen dice roll overlay was removed (2026-05-15) because the feel was too janky. Bring it back when there's time to do it right: proper die geometry with six individually-textured faces, physics that feels weighty and satisfying, and a clean camera-cut back to the board. The board dice (WEB-3D-1) and the face-correct quaternion table (`FACE_CORRECT_Q` in `DicePool3D`) are good foundations to build on.
 
 ### Backlog — content & ops
 - First original Prophecy set: ~140 cards across factions/colors with 5 keywords represented.
@@ -369,9 +447,6 @@ Render support cards in play inside `BattleZone` below their owning player's cha
 - Tournament rules document.
 - Player support runbook.
 - Backup/restore drill runbook + quarterly exercise.
-
-### Backlog — client (not yet sized)
-- **Roll cam (revamp)** — the physics-based full-screen dice roll overlay was removed (2026-05-15) because the feel was too janky. Bring it back when there's time to do it right: proper die geometry with six individually-textured faces, physics that feels weighty and satisfying, and a clean camera-cut back to the board. The board dice (WEB-3D-1) and the face-correct quaternion table (FACE_CORRECT_Q in DicePool3D) are good foundations to build on.
 
 ### Backlog — post-v1.0
 Game modes beyond 1v1, plus other features deferred until v1 ships and stabilizes.

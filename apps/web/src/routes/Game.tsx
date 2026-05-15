@@ -1740,7 +1740,7 @@ function BattlefieldRow({
                   eligibleSymbols={resolvableSymbols}
                   cardColor={dieCardColor}
                   tumblingCharId={tumblingCharId}
-                  faceOverrides={Object.keys(faceOverrides).length > 0 ? faceOverrides : undefined}
+                  {...(Object.keys(faceOverrides).length > 0 ? { faceOverrides } : {})}
                 />
               </Suspense>
             )}
@@ -1755,7 +1755,7 @@ function BattlefieldRow({
               eligible={eligible}
               pendingExhaust={isActivating}
               {...(targetRing ? { targetRing } : {})}
-              abilityBadges={abilityBadges.length > 0 ? abilityBadges : undefined}
+              {...(abilityBadges.length > 0 ? { abilityBadges } : {})}
               onAbilityBadgeTap={handleAbilityBadgeTap}
               onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
