@@ -239,7 +239,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "keywords": [],
-      "displayText": "",
+      "displayText": "Action \u2013 Exhaust: Gain 1 resource.\nPower Action: Draw 1 card.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -278,7 +278,33 @@
           "modifier": false
         }
       ],
-      "abilities": [],
+      "abilities": [
+        {
+          "kind": "action",
+          "costs": [
+            {
+              "kind": "exhaust"
+            }
+          ],
+          "effects": [
+            {
+              "op": "gainResources",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "kind": "powerAction",
+          "costs": [],
+          "effects": [
+            {
+              "op": "drawCards",
+              "player": "self",
+              "amount": 1
+            }
+          ]
+        }
+      ],
       "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_016.webp",
       "artFrameX": 44.834087481146334,
       "artFrameY": 26.99849170437417,

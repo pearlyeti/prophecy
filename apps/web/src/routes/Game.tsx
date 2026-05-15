@@ -24,6 +24,7 @@ export function Game() {
   const exitSelectionMode = useApp((s) => s.exitSelectionMode);
   const enterRerollMode = useApp((s) => s.enterRerollMode);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
+  const clearPowerActions = useApp((s) => s.clearPowerActions);
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
@@ -58,6 +59,10 @@ export function Game() {
   useEffect(() => {
     if (!isMyTurn || !inActionPhase) setActionPanelOpen(false);
   }, [isMyTurn, inActionPhase]);
+
+  // Clear used power actions at the start of each new round.
+  const roundNumber = game?.roundNumber;
+  useEffect(() => { clearPowerActions(); }, [roundNumber, clearPowerActions]);
 
   if (!lobby || !game) return null;
 
@@ -1617,6 +1622,7 @@ function BattlefieldRow({
   selectionMode,
   activatableIds,
   resolvableSymbols,
+  isEligibleForAbility,
   onDetailTap,
   onUpgradeTap,
 }: {
@@ -1630,11 +1636,14 @@ function BattlefieldRow({
   selectionMode: SelectionMode | null;
   activatableIds: readonly string[];
   resolvableSymbols: readonly string[];
+  /** True when it's this player's turn, action phase, and no active flow — badges can go green. */
+  isEligibleForAbility?: boolean;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
+  const usedPowerActionKeys = useApp((s) => s.usedPowerActionKeys);
 
   return (
     <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
@@ -1661,6 +1670,18 @@ function BattlefieldRow({
           if (isShield && side === 'player') targetRing = 'shield';
         }
 
+        // Ability badges — action/powerAction abilities on this character's catalog card.
+        const charCatalogId = game.cardCatalogIds[cid];
+        const charCard = charCatalogId ? catalogById.get(charCatalogId) : undefined;
+        const abilityBadges = (charCard?.abilities ?? [])
+          .map((ab, i) => ({ abilityIndex: i, kind: ab.kind as 'action' | 'powerAction', eligible: false }))
+          .filter((b) => b.kind === 'action' || b.kind === 'powerAction')
+          .map((b) => {
+            const key = `${cid}:${b.abilityIndex}`;
+            const notUsed = b.kind !== 'powerAction' || !usedPowerActionKeys.has(key);
+            return { ...b, eligible: !!(isEligibleForAbility && !char.exhausted && notUsed) };
+          });
+
         const handleTap = () => {
           if (targetRing && activeFlow?.kind === 'resolve') {
             setActiveFlow({ ...activeFlow, targetCharacterId: isCurrentTarget ? null : cid });
@@ -1669,6 +1690,10 @@ function BattlefieldRow({
           if (isActivating) { setActiveFlow(null); return; }
           if (eligible) { setActiveFlow({ kind: 'activate', charId: cid }); return; }
           onDetailTap(cid);
+        };
+
+        const handleAbilityBadgeTap = (abilityIndex: number, abilityKind: 'action' | 'powerAction') => {
+          setActiveFlow({ kind: 'cardAction', cardId: cid, abilityIndex, abilityKind });
         };
 
         return (
@@ -1693,6 +1718,8 @@ function BattlefieldRow({
               eligible={eligible}
               pendingExhaust={isActivating}
               {...(targetRing ? { targetRing } : {})}
+              abilityBadges={abilityBadges.length > 0 ? abilityBadges : undefined}
+              onAbilityBadgeTap={handleAbilityBadgeTap}
               onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
             />
@@ -1816,6 +1843,7 @@ function PlayerZone({
   );
   const activatableIds = legalActions?.activatableCharacterIds ?? [];
   const resolvableSymbols = legalActions?.resolvableSymbols ?? [];
+  const isEligibleForAbility = isMyTurn && inActionPhase && activeFlow === null;
 
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-start gap-2 overflow-hidden pt-1">
@@ -1832,6 +1860,7 @@ function PlayerZone({
           selectionMode={selectionMode}
           activatableIds={activatableIds}
           resolvableSymbols={resolvableSymbols}
+          isEligibleForAbility={isEligibleForAbility}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -1990,10 +2019,13 @@ function ActionBar({
     (myPlayer?.hand.length ?? 0) > 0 &&
     (myPlayer?.diceInPool.length ?? 0) > 0;
 
+  const markPowerActionUsed = useApp((s) => s.markPowerActionUsed);
+
   const commitLabel = (() => {
     if (!activeFlow) return 'Pass';
     if (activeFlow.kind === 'activate') return 'Roll Dice';
     if (activeFlow.kind === 'claim') return 'Claim';
+    if (activeFlow.kind === 'cardAction') return 'Use ability';
     if (activeFlow.kind === 'reroll') {
       if (activeFlow.step === 'pick-card') return 'Cancel';
       const n = activeFlow.selectedDieIds.length;
@@ -2022,6 +2054,14 @@ function ActionBar({
     }
     if (activeFlow.kind === 'claim') {
       send({ type: 'claim-battlefield', playerId });
+      setActiveFlow(null);
+      return;
+    }
+    if (activeFlow.kind === 'cardAction') {
+      if (activeFlow.abilityKind === 'powerAction') {
+        markPowerActionUsed(`${activeFlow.cardId}:${activeFlow.abilityIndex}`);
+      }
+      send({ type: 'use-card-action', playerId, cardId: activeFlow.cardId });
       setActiveFlow(null);
       return;
     }
@@ -2137,6 +2177,8 @@ function CharacterCard({
   eligible = false,
   pendingExhaust = false,
   targetRing,
+  abilityBadges,
+  onAbilityBadgeTap,
   onTap,
   onUpgradeTap,
 }: {
@@ -2151,6 +2193,8 @@ function CharacterCard({
   pendingExhaust?: boolean;
   /** 'damage' = red ring (opponent damage target), 'shield' = blue ring (shield target). */
   targetRing?: 'damage' | 'shield';
+  abilityBadges?: Array<{ abilityIndex: number; kind: 'action' | 'powerAction'; eligible: boolean }>;
+  onAbilityBadgeTap?: (abilityIndex: number, abilityKind: 'action' | 'powerAction') => void;
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2203,7 +2247,7 @@ function CharacterCard({
         </div>
       </button>
 
-      {/* Upgrade badges */}
+      {/* Upgrade badges — centered at bottom */}
       {char.upgradeIds.length > 0 && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center gap-0.5 pb-1">
           {char.upgradeIds.map((uid) => {
@@ -2242,6 +2286,29 @@ function CharacterCard({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Ability action badges — bottom-left, one per action/powerAction ability */}
+      {abilityBadges && abilityBadges.length > 0 && (
+        <div className="pointer-events-none absolute bottom-1 left-1 z-10 flex flex-col gap-0.5">
+          {abilityBadges.map((b) => (
+            <button
+              key={b.abilityIndex}
+              type="button"
+              disabled={!b.eligible}
+              onClick={(e) => { e.stopPropagation(); if (b.eligible) onAbilityBadgeTap?.(b.abilityIndex, b.kind); }}
+              style={{ width: 28, height: 28 }}
+              className={`pointer-events-auto flex flex-shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-colors ${
+                b.eligible
+                  ? 'border-emerald-500 bg-emerald-900/80 text-emerald-100 ring-1 ring-emerald-500/60'
+                  : 'border-neutral-600 bg-neutral-800/80 text-neutral-500 opacity-50'
+              }`}
+              aria-label={b.kind === 'powerAction' ? 'Power Action ability' : 'Action ability'}
+            >
+              {b.kind === 'powerAction' ? 'PA' : 'A'}
+            </button>
+          ))}
         </div>
       )}
     </div>

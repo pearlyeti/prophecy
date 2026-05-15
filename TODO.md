@@ -453,6 +453,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-15 — WEB-18 — Card ability badges on in-play characters.** `action`/`powerAction` abilities render circular badges (A/PA) on bottom-left of CharacterCard. Green ring when eligible; power action badges grey out after use and clear on round change. `cardAction` flow added to `ActiveFlow`; `usedPowerActionKeys` tracked in Zustand; Commit dispatches `use-card-action`. Shield Maiden seeded with test action + powerAction abilities. CLAUDE.md updated with correct AbilityBuilder path. Typecheck + 152 engine tests green.
 - **2026-05-14 — WEB-17 — Discard-to-reroll + claim (already in WEB-15).** Reroll flow: pick-card (amber hand), pick-dice (amber tiles), Undo walks back steps. Focus deferred pending engine support. (`3f8f48c`)
 - **2026-05-14 — WEB-16 — Dice resolution flows.** Tap-to-resolve with symbol locking; red/blue targeting rings on chars; resolve-dice dispatch with target; Commit disabled until target chosen for damage/shields. (`8cdb871`)
 - **2026-05-14 — WEB-15 — Activation flow.** Roll Dice dispatches activate action; claim-battlefield wired; pendingExhaust tilt on card while flow is active. (`c15773c`)

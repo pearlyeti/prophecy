@@ -131,7 +131,7 @@ These exist for fairness and to keep the platform clear of lootbox regulation. I
 
 ## Admin card editor — keep it in sync
 
-Any change that adds or renames an `Effect` op, an `Ability` kind, or any field a card author fills in (play condition, trigger event, action cost, card disposition, target spec, etc.) **must update `apps/web/src/routes/admin/AbilityBuilder.tsx` in the same commit.** This is non-negotiable.
+Any change that adds or renames an `Effect` op, an `Ability` kind, or any field a card author fills in (play condition, trigger event, action cost, card disposition, target spec, etc.) **must update `apps/web/src/routes/designer/AbilityBuilder.tsx` in the same commit.** This is non-negotiable.
 
 - New dispatched ops get a proper form with all their parameters.
 - New stub ops (schema defined, engine not yet implemented) still get a form entry — the `(new)` placeholder is the fallback of last resort, not the default.
