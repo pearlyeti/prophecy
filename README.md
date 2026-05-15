@@ -475,6 +475,61 @@ Separately from the canonical catalog above, the engine has a third-party-derive
 
 Card specs, backlog, and the Done history live in [ROADMAP.md](ROADMAP.md). Active status (in-progress, blocked) lives in [GitHub Issues](https://github.com/pearlyeti/prophecy/issues). Anything cross-cutting that needs tracking belongs in ROADMAP.md, not in code comments.
 
+## v1.0.0 launch criteria
+
+Explicit gates for what must ship before declaring 1.0. Every card in Up next and Backlog should be traceable to one of these; if it isn't, the default is to move it to Backlog — post-v1.0.
+
+**Engine**
+- All v1 ability kinds dispatched: `immediate` ✅, `triggered` ✅, `action` ✅, `powerAction` ✅, `special`, `claim`. (`passive` may defer.)
+- Replacement-effect framework + simultaneous-ability tiebreak.
+- All v1 keywords resolved end-to-end: Ambush, Guardian, Modify, Redeploy.
+- Plot and battlefield (Claim) abilities.
+- Multi-target resolve ✅ (ENGINE-8).
+- Support card state + Stability (ENGINE-S1).
+- Replay reconstruction from seed + event log.
+
+**Persistence**
+- Migrations applied to a live Postgres (API-1).
+- Auth + sessions live (AUTH-1).
+- Decks persisted to Postgres (CRUD via tRPC).
+- Card collection persisted; soft-currency pack opening.
+- Game results + event log persisted (API-2 minimum; API-3 for in-flight durability).
+- Stripe checkout + idempotent entitlements fulfillment.
+
+**Real-time**
+- Reconnect window ✅ (SERVER-1).
+- Graceful shutdown / in-flight drain on deploy (OPS-3).
+- Incremental event-log writes for in-flight durability (API-3).
+
+**Client**
+- Full turn UX for all action types ✅ (mostly).
+- Activity log readable in plain English (WEB-7).
+- Game-over screen + rematch.
+- Deckbuilder + collection browser.
+- Storefront UI (currency packs, season pass, cosmetic bundles).
+- Reduced-motion + color-blind modes.
+- PWA install + offline shell.
+
+**Ranked & tournaments**
+- Glicko-2 ranked queue + casual queue + private lobby ✅.
+- Season boundary + soft reset; rank tiers Bronze → Champion.
+- Tournament formats: Swiss, Single Elim, Double Elim + TO dashboard.
+
+**Content**
+- First original Prophecy set (~140 cards) covering all 5 keywords with faction/color balance.
+- Lore bible + naming conventions.
+
+**Ops & safety**
+- Sentry across all services (OPS-2).
+- Cloudflare in front of api / game-server with rate limits.
+- Turnstile on signup and high-value actions.
+- Replay-analysis worker (dice-roll bias, queue-dodge).
+- Backup/restore drill exercised at least once.
+
+**Test**
+- Playwright E2E covering a 1v1 match queue → game-end (TEST-1).
+- Engine unit suite green (168+ tests today).
+
 ---
 
 ## Working agreements
