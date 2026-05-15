@@ -2297,7 +2297,7 @@ function DiceStack({
   const valueText = horizontal ? 'text-xs' : 'text-base';
 
   return (
-    <div className={`flex gap-1 ${horizontal ? 'w-full flex-row flex-wrap justify-center' : 'flex-col'}`}>
+    <div className={`flex gap-1 ${horizontal ? 'w-full flex-row flex-wrap items-center justify-center min-h-[40px]' : 'flex-col'}`}>
       {dice.map((d) => {
         // ── Appearance ───────────────────────────────────────────────────
         let tileClass = 'border-neutral-700 bg-neutral-900 text-neutral-300';
