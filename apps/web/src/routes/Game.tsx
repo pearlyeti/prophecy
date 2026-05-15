@@ -1667,7 +1667,7 @@ function OpponentZone({
   );
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-end gap-2 pb-1">
+    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-end gap-2 overflow-hidden pb-1">
       {oppPlayer && rows.map((rowIds, i) => (
         <BattlefieldRow
           key={i}
@@ -1715,7 +1715,7 @@ function PlayerZone({
   );
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-start gap-2 pt-1">
+    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-start gap-2 overflow-hidden pt-1">
       {myPlayer && rows.map((rowIds, i) => (
         <BattlefieldRow
           key={i}
