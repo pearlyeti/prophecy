@@ -137,6 +137,8 @@ All rules from [docs/rules-reference.md](docs/rules-reference.md) are implemente
 | Frontend framework | React 19 | Ecosystem, team familiarity |
 | Frontend build | Vite | Fast HMR, ESM-native |
 | Game board renderer | Pixi.js v8 | GPU-accelerated 2D canvas, ideal for card games |
+| Board dice (3D) | Three.js + @react-three/fiber + @react-three/drei | Persistent 3D rounded-cube dice in the pool areas |
+| Dice roll cam | @3d-dice/dice-box (Babylon.js + Ammo.js WASM) | Full-screen physics roll overlay on commit |
 | Particle effects | @pixi/particle-emitter | Sword/saber trails, blaster bolts, impact bursts |
 | DOM animation | Framer Motion | Card lifts, drag, modals, choreographed pack-open |
 | Audio | Howler.js | SFX + music, mixing buses, web-audio under the hood |

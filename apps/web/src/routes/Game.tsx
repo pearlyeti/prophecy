@@ -5,6 +5,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import { createPortal } from 'react-dom';
 
 const DicePool3D = lazy(() => import('./DicePool3D.js'));
+const ResultsCam = lazy(() => import('./ResultsCam.js'));
 
 import { fetchCards } from './designer/api.js';
 
@@ -29,12 +30,17 @@ export function Game() {
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
+  const [resultsCam, setResultsCam] = useState<{ diceCount: number } | null>(null);
   const [handFocusId, setHandFocusId] = useState<string | null>(null);
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
 
   useEffect(() => {
     fetchCards().then(setCatalog).catch(() => {});
   }, []);
+
+  // Pre-fetch the ResultsCam + dice-box WASM bundle in the background at
+  // game-start so it's warm before the first Roll Dice commit fires.
+  useEffect(() => { import('./ResultsCam.js').catch(() => {}); }, []);
 
   const catalogById = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
 
@@ -173,6 +179,15 @@ export function Game() {
           onReroll={handleReroll}
           onClose={closeHand}
         />
+      )}
+
+      {resultsCam && (
+        <Suspense fallback={null}>
+          <ResultsCam
+            diceCount={resultsCam.diceCount}
+            onDismiss={() => setResultsCam(null)}
+          />
+        </Suspense>
       )}
     </main>
   );
@@ -1477,7 +1492,7 @@ function BattleZone({
         />
 
         {/* 5 ── Action bar — Undo (future) | Commit */}
-        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
+        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} onShowResultsCam={(n) => setResultsCam({ diceCount: n })} />
       </section>
 
       {detailChar && detailId && (
@@ -2020,11 +2035,13 @@ function ActionBar({
   playerId,
   send,
   isMyTurn,
+  onShowResultsCam,
 }: {
   game: GameState;
   playerId: string;
   send: (a: Action) => void;
   isMyTurn: boolean;
+  onShowResultsCam: (diceCount: number) => void;
 }) {
   const [confirmPass, setConfirmPass] = useState(false);
   const activeFlow = useApp((s) => s.activeFlow);
@@ -2066,8 +2083,12 @@ function ActionBar({
   const handleCommit = () => {
     if (!activeFlow) { setConfirmPass(true); return; }
     if (activeFlow.kind === 'activate') {
+      // Dispatch to server and show the Results Cam simultaneously.
+      const char = game.players[playerId]?.characters[activeFlow.charId];
+      const diceCount = char?.dice.length ?? 1;
       send({ type: 'activate', playerId, cardId: activeFlow.charId });
       setActiveFlow(null);
+      onShowResultsCam(diceCount);
       return;
     }
     if (activeFlow.kind === 'claim') {
