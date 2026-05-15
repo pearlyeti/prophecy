@@ -2279,26 +2279,48 @@ function CharacterCard({
         </div>
       )}
 
-      {/* Ability action badges — bottom-left, one per action/powerAction ability */}
+      {/* Ability action badges — centered at bottom edge, half outside card */}
       {abilityBadges && abilityBadges.length > 0 && (
-        <div className="pointer-events-none absolute bottom-1 left-1 z-10 flex flex-col gap-0.5">
-          {abilityBadges.map((b) => (
-            <button
-              key={b.abilityIndex}
-              type="button"
-              disabled={!b.eligible}
-              onClick={(e) => { e.stopPropagation(); if (b.eligible) onAbilityBadgeTap?.(b.abilityIndex, b.kind); }}
-              style={{ width: 28, height: 28 }}
-              className={`pointer-events-auto flex flex-shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-colors ${
-                b.eligible
-                  ? 'border-emerald-500 bg-emerald-900/80 text-emerald-100 ring-1 ring-emerald-500/60'
-                  : 'border-neutral-600 bg-neutral-800/80 text-neutral-500 opacity-50'
-              }`}
-              aria-label={b.kind === 'powerAction' ? 'Power Action ability' : 'Action ability'}
-            >
-              {b.kind === 'powerAction' ? 'PA' : 'A'}
-            </button>
-          ))}
+        <div className="pointer-events-none absolute bottom-0 left-1/2 z-20 flex -translate-x-1/2 translate-y-1/2 flex-row gap-1">
+          {abilityBadges.map((b) => {
+            const bx = card?.badgeFrameX ?? 50;
+            const by = card?.badgeFrameY ?? 50;
+            const bz = card?.badgeFrameZoom ?? 1;
+            return (
+              <button
+                key={b.abilityIndex}
+                type="button"
+                disabled={!b.eligible}
+                onClick={(e) => { e.stopPropagation(); if (b.eligible) onAbilityBadgeTap?.(b.abilityIndex, b.kind); }}
+                style={{ width: 28, height: 28 }}
+                className={`pointer-events-auto relative flex-shrink-0 overflow-hidden rounded-full border-2 transition-colors ${
+                  b.eligible
+                    ? 'border-emerald-500 ring-1 ring-emerald-500/60'
+                    : 'border-neutral-600 opacity-50'
+                }`}
+                aria-label={b.kind === 'powerAction' ? 'Power Action ability' : 'Action ability'}
+              >
+                {card?.artUrl ? (
+                  <img
+                    src={card.artUrl}
+                    alt=""
+                    aria-hidden
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: `${bx}% ${by}%`,
+                      transform: bz > 1 ? `scale(${bz})` : undefined,
+                      transformOrigin: `${bx}% ${by}%`,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                ) : (
+                  <div className={`absolute inset-0 bg-gradient-to-br ${cardArtGradient(card?.type ?? 'character')}`} />
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
