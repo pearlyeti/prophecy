@@ -1539,40 +1539,121 @@ function AvatarBar({
   );
 }
 
-/** Opponent character/support cards + dice. Placeholder until WEB-12. */
-function OpponentZone({
+// ─── Battlefield column width helper ────────────────────────────────────────
+// Each character gets a column wide enough for up to 3 dice side-by-side
+// (3 × 44px + 2 × 4px gap = 140px). Characters with more dice in their pool
+// get a wider column; the minimum is always 3-dice wide.
+const DIE_SIZE = 44;
+const DIE_GAP = 4;
+const MIN_DICE_COLS = 3;
+
+function charColumnWidth(diceInPool: number): number {
+  const cols = Math.max(diceInPool, MIN_DICE_COLS);
+  return cols * DIE_SIZE + (cols - 1) * DIE_GAP;
+}
+
+// ─── Shared battlefield row renderer ────────────────────────────────────────
+
+type ZoneSide = 'player' | 'opponent';
+
+function BattlefieldRow({
+  rowIds,
+  playerState,
+  diceByOwner,
   game,
-  playerId,
-  catalogById: _catalogById,
-  onDetailTap: _onDetailTap,
-  onUpgradeTap: _onUpgradeTap,
+  catalogById,
+  side,
+  diceInteractive,
+  selectionMode,
+  onDetailTap,
+  onUpgradeTap,
 }: {
+  rowIds: string[];
+  playerState: NonNullable<ReturnType<typeof Object.values<ReturnType<typeof Object.values>>>>[number];
+  diceByOwner: Map<string, DieInPool[]>;
   game: GameState;
-  playerId: string;
   catalogById: Map<string, Card>;
+  side: ZoneSide;
+  diceInteractive: boolean;
+  selectionMode: ReturnType<typeof useApp> extends { selectionMode: infer S } ? S : never;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
-  const opponentId = game.playerOrder.find((id) => id !== playerId);
-  const oppPlayer = opponentId ? game.players[opponentId] : null;
-  const charCount = oppPlayer?.characterOrder.length ?? 0;
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-end gap-2 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wider text-neutral-600">
-        Opponent · {charCount} character{charCount !== 1 ? 's' : ''}
-      </div>
+    <div className="flex shrink-0 flex-row items-end justify-center gap-2 px-2">
+      {rowIds.map((cid) => {
+        const char = (playerState as any).characters[cid] as CharacterState;
+        if (!char) return null;
+        const dice = diceByOwner.get(cid) ?? [];
+        const colWidth = charColumnWidth(dice.length);
+        const hp = char.health - char.damage;
+        return (
+          <div key={cid} className="flex shrink-0 flex-col gap-0.5" style={{ width: colWidth }}>
+            {side === 'opponent' && (
+              <CharStatsRow hp={hp} shields={char.shields} />
+            )}
+            {side === 'player' && (
+              <DiceStack
+                dice={dice}
+                diceInteractive={diceInteractive}
+                selectionMode={selectionMode}
+                horizontal
+              />
+            )}
+            <CharacterCard
+              char={char}
+              game={game}
+              catalogById={catalogById}
+              className="w-full"
+              tipDirection={side === 'player' ? 'right' : 'left'}
+              onTap={() => onDetailTap(cid)}
+              onUpgradeTap={onUpgradeTap}
+            />
+            {side === 'opponent' && (
+              <DiceStack
+                dice={dice}
+                diceInteractive={false}
+                selectionMode={selectionMode}
+                horizontal
+              />
+            )}
+            {side === 'player' && (
+              <CharStatsRow hp={hp} shields={char.shields} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/** Player character/support cards + dice. Placeholder until WEB-12. */
-function PlayerZone({
+/** How many character columns fit side-by-side given a container pixel width. */
+function useMaxPerRow(containerRef: React.RefObject<HTMLDivElement | null>): number {
+  const minColW = MIN_DICE_COLS * DIE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP;
+  const colWithGap = minColW + 8; // 8px gap between columns
+  const [maxPerRow, setMaxPerRow] = useState(() =>
+    Math.max(1, Math.floor((window.innerWidth - 16) / colWithGap)),
+  );
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      setMaxPerRow(Math.max(1, Math.floor(w / colWithGap)));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [containerRef, colWithGap]);
+  return maxPerRow;
+}
+
+/** Opponent character/support cards with dice below. Front row at bottom (closest to player). */
+function OpponentZone({
   game,
   playerId,
-  catalogById: _catalogById,
-  onDetailTap: _onDetailTap,
-  onUpgradeTap: _onUpgradeTap,
+  catalogById,
+  onDetailTap,
+  onUpgradeTap,
 }: {
   game: GameState;
   playerId: string;
@@ -1580,14 +1661,82 @@ function PlayerZone({
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
-  const myPlayer = game.players[playerId];
-  const charCount = myPlayer?.characterOrder.length ?? 0;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const maxPerRow = useMaxPerRow(containerRef);
+  const selectionMode = useApp((s) => s.selectionMode);
+  const opponentId = game.playerOrder.find((id) => id !== playerId);
+  const oppPlayer = opponentId ? game.players[opponentId] : null;
+  const diceByOwner = useMemo(() => buildDiceByOwner(oppPlayer), [oppPlayer]);
+  const rows = useMemo(
+    () => distributeToRows(oppPlayer?.characterOrder ?? [], maxPerRow).reverse(),
+    [oppPlayer, maxPerRow],
+  );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-start gap-2 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wider text-neutral-600">
-        Your field · {charCount} character{charCount !== 1 ? 's' : ''}
-      </div>
+    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-end gap-2 pb-1">
+      {oppPlayer && rows.map((rowIds, i) => (
+        <BattlefieldRow
+          key={i}
+          rowIds={rowIds}
+          playerState={oppPlayer as any}
+          diceByOwner={diceByOwner}
+          game={game}
+          catalogById={catalogById}
+          side="opponent"
+          diceInteractive={false}
+          selectionMode={selectionMode}
+          onDetailTap={onDetailTap}
+          onUpgradeTap={onUpgradeTap}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Player character/support cards with dice above. Front row at top (closest to opponent). */
+function PlayerZone({
+  game,
+  playerId,
+  catalogById,
+  onDetailTap,
+  onUpgradeTap,
+}: {
+  game: GameState;
+  playerId: string;
+  catalogById: Map<string, Card>;
+  onDetailTap: (charId: string) => void;
+  onUpgradeTap: (upgradeId: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const maxPerRow = useMaxPerRow(containerRef);
+  const selectionMode = useApp((s) => s.selectionMode);
+  const isMyTurn = game.activePlayerId === playerId;
+  const inActionPhase = game.phase === 'action';
+  const diceInteractive = isMyTurn && inActionPhase && selectionMode === null;
+  const myPlayer = game.players[playerId];
+  const diceByOwner = useMemo(() => buildDiceByOwner(myPlayer), [myPlayer]);
+  const rows = useMemo(
+    () => distributeToRows(myPlayer?.characterOrder ?? [], maxPerRow),
+    [myPlayer, maxPerRow],
+  );
+
+  return (
+    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-start gap-2 pt-1">
+      {myPlayer && rows.map((rowIds, i) => (
+        <BattlefieldRow
+          key={i}
+          rowIds={rowIds}
+          playerState={myPlayer as any}
+          diceByOwner={diceByOwner}
+          game={game}
+          catalogById={catalogById}
+          side="player"
+          diceInteractive={diceInteractive}
+          selectionMode={selectionMode}
+          onDetailTap={onDetailTap}
+          onUpgradeTap={onUpgradeTap}
+        />
+      ))}
     </div>
   );
 }
