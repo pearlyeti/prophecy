@@ -17,6 +17,15 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'di
  *    reroll) and dispatches a `reroll-dice` action against the
  *    pre-chosen discard card.
  */
+/**
+ * Which action flow the player is currently in. Only one flow is active
+ * at a time; entering one clears all others. null = idle state.
+ * More kinds are added in WEB-15/16/17.
+ */
+export type ActiveFlow =
+  | { readonly kind: 'activate'; readonly charId: string }
+  | { readonly kind: 'claim' };
+
 export type SelectionMode =
   | { readonly kind: 'resolve'; readonly selectedDieIds: readonly string[] }
   | {
@@ -50,6 +59,9 @@ interface AppStore {
   enterRerollMode: (discardCardId: string) => void;
   exitSelectionMode: () => void;
   toggleSelectedDie: (instanceId: string) => void;
+
+  activeFlow: ActiveFlow | null;
+  setActiveFlow: (flow: ActiveFlow | null) => void;
 
   reset: () => void;
 }
@@ -95,6 +107,9 @@ export const useApp = create<AppStore>((set) => ({
       return { selectionMode: { ...s.selectionMode, selectedDieIds: next } };
     }),
 
+  activeFlow: null,
+  setActiveFlow: (flow) => set({ activeFlow: flow }),
+
   reset: () => {
     clearCachedLobby();
     set({
@@ -103,6 +118,7 @@ export const useApp = create<AppStore>((set) => ({
       recentEvents: [],
       lastError: null,
       selectionMode: null,
+      activeFlow: null,
     });
   },
 }));

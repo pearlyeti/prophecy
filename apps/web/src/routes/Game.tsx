@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { fetchCards } from './designer/api.js';
 
 import { getSocket } from '../lib/socket.js';
-import { useApp, type SelectionMode } from '../store.js';
+import { useApp, type ActiveFlow, type SelectionMode } from '../store.js';
 
 // Bare-bones in-game UI. Renders the public game state and exposes the
 // implemented actions as buttons. Pretty UI comes later — first goal is
@@ -23,6 +23,7 @@ export function Game() {
   const selectionMode = useApp((s) => s.selectionMode);
   const exitSelectionMode = useApp((s) => s.exitSelectionMode);
   const enterRerollMode = useApp((s) => s.enterRerollMode);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
@@ -42,8 +43,11 @@ export function Game() {
   const isMyTurn = game?.activePlayerId === playerId;
   const inActionPhase = game?.phase === 'action';
   useEffect(() => {
-    if (!isMyTurn || !inActionPhase) exitSelectionMode();
-  }, [isMyTurn, inActionPhase, exitSelectionMode]);
+    if (!isMyTurn || !inActionPhase) {
+      exitSelectionMode();
+      setActiveFlow(null);
+    }
+  }, [isMyTurn, inActionPhase, exitSelectionMode, setActiveFlow]);
 
   // Close hand overlay on turn rotation too.
   useEffect(() => {
@@ -1505,11 +1509,16 @@ function AvatarBar({
   const oppPlayer = opponentId ? game.players[opponentId] : null;
   const inActionPhase = game.phase === 'action';
 
+  const activeFlow = useApp((s) => s.activeFlow);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
   // Battlefield card — battlefieldCardId is a catalog ID, look up directly
   const controllerId = game.battlefieldControllerId;
   const controllerIsMe = controllerId === playerId;
   const bfCatalogId = myPlayer?.battlefieldCardId ?? oppPlayer?.battlefieldCardId ?? null;
   const bfCard = bfCatalogId ? catalogById.get(bfCatalogId) : null;
+  const canClaim = isMyTurn && inActionPhase && activeFlow === null &&
+    getLegalActions(game, playerId).canClaim;
+  const isClaiming = activeFlow?.kind === 'claim';
 
   const phaseLabel =
     game.phase === 'action' ? `R${game.roundNumber}`
@@ -1534,8 +1543,18 @@ function AvatarBar({
 
       {/* ── Battlefield card + phase + ⚡ (center) ── */}
       <div className="flex shrink-0 flex-col items-center gap-0.5">
-        <div className="flex items-center gap-1">
-          {/* Controller indicator — dot tilts toward the controlling side */}
+        <button
+          type="button"
+          onClick={() => {
+            if (isClaiming) setActiveFlow(null);
+            else if (canClaim) setActiveFlow({ kind: 'claim' });
+          }}
+          className={`flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-colors ${
+            canClaim || isClaiming
+              ? 'ring-1 ring-emerald-500/60 border border-emerald-600'
+              : 'border border-transparent'
+          }`}
+        >
           <span className={`text-[8px] ${controllerIsMe ? 'text-emerald-400' : 'text-neutral-500'}`}>
             {controllerIsMe ? '◀' : ''}
           </span>
@@ -1545,7 +1564,7 @@ function AvatarBar({
           <span className={`text-[8px] ${!controllerIsMe && controllerId ? 'text-emerald-400' : 'text-neutral-500'}`}>
             {!controllerIsMe && controllerId ? '▶' : ''}
           </span>
-        </div>
+        </button>
         <span className="text-[9px] uppercase tracking-wider text-neutral-600">{phaseLabel}</span>
         {isMyTurn && inActionPhase && (
           <button
@@ -1596,6 +1615,8 @@ function BattlefieldRow({
   side,
   diceInteractive,
   selectionMode,
+  activatableIds,
+  resolvableSymbols,
   onDetailTap,
   onUpgradeTap,
 }: {
@@ -1607,9 +1628,14 @@ function BattlefieldRow({
   side: ZoneSide;
   diceInteractive: boolean;
   selectionMode: SelectionMode | null;
+  activatableIds: readonly string[];
+  resolvableSymbols: readonly string[];
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
+  const activeFlow = useApp((s) => s.activeFlow);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
+
   return (
     <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
       {rowIds.map((cid) => {
@@ -1617,6 +1643,20 @@ function BattlefieldRow({
         if (!char) return null;
         const dice = diceByOwner.get(cid) ?? [];
         const hp = char.health - char.damage;
+
+        const eligible = activatableIds.includes(cid) && activeFlow === null;
+        const isActivating = activeFlow?.kind === 'activate' && activeFlow.charId === cid;
+
+        const handleTap = () => {
+          if (isActivating) {
+            setActiveFlow(null);
+          } else if (eligible) {
+            setActiveFlow({ kind: 'activate', charId: cid });
+          } else {
+            onDetailTap(cid);
+          }
+        };
+
         return (
           <div key={cid} className="flex shrink-0 flex-col gap-3" style={{ width: CHAR_COL_WIDTH }}>
             {side === 'player' && (
@@ -1625,6 +1665,7 @@ function BattlefieldRow({
                 diceInteractive={diceInteractive}
                 selectionMode={selectionMode}
                 horizontal
+                eligibleSymbols={resolvableSymbols}
               />
             )}
             <CharacterCard
@@ -1635,7 +1676,8 @@ function BattlefieldRow({
               tipDirection="right"
               hp={hp}
               shields={char.shields}
-              onTap={() => onDetailTap(cid)}
+              eligible={eligible || isActivating}
+              onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
             />
             {side === 'opponent' && (
@@ -1711,6 +1753,8 @@ function OpponentZone({
           side="opponent"
           diceInteractive={false}
           selectionMode={selectionMode}
+          activatableIds={[]}
+          resolvableSymbols={[]}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -1736,6 +1780,7 @@ function PlayerZone({
   const containerRef = useRef<HTMLDivElement>(null);
   const maxPerRow = useMaxPerRow(containerRef);
   const selectionMode = useApp((s) => s.selectionMode);
+  const activeFlow = useApp((s) => s.activeFlow);
   const isMyTurn = game.activePlayerId === playerId;
   const inActionPhase = game.phase === 'action';
   const diceInteractive = isMyTurn && inActionPhase && selectionMode === null;
@@ -1745,6 +1790,16 @@ function PlayerZone({
     () => distributeToRows(myPlayer?.characterOrder ?? [], maxPerRow),
     [myPlayer, maxPerRow],
   );
+
+  // Compute eligible actions — only when it's my turn, in action phase, no active flow
+  const legalActions = useMemo(
+    () => (isMyTurn && inActionPhase && activeFlow === null)
+      ? getLegalActions(game, playerId)
+      : null,
+    [game, playerId, isMyTurn, inActionPhase, activeFlow],
+  );
+  const activatableIds = legalActions?.activatableCharacterIds ?? [];
+  const resolvableSymbols = legalActions?.resolvableSymbols ?? [];
 
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-start gap-2 overflow-hidden pt-1">
@@ -1759,6 +1814,8 @@ function PlayerZone({
           side="player"
           diceInteractive={diceInteractive}
           selectionMode={selectionMode}
+          activatableIds={activatableIds}
+          resolvableSymbols={resolvableSymbols}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -1869,7 +1926,7 @@ function InlineHandStrip({
   );
 }
 
-/** Bottom action bar: Undo (disabled until WEB-14) | Commit ("Pass" → confirm). */
+/** Bottom action bar: Undo | Commit (label + behaviour derived from activeFlow). */
 function ActionBar({
   game,
   playerId,
@@ -1882,42 +1939,73 @@ function ActionBar({
   isMyTurn: boolean;
 }) {
   const [confirmPass, setConfirmPass] = useState(false);
+  const activeFlow = useApp((s) => s.activeFlow);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
   const inActionPhase = game.phase === 'action';
 
   if (game.phase === 'ended') return null;
-  // Always render during action + upkeep to hold space so the hand strip doesn't shift.
   if (!inActionPhase) return <div className="shrink-0 h-[60px] border-t border-neutral-800" />;
 
-  const handlePass = () => {
-    send({ type: 'pass', playerId });
-    setConfirmPass(false);
+  // Derive commit button label from active flow
+  const commitLabel = (() => {
+    if (!activeFlow) return 'Pass';
+    if (activeFlow.kind === 'activate') return 'Roll Dice';
+    if (activeFlow.kind === 'claim') return 'Claim';
+    return 'Commit';
+  })();
+
+  const handleCommit = () => {
+    if (!activeFlow) {
+      setConfirmPass(true);
+      return;
+    }
+    // WEB-15/17 will wire actual dispatch here; for now just clear the flow
+    setActiveFlow(null);
   };
+
+  const handleUndo = () => setActiveFlow(null);
 
   return (
     <>
       <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-3 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
-        {/* Undo — hidden until WEB-14 wires the active flow */}
+        {/* Undo — visible when a flow is active */}
+        {activeFlow ? (
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="min-h-[44px] rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-400 hover:border-neutral-500 active:bg-neutral-800"
+          >
+            Undo
+          </button>
+        ) : (
+          <div className="flex-1" />
+        )}
+
         <div className="flex-1" />
 
         {/* Commit */}
         {isMyTurn && (
           <button
             type="button"
-            onClick={() => setConfirmPass(true)}
-            className="min-h-[44px] rounded-xl border border-neutral-700 bg-neutral-900 px-6 py-2 text-sm font-medium text-neutral-100 hover:border-neutral-500 active:bg-neutral-800"
+            onClick={handleCommit}
+            className={`min-h-[44px] rounded-xl border px-6 py-2 text-sm font-medium transition-colors ${
+              activeFlow
+                ? 'border-emerald-700 bg-emerald-900 text-emerald-50 hover:bg-emerald-800'
+                : 'border-neutral-700 bg-neutral-900 text-neutral-100 hover:border-neutral-500'
+            } active:opacity-80`}
           >
-            Pass
+            {commitLabel}
           </button>
         )}
       </div>
 
       {confirmPass && (
         <ConfirmOverlay
-          title="Confirm Action"
-          body="Are you sure you want to pass?"
+          title="Pass your turn?"
+          body="You haven't taken an action. Pass to your opponent?"
           tone="warning"
           confirmLabel="Pass"
-          onConfirm={handlePass}
+          onConfirm={() => { send({ type: 'pass', playerId }); setConfirmPass(false); }}
           onCancel={() => setConfirmPass(false)}
         />
       )}
@@ -1934,6 +2022,7 @@ function CharacterCard({
   tipDirection = 'right',
   hp,
   shields,
+  eligible = false,
   onTap,
   onUpgradeTap,
 }: {
@@ -1944,6 +2033,8 @@ function CharacterCard({
   tipDirection?: 'right' | 'left';
   hp?: number;
   shields?: number;
+  /** Green ring — this card can be activated this turn. */
+  eligible?: boolean;
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -1959,7 +2050,11 @@ function CharacterCard({
         type="button"
         onClick={onTap}
         className={`absolute inset-0 overflow-hidden rounded-xl border text-left transition-transform ${
-          char.exhausted ? 'border-neutral-600 opacity-70' : 'border-neutral-700'
+          eligible
+            ? 'border-emerald-500 ring-2 ring-emerald-500/60'
+            : char.exhausted
+              ? 'border-neutral-600 opacity-70'
+              : 'border-neutral-700'
         }`}
         style={{
           transform: char.exhausted ? exhaustedTransform : 'none',
@@ -2036,11 +2131,14 @@ function DiceStack({
   diceInteractive,
   selectionMode,
   horizontal = false,
+  eligibleSymbols,
 }: {
   dice: DieInPool[];
   diceInteractive: boolean;
   selectionMode: SelectionMode | null;
   horizontal?: boolean;
+  /** Symbols currently resolvable — dice showing these get a green ring when idle. */
+  eligibleSymbols?: readonly string[];
 }) {
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
   const enterResolveMode = useApp((s) => s.enterResolveMode);
@@ -2091,7 +2189,9 @@ function DiceStack({
                 ? 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500'
                 : interactive && inSelectionMode && !canInteract
                   ? 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50'
-                  : 'border-neutral-700 bg-neutral-900 text-neutral-300'
+                  : eligibleSymbols?.includes(d.face.symbol) && !inSelectionMode
+                    ? 'border-emerald-500 bg-neutral-900 text-neutral-300 ring-1 ring-emerald-500/50'
+                    : 'border-neutral-700 bg-neutral-900 text-neutral-300'
             }`}
             title={`${d.face.symbol} ${d.face.value}${d.face.modifier ? ' +mod' : ''}`}
           >
