@@ -20,11 +20,10 @@ const DIE_RADIUS = 0.12;        // chamfer radius — matches physical dice
 const DIE_SPACING = 1.05;       // center-to-center spacing
 const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch more vertical space
 
-// Camera position: overhead with a lean toward the bottom-left of the screen.
-// X=-0.35 gives a left-face reveal on each die without making the row noticeably
-// diagonal (the skew scales with X — keep it under ~0.5 to stay subtle).
-// Z=1.1 deepens the bottom-of-screen tilt.
-const CAM_POS: [number, number, number] = [-0.35, 2.3, 1.1];
+// Camera stays centered on X so the die row doesn't shift in screen space.
+// Z=0.9 provides the overhead-with-depth look (bottom-of-screen tilt).
+// The "left" component of the perspective comes from the die's rest rotation below.
+const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
 const CAM_FOV = 40;
 
 // Points the camera at the dice origin after mount.
@@ -148,9 +147,9 @@ function Die3D({
   );
   useEffect(() => () => { texture.dispose(); }, [texture]);
 
-  // No baked rotation — the camera angle provides all the depth perspective.
-  // During tumble the die spins freely; at rest it sits flat, face-up.
-  const rotation: [number, number, number] = [0, 0, 0];
+  // Slight Y rotation shows the left face without shifting the die's screen position.
+  // Camera stays centered (X=0); this rotation adds the "bottom-left" look per die.
+  const rotation: [number, number, number] = isTumbling ? [0, 0, 0] : [0, -0.18, 0];
 
   // Emissive tint communicates selection / eligibility without changing geometry.
   const emissive =
