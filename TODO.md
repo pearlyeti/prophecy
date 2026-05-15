@@ -75,7 +75,7 @@ Explicit gates for what must ship before declaring 1.0. Cards in Up Next and Bac
 - Engine unit suite green (168+ tests today).
 
 ### In progress
-- _(none — claim a card from Up next.)_
+- **WEB-7** — Human-readable activity log (2026-05-15)
 
 ### Up next — task cards
 

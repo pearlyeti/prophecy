@@ -1,5 +1,5 @@
 import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
-import type { Action, Card, EngineEvent, GameState } from '@prophecy/protocol';
+import type { Action, Card, EngineEvent, GameState, LobbyState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -584,20 +584,250 @@ function EndedBanner({ game, playerId }: { game: GameState; playerId: string }) 
   );
 }
 
-function EventLog({ events }: { events: readonly EngineEvent[] }) {
-  if (events.length === 0) return null;
+// ─── Activity log ────────────────────────────────────────────────────────────
+
+const LOG_CHIP_COLORS: Record<string, string> = {
+  melee:    'bg-red-900 text-red-200',
+  ranged:   'bg-orange-900 text-orange-200',
+  shield:   'bg-blue-900 text-blue-200',
+  resource: 'bg-green-900 text-green-200',
+  disrupt:  'bg-purple-900 text-purple-200',
+  focus:    'bg-yellow-900 text-yellow-100',
+  discard:  'bg-neutral-700 text-neutral-300',
+  modifier: 'bg-neutral-700 text-neutral-300',
+};
+
+function DieChip({ symbol, value, modifier }: { symbol: string; value: number; modifier: boolean }) {
+  const cls = LOG_CHIP_COLORS[symbol] ?? 'bg-neutral-700 text-neutral-300';
+  const label = symbol.charAt(0).toUpperCase() + symbol.slice(1);
   return (
-    <section className="mt-4">
-      <div className="mb-2 text-xs uppercase tracking-wider text-neutral-500">Recent events</div>
-      <ol className="space-y-1 text-xs text-neutral-400">
-        {events.slice(-10).map((e, i) => (
-          <li key={`${i}-${e.type}`} className="font-mono">
-            <span className="text-neutral-300">{e.type}</span>
-            <span className="ml-2 text-neutral-500">{JSON.stringify(e.payload)}</span>
-          </li>
-        ))}
+    <span className={`inline-flex items-baseline rounded px-1 py-0.5 font-mono text-[10px] leading-none ${cls}`}>
+      {modifier && '+'}{value > 0 ? `${value} ` : ''}{label}
+    </span>
+  );
+}
+
+type LogEntry =
+  | { readonly kind: 'divider'; readonly key: string; readonly label: string }
+  | { readonly kind: 'entry'; readonly key: string; readonly node: ReactNode };
+
+function buildLogEntries(
+  events: readonly EngineEvent[],
+  lobby: LobbyState | null,
+  game: GameState,
+  catalogById: Map<string, Card>,
+): LogEntry[] {
+  const pn = (pid: string) => (
+    <strong className="font-semibold text-neutral-100">
+      {lobby?.members.find((m) => m.playerId === pid)?.displayName ?? pid.slice(-6)}
+    </strong>
+  );
+  const cn = (cid: string) => {
+    const catId = game.cardCatalogIds[cid];
+    const name = catId ? catalogById.get(catId)?.name : undefined;
+    return <strong className="font-semibold text-neutral-100">{name ?? cid.split('.').pop()}</strong>;
+  };
+  const inn = (iid: string) => {
+    const catId = game.cardCatalogIds[iid];
+    const name = catId ? catalogById.get(catId)?.name : undefined;
+    return <strong className="font-semibold text-neutral-100">{name ?? iid.split('.').pop()}</strong>;
+  };
+
+  const out: LogEntry[] = [];
+  let i = 0;
+
+  while (i < events.length) {
+    const e = events[i];
+    const key = `${i}:${e.type}`;
+
+    switch (e.type) {
+      case 'round.begin':
+        out.push({ kind: 'divider', key, label: `Round ${e.payload.roundNumber}` });
+        break;
+
+      case 'game.ended': {
+        const { winnerId, reason } = e.payload;
+        const why = reason === 'concede' ? 'concession'
+          : reason === 'all-characters-defeated' ? 'all characters defeated'
+          : 'deck exhausted';
+        out.push({ kind: 'entry', key, node: <>{winnerId ? pn(winnerId) : 'Nobody'} wins ({why})</> });
+        break;
+      }
+
+      case 'character.activated': {
+        const { playerId, characterId, rolledDice } = e.payload;
+        out.push({
+          kind: 'entry', key,
+          node: (
+            <>
+              {pn(playerId)} activates {cn(characterId)} — rolls{' '}
+              {rolledDice.map((d, di) => (
+                <span key={di}>
+                  <DieChip symbol={d.face.symbol} value={d.face.value} modifier={d.face.modifier} />{' '}
+                </span>
+              ))}
+            </>
+          ),
+        });
+        break;
+      }
+
+      case 'dice.resolved': {
+        const { playerId, symbol, totalValue } = e.payload;
+        const resolveChip = <DieChip symbol={symbol} value={totalValue} modifier={false} />;
+        const next = events[i + 1];
+
+        if (next?.type === 'damage.dealt') {
+          const { characterId, amount, shieldsBlocked } = next.payload;
+          out.push({
+            kind: 'entry', key,
+            node: (
+              <>
+                {pn(playerId)} resolves {resolveChip} against {cn(characterId)} — deals {amount} damage
+                {shieldsBlocked > 0 && ` (${shieldsBlocked} blocked)`}
+              </>
+            ),
+          });
+          i++;
+        } else if (next?.type === 'shields.placed') {
+          const { characterId, amount } = next.payload;
+          out.push({
+            kind: 'entry', key,
+            node: (
+              <>
+                {pn(playerId)} resolves {resolveChip} — places {amount} shield{amount !== 1 && 's'} on {cn(characterId)}
+              </>
+            ),
+          });
+          i++;
+        } else if (next?.type === 'resources.gained') {
+          out.push({
+            kind: 'entry', key,
+            node: <>{pn(playerId)} resolves {resolveChip} — gains {next.payload.amount} resources</>,
+          });
+          i++;
+        } else if (next?.type === 'resources.lost') {
+          out.push({
+            kind: 'entry', key,
+            node: <>{pn(playerId)} resolves {resolveChip} — disrupts {next.payload.amount} resources</>,
+          });
+          i++;
+        } else {
+          out.push({ kind: 'entry', key, node: <>{pn(playerId)} resolves {resolveChip}</> });
+        }
+        break;
+      }
+
+      case 'shields.placed': {
+        const { characterId, amount } = e.payload;
+        out.push({
+          kind: 'entry', key,
+          node: <>Places {amount} shield{amount !== 1 && 's'} on {cn(characterId)}</>,
+        });
+        break;
+      }
+
+      case 'character.defeated':
+        out.push({ kind: 'entry', key, node: <>{cn(e.payload.characterId)} is defeated</> });
+        break;
+
+      case 'battlefield.claimed':
+        out.push({ kind: 'entry', key, node: <>{pn(e.payload.playerId)} claims the battlefield</> });
+        break;
+
+      case 'card.played': {
+        const { playerId, cardId, costPaid } = e.payload;
+        out.push({
+          kind: 'entry', key,
+          node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid})</>,
+        });
+        break;
+      }
+
+      case 'dice.rerolled': {
+        const { playerId, discardCardId, rerolledDice } = e.payload;
+        const n = rerolledDice.length;
+        out.push({
+          kind: 'entry', key,
+          node: (
+            <>
+              {pn(playerId)} rerolls {n} {n === 1 ? 'die' : 'dice'} (discards {inn(discardCardId)})
+              {n > 0 && (
+                <> →{' '}
+                  {rerolledDice.map((d, di) => (
+                    <span key={di}>
+                      <DieChip symbol={d.face.symbol} value={d.face.value} modifier={d.face.modifier} />{' '}
+                    </span>
+                  ))}
+                </>
+              )}
+            </>
+          ),
+        });
+        break;
+      }
+
+      case 'player.passed':
+        if (!e.payload.automatic) {
+          out.push({ kind: 'entry', key, node: <>{pn(e.payload.playerId)} passes</> });
+        }
+        break;
+
+      case 'upkeep.player': {
+        const { playerId, cardsDrawn, resourcesGained } = e.payload;
+        if (cardsDrawn > 0 || resourcesGained > 0) {
+          out.push({
+            kind: 'entry', key,
+            node: <>{pn(playerId)} draws {cardsDrawn} and gains {resourcesGained} resources</>,
+          });
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    i++;
+  }
+
+  return out.slice(-30);
+}
+
+function EventLog({ game, catalogById }: { game: GameState; catalogById: Map<string, Card> }) {
+  const events = useApp((s) => s.recentEvents);
+  const lobby = useApp((s) => s.lobby);
+  const entries = useMemo(
+    () => buildLogEntries(events, lobby, game, catalogById),
+    [events, lobby, game, catalogById],
+  );
+
+  if (entries.length === 0) return null;
+
+  return (
+    <details className="border-t border-neutral-800">
+      <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium uppercase tracking-wider text-neutral-500 hover:text-neutral-400">
+        Activity log ({entries.length})
+      </summary>
+      <ol
+        className="max-h-48 overflow-y-auto px-3 pb-2 text-xs text-neutral-400"
+        aria-label="Activity log"
+        aria-live="polite"
+        aria-atomic="false"
+      >
+        {entries.map((entry) =>
+          entry.kind === 'divider' ? (
+            <li key={entry.key} role="separator" className="my-1 text-center text-[10px] tracking-widest text-neutral-600">
+              — {entry.label} —
+            </li>
+          ) : (
+            <li key={entry.key} className="py-0.5 leading-snug">
+              {entry.node}
+            </li>
+          ),
+        )}
       </ol>
-    </section>
+    </details>
   );
 }
 
@@ -1488,6 +1718,9 @@ function BattleZone({
 
         {/* 5 ── Action bar — Undo (future) | Commit */}
         <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
+
+        {/* 6 ── Activity log — collapsed by default on mobile */}
+        <EventLog game={game} catalogById={catalogById} />
       </section>
 
       {detailChar && detailId && (
