@@ -1546,11 +1546,11 @@ function AvatarBar({
 
 // ─── Battlefield column constants ───────────────────────────────────────────
 const DIE_SIZE = 44;  // min tap target (used for touch target sizing)
-const DIE_TILE_SIZE = 32; // visual tile size in horizontal mode (h-8 w-8)
+const DIE_TILE_SIZE = 28; // visual tile size in horizontal mode (h-7 w-7)
 const DIE_GAP = 4;
 const MIN_DICE_COLS = 3;
-// Column width = exactly 3 visual dice + 2 gaps = 104px.
-const CHAR_COL_WIDTH = MIN_DICE_COLS * DIE_TILE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP; // 104px
+// Column width = exactly 3 visual dice + 2 gaps = 92px.
+const CHAR_COL_WIDTH = MIN_DICE_COLS * DIE_TILE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP; // 92px
 
 // ─── Shared battlefield row renderer ────────────────────────────────────────
 
@@ -2034,7 +2034,7 @@ function DiceStack({
   };
 
   // Horizontal mode: smaller tiles so multiple dice fit side-by-side over the card.
-  const tileSize = horizontal ? 'h-8 w-8' : 'h-12 w-12';
+  const tileSize = horizontal ? 'h-7 w-7' : 'h-12 w-12';
   const tileText = horizontal ? 'text-[8px]' : 'text-[10px]';
   const valueText = horizontal ? 'text-xs' : 'text-base';
 
