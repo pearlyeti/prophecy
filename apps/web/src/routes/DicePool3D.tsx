@@ -20,10 +20,10 @@ const DIE_RADIUS = 0.12;        // chamfer radius — matches physical dice
 const DIE_SPACING = 1.05;       // center-to-center spacing
 const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch more vertical space
 
-// Camera position: mostly overhead (-Y toward dice) with a slight lean toward
-// the bottom-left of the screen (-X = left, +Z = toward viewer/bottom).
-// ~29° from straight-down gives "overhead but clearly 3D."
-const CAM_POS: [number, number, number] = [-0.7, 2.2, 1.0];
+// Camera position: mostly overhead, slight lean toward bottom of screen (+Z toward
+// viewer). X=0 keeps the horizontal die row straight in screen space — any X offset
+// makes the row appear diagonal. The bottom-of-screen depth comes from Z alone.
+const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
 const CAM_FOV = 40;
 
 // Points the camera at the dice origin after mount.
@@ -285,7 +285,7 @@ export default function DicePool3D({
         <CameraLookAt />
         {/* Lighting: ambient fill + directional from upper-left-front to match camera angle */}
         <ambientLight intensity={0.5} />
-        <directionalLight position={[-2, 5, 2]} intensity={0.9} castShadow={false} />
+        <directionalLight position={[0, 5, 2]} intensity={0.9} castShadow={false} />
 
         {dice.map((d, i) => {
           const isTumbling = tumblingCharId != null && d.ownerInstanceId === tumblingCharId;
