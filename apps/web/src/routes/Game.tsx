@@ -1539,18 +1539,13 @@ function AvatarBar({
   );
 }
 
-// ─── Battlefield column width helper ────────────────────────────────────────
-// Each character gets a column wide enough for up to 3 dice side-by-side
-// (3 × 44px + 2 × 4px gap = 140px). Characters with more dice in their pool
-// get a wider column; the minimum is always 3-dice wide.
+// ─── Battlefield column constants ───────────────────────────────────────────
 const DIE_SIZE = 44;
 const DIE_GAP = 4;
 const MIN_DICE_COLS = 3;
-
-function charColumnWidth(diceInPool: number): number {
-  const cols = Math.max(diceInPool, MIN_DICE_COLS);
-  return cols * DIE_SIZE + (cols - 1) * DIE_GAP;
-}
+// Fixed card column width = exactly 3 dice wide (132px). Dice that don't fit
+// in one row wrap naturally within this width.
+const CHAR_COL_WIDTH = MIN_DICE_COLS * DIE_SIZE; // 132px
 
 // ─── Shared battlefield row renderer ────────────────────────────────────────
 
@@ -1585,10 +1580,9 @@ function BattlefieldRow({
         const char = (playerState as any).characters[cid] as CharacterState;
         if (!char) return null;
         const dice = diceByOwner.get(cid) ?? [];
-        const colWidth = charColumnWidth(dice.length);
         const hp = char.health - char.damage;
         return (
-          <div key={cid} className="flex shrink-0 flex-col gap-0.5" style={{ width: colWidth }}>
+          <div key={cid} className="flex shrink-0 flex-col gap-0.5" style={{ width: CHAR_COL_WIDTH }}>
             {side === 'opponent' && (
               <CharStatsRow hp={hp} shields={char.shields} />
             )}
@@ -1629,8 +1623,7 @@ function BattlefieldRow({
 
 /** How many character columns fit side-by-side given a container pixel width. */
 function useMaxPerRow(containerRef: React.RefObject<HTMLDivElement | null>): number {
-  const minColW = MIN_DICE_COLS * DIE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP;
-  const colWithGap = minColW + 8; // 8px gap between columns
+  const colWithGap = CHAR_COL_WIDTH + DIE_GAP; // 132 + 4 = 136px per slot
   const [maxPerRow, setMaxPerRow] = useState(() =>
     Math.max(1, Math.floor((window.innerWidth - 16) / colWithGap)),
   );
