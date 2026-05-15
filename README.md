@@ -4,7 +4,7 @@ An online multiplayer platform for **Prophecy** — an original dice-and-card du
 
 **Target platforms:** desktop, tablet, and mobile/phone. Desktop is the priority for early testing because that's what we work on, but tablet and mobile are first-class targets, not afterthoughts. The full game must be playable with touch input alone — no right-clicks, no hover-only affordances, no precision drags. See [Input model](#input-model).
 
-**v1.0.0 scope: 1v1 only.** Other modes — **2v2** team play, **3–4 player free-for-all**, and any other variant — wait until 1v1 has launched and stabilized. The engine and rules document already cover FFA, and the abstractions (battlefield-controller tiebreak, clockwise turn order, elimination, multi-opponent targeting) generalize cleanly enough that 2v2 fits the same shape. But matchmaking, UI flows, balance tuning, and content work for non-1v1 modes are explicitly post-v1. See [TODO.md → Backlog — post-v1.0](TODO.md#backlog--post-v10).
+**v1.0.0 scope: 1v1 only.** Other modes — **2v2** team play, **3–4 player free-for-all**, and any other variant — wait until 1v1 has launched and stabilized. The engine and rules document already cover FFA, and the abstractions (battlefield-controller tiebreak, clockwise turn order, elimination, multi-opponent targeting) generalize cleanly enough that 2v2 fits the same shape. But matchmaking, UI flows, balance tuning, and content work for non-1v1 modes are explicitly post-v1. See [ROADMAP.md → Backlog — post-v1.0](ROADMAP.md#backlog--post-v10).
 
 > **Scope note.** Prophecy is an original property. The gameplay system implemented here is inspired by the design space of dice-and-card dueling games but does **not** ship with or depend on any third-party intellectual property (names, art, characters, factions, world). All cards, art, names, and lore that ship to players are original to this project. The reference rules document under `docs/` describes the abstract game system only.
 >
@@ -14,9 +14,9 @@ An online multiplayer platform for **Prophecy** — an original dice-and-card du
 
 ## Source of truth
 
-**This README is the canonical description of Prophecy's product, architecture, tech stack, schema, and features.** Task tracking — In progress, Up next cards, Backlog, Done — lives in [TODO.md](TODO.md).
+**This README is the canonical description of Prophecy's product, architecture, tech stack, schema, and features.** Card specs, backlog, and the Done history live in [ROADMAP.md](ROADMAP.md). Active status (in-progress, blocked) lives in [GitHub Issues](https://github.com/pearlyeti/prophecy/issues).
 
-Whenever a decision is made — a new service is added, a library is swapped, a feature is scoped, a schema column is added — update this file in the same change. When a task is opened, claimed, or finished, update [TODO.md](TODO.md). Conversation transcripts and chat threads are not durable; the README and TODO.md are. See [Working agreements](#working-agreements).
+Whenever a decision is made — a new service is added, a library is swapped, a feature is scoped, a schema column is added — update this file in the same change. When a task ships, append it to [ROADMAP.md](ROADMAP.md) Done and close the GitHub Issue. Conversation transcripts and chat threads are not durable; the README and ROADMAP.md are. See [Working agreements](#working-agreements).
 
 ---
 
@@ -63,7 +63,7 @@ prophecy/
     └── rules-reference.md   # binding spec for the engine
 ```
 
-**Why three apps, not six?** A platform like this eventually wants separate `admin`, `matchmaker`, and `jobs` services for independent scaling and blast-radius reasons. None of that matters on day one. We start with the smallest viable split and extract on demand. [TODO.md](TODO.md) tracks the future extractions so they don't get lost.
+**Why three apps, not six?** A platform like this eventually wants separate `admin`, `matchmaker`, and `jobs` services for independent scaling and blast-radius reasons. None of that matters on day one. We start with the smallest viable split and extract on demand. [ROADMAP.md](ROADMAP.md) tracks the future extractions so they don't get lost.
 
 ### Services
 
@@ -259,7 +259,7 @@ The fixture importer ([Engine test fixtures](#engine-test-fixtures-test-only)) e
 - **Ranked 1v1** — Elo/MMR system, seasonal ladder, placement matches at season start.
 - **Casual 1v1** — no rank impact, faster queue.
 - **Private lobby** — shareable invite code, custom rulesets for friendly 1v1 games.
-- *Post-v1:* **2v2** team queue, **free-for-all** 3–4 player queue. See [TODO.md → Backlog — post-v1.0](TODO.md#backlog--post-v10).
+- *Post-v1:* **2v2** team queue, **free-for-all** 3–4 player queue. See [ROADMAP.md → Backlog — post-v1.0](ROADMAP.md#backlog--post-v10).
 
 ### Deck builder
 - Full card catalog browser with filtering (type, color, faction, set, rarity, dice symbols, keywords).
@@ -473,7 +473,7 @@ Separately from the canonical catalog above, the engine has a third-party-derive
 
 ## Roadmap
 
-Task tracking — In progress, Up next (sized cards), Backlog, and the running Done log — lives in [TODO.md](TODO.md). Anything cross-cutting that needs tracking belongs there, not in code TODO comments.
+Card specs, backlog, and the Done history live in [ROADMAP.md](ROADMAP.md). Active status (in-progress, blocked) lives in [GitHub Issues](https://github.com/pearlyeti/prophecy/issues). Anything cross-cutting that needs tracking belongs in ROADMAP.md, not in code comments.
 
 ---
 
@@ -481,17 +481,17 @@ Task tracking — In progress, Up next (sized cards), Backlog, and the running D
 
 These rules apply to every contributor and to Claude when assisting in this repo.
 
-1. **README is the source of truth for product and architecture; TODO.md is the source of truth for tasks.** Architecture, tech stack, services, schemas, and features live in the README. In progress, Up next cards, Backlog, and Done log live in [TODO.md](TODO.md). If a change makes any of those statements out of date, update the relevant file in the same change.
+1. **README is the source of truth for product and architecture; ROADMAP.md is the spec registry and history log; GitHub Issues are the coordination layer.** Architecture, tech stack, services, schemas, and features live in the README. Card specs, backlog, and Done history live in ROADMAP.md. In-progress and blocked status lives in GitHub Issues. If a change makes any of those statements out of date, update the relevant file in the same change.
 2. **Decisions land in the README, not in chat.** When a non-trivial decision is made (library swap, new service, schema change, scope cut), reflect it in the relevant section. If the rationale is non-obvious, leave a one-line note.
-3. **TODOs go in [TODO.md](TODO.md).** Don't sprinkle TODO comments in code as the system of record. A code TODO is fine for a localized follow-up; anything cross-cutting belongs in TODO.md.
+3. **Task cards go in [ROADMAP.md](ROADMAP.md).** Don't sprinkle TODO comments in code as the system of record. A code TODO is fine for a localized follow-up; anything cross-cutting belongs in ROADMAP.md (spec) and GitHub Issues (status).
 4. **Game rules live only in `packages/game-engine`.** No game logic in `apps/api`, `apps/web`, or `apps/game-server`. Those are I/O around the engine.
 5. **Original IP only in shipped surfaces.** No third-party names, art, characters, factions, or lore in anything that ships to users. Third-party reference data may live under `__fixtures__/` for engine validation tests only — mechanical-only, never imported from a non-test path, never bundled into production builds. See [Engine test fixtures](#engine-test-fixtures-test-only).
 6. **Server-authoritative, deterministic.** Don't add logic that breaks replay determinism (unseeded randomness, wall-clock dependencies, non-deterministic iteration order, network-dependent shuffles, etc.).
 7. **Cosmetics are gameplay-neutral.** Anything purchasable with hard currency cannot affect game balance. The line is bright; do not blur it.
 8. **No paid randomized gameplay-card packs.** Booster packs of gameplay cards are bought with soft currency only. This keeps the platform out of the lootbox-regulation mess and keeps the ladder fair-to-play.
-9. **Build small, extract on demand.** New services don't get their own app until existing services are clearly hurting. The future-extractions list in [TODO.md](TODO.md) names what may split, but the default is to merge.
+9. **Build small, extract on demand.** New services don't get their own app until existing services are clearly hurting. The future-extractions list in [ROADMAP.md](ROADMAP.md) names what may split, but the default is to merge.
 10. **Touch-first input, always.** Every interaction must have a touch path: no hover-only affordances, no right-click-only menus, no precision-drag-required actions, tap targets ≥ 44 × 44 CSS pixels. Desktop is a touch UI with a cursor on top — not a separate mouse-and-keyboard design that we'll port to mobile later. See [Input model](#input-model). Reviewers reject changes that break this.
-11. **v1.0.0 is 1v1 only.** Don't gold-plate other modes before v1 ships. Engine code keeps the abstractions that 2v2 and FFA will need (battlefield-controller tiebreaks, multi-opponent targeting, clockwise turn order), but UI, matchmaking, balance, and content work for 2v2 / FFA / other modes waits until [TODO.md → post-v1](TODO.md#backlog--post-v10).
+11. **v1.0.0 is 1v1 only.** Don't gold-plate other modes before v1 ships. Engine code keeps the abstractions that 2v2 and FFA will need (battlefield-controller tiebreaks, multi-opponent targeting, clockwise turn order), but UI, matchmaking, balance, and content work for 2v2 / FFA / other modes waits until [ROADMAP.md → post-v1](ROADMAP.md#backlog--post-v10).
 12. **Game state lives in the engine only. Zero trust on the client.** The client renders `GameState` returned by the server — it never tracks game outcomes locally (Zustand, component state, localStorage). "Game state" means anything that affects the outcome of the game: health, resources, turn order, whether a power action has been used, etc. Cosmetic/animation state (which overlay is open, which flow the player is in) is fine client-side. If a rule must be enforced, it goes in the engine action handler — a rule that only exists on the client isn't enforced.
 13. **Admin card editor stays in sync with the schema.** Any change that adds or renames an `Effect` op, an `Ability` kind, or any other field a card author needs to fill in (play condition, trigger event, action cost, card disposition, etc.) must update `apps/web/src/routes/admin/AbilityBuilder.tsx` in the same commit. New ops that aren't dispatched yet still get a form field — the `(new)` placeholder exists exactly for this gap. Card authors should never need to hand-edit JSON to express an intent the schema already supports.
 

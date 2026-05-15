@@ -6,16 +6,9 @@ System of record for what's built, what's in flight, and what's next. Updated in
 
 Each entry under **Up next** is a self-contained card sized for a **single agent handoff** (~200–500 lines of changes including tests, one focused session). The structure lets a fresh agent context start cheaply: the card lists exactly what to build, which files to load, what's out of scope, and how to verify it's done.
 
-Process:
+**Status tracking is in [GitHub Issues](https://github.com/pearlyeti/prophecy/issues)** — one issue per card. This file is the spec registry and history log; Issues are the coordination layer for claiming and concurrency checks.
 
-1. Pick one unclaimed card from **Up next**. Move it to **In progress** with the date and your handle.
-2. Read only the files under **Context to load** — the card has already pre-selected what matters. Don't grep the codebase for general "understanding"; the card is the contract.
-3. Stay strictly inside **Scope**. If you find work that doesn't fit, surface it and propose a new card — don't bundle it in.
-4. Run **Done when** checks before claiming completion: typecheck, tests, lint as listed.
-5. Move the card from **In progress** to **Done** with today's date, a one-line summary, and the commit hash if you committed.
-6. If a card's premise is wrong (missing dependency, design needs revisiting), stop and flag it. Don't push through and silently redefine scope.
-
-Dependencies between cards are noted under **Depends on**. If a card lists one, finish the dependency first or pick a different card.
+Process: see [Picking up a task card in CLAUDE.md](CLAUDE.md#picking-up-a-task-card).
 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `AUTH-N` (auth + accounts), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy), `TEST-N` (test scaffolds and harnesses).
 
@@ -75,7 +68,7 @@ Explicit gates for what must ship before declaring 1.0. Cards in Up Next and Bac
 - Engine unit suite green (168+ tests today).
 
 ### In progress
-- _(none — claim a card from Up next.)_
+See [open issues labelled `in-progress`](https://github.com/pearlyeti/prophecy/issues?q=is%3Aopen+label%3Ain-progress).
 
 ### Up next — task cards
 

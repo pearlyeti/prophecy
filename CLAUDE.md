@@ -11,7 +11,7 @@ Before doing anything substantive in this repo, read [README.md](README.md). It 
 - Game features (matches, deckbuilder, storefront, ladder, tournaments)
 - Game engine design principles **and** [Engine implementation notes](README.md#engine-implementation-notes)
 - Card catalog & deck registry (and the test-only engine fixtures policy)
-- Roadmap (in-progress, up next as task cards, backlog, done)
+- Roadmap (up next as task cards, backlog, done history)
 - Working agreements
 
 If a question can be answered from the README, prefer that over guessing or grepping the web.
@@ -20,19 +20,21 @@ The binding spec for game mechanics is [docs/rules-reference.md](docs/rules-refe
 
 ## Picking up a task card
 
-Most work in this repo is handed off as a **task card** — a self-contained entry in TODO.md under "Up next — task cards". Each card lists what to build, which files to load, what's out of scope, and how to verify the work is done. The point is that a fresh agent context can start cheaply: you don't need to spelunk the whole codebase to be useful; the card has already pre-selected what matters.
+Most work in this repo is handed off as a **task card** — a self-contained entry in `ROADMAP.md` under "Up next — task cards". Each card lists what to build, which files to load, what's out of scope, and how to verify the work is done. The point is that a fresh agent context can start cheaply: you don't need to spelunk the whole codebase to be useful; the card has already pre-selected what matters.
+
+**Status tracking (claiming, in-progress, done) lives in [GitHub Issues](https://github.com/pearlyeti/prophecy/issues)** — one issue per card. `ROADMAP.md` is the spec registry and history log; Issues are the coordination layer.
 
 When the user hands you a task code (e.g. `ENGINE-2`, `WEB-1`), follow this protocol:
 
-1. **Find the card.** Read its full entry under "Up next — task cards" in `TODO.md`. If a `Depends on:` line points to an unfinished card, stop and ask the user before proceeding.
-2. **Check for conflicts.** Read the full "In progress" section of `TODO.md`. Compare the "Context to load" files of every in-progress card against this card's files. If there is any overlap, stop and report it to the user — do not claim the card. Multiple sessions may be running concurrently; `TODO.md` is the coordination layer.
-3. **Claim it.** Move the card line into `TODO.md`'s "In progress" subsection with today's date.
+1. **Find the card.** Read its full entry under "Up next — task cards" in `ROADMAP.md`. If a `Depends on:` line points to an unfinished card (open GitHub Issue), stop and ask the user before proceeding.
+2. **Check for conflicts.** Use `mcp__github__list_issues` with `labels: ["in-progress"]` to list all currently claimed cards. Compare the "Context to load" files of every in-progress card against this card's files. If there is any overlap, stop and report it to the user — do not claim the card. Multiple sessions may be running concurrently; GitHub Issues are the coordination layer.
+3. **Claim it.** Add the `in-progress` label to the card's GitHub Issue using `mcp__github__issue_write` with `method: "update"`. If no issue exists yet for the card, create one first with `method: "create"`.
 4. **Load only the listed files.** The card's "Context to load" section is the contract for context — load those, plus what they transitively reveal. Don't grep the codebase for general "understanding" outside the card's scope.
 5. **Stay strictly in scope.** If you find related work that doesn't fit, surface it to the user and propose a new card — don't bundle it in. Scope creep is the #1 way a fresh context burns tokens for no value.
 6. **Run the listed checks.** "Done when" gates completion. Don't claim done if anything's red. For UI cards, "manual smoke" means actually run the dev server and verify in a browser — typecheck does not prove a feature works.
-7. **Merge cleanly.** For deployed-path cards (anything touching the paths listed in [Pull requests & self-healing main](#pull-requests--self-healing-main)), open a PR with Auto-fix and auto-merge — follow that section. For doc-only or fixture-only cards, rebase onto main (`git fetch origin && git rebase origin/main`), re-run "Done when" checks, then push directly. If the rebase has conflicts, stop and report to the user.
-8. **Close out in TODO.md.** Move the card from "In progress" to "Done" with today's date and a one-line summary. Don't leave stale "In progress" entries behind.
-9. **Commit, then backfill the hash.** Stage everything (including the README close-out) and commit. Then edit the Done entry to append the resulting short hash in backticks at the end of the line — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. The hash is non-negotiable for traceability; every Done entry must end up with one.
+7. **Merge cleanly.** For deployed-path cards (anything touching the paths listed in [Pull requests & self-healing main](#pull-requests--self-healing-main)), open a PR with Auto-fix and auto-merge — follow that section. Include `Closes #N` in the PR body so the GitHub Issue closes automatically on merge. For doc-only or fixture-only cards, rebase onto main (`git fetch origin && git rebase origin/main`), re-run "Done when" checks, then push directly and close the issue manually. If the rebase has conflicts, stop and report to the user.
+8. **Close out in ROADMAP.md.** Append the card to the `### Done` section with today's date and a one-line summary. The GitHub Issue is closed automatically by the `Closes #N` PR reference (or close it manually for direct-push cards via `mcp__github__issue_write`).
+9. **Commit, then backfill the hash.** Stage everything (including the ROADMAP.md close-out) and commit. Then edit the Done entry to append the resulting short hash in backticks at the end of the line — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. The hash is non-negotiable for traceability; every Done entry must end up with one.
 10. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
 
 Cards are sized for one focused session — roughly 200–500 lines of changes including tests. If a card feels much bigger than that once you've loaded the files, that's a signal: flag it and propose splitting before you start writing code.
@@ -50,7 +52,7 @@ To keep `main` green without manual policing, any change that can break a produc
 - `packages/game-engine/**`, `packages/protocol/**`, `packages/db/**` (transitive deps of both apps)
 - `pnpm-lock.yaml`, `turbo.json`, root `package.json`, root `tsconfig*.json` (build config that affects everything)
 
-Doc-only and test-fixture-only changes (`README.md`, `TODO.md`, `CLAUDE.md`, `docs/**`, `packages/game-engine/__fixtures__/**`) can push to `main` directly. When in doubt, use a PR.
+Doc-only and test-fixture-only changes (`README.md`, `ROADMAP.md`, `CLAUDE.md`, `docs/**`, `packages/game-engine/__fixtures__/**`) can push to `main` directly. When in doubt, use a PR.
 
 **The PR routine:**
 
@@ -74,7 +76,7 @@ Every time a decision is made or scope changes, the README must be updated **in 
 - **Feature scope change** (added, cut, redesigned) → update [Game Features](README.md#game-features).
 - **Engine principle or implementation-note change** → update [Game Engine Design Principles](README.md#game-engine-design-principles) or [Engine implementation notes](README.md#engine-implementation-notes). Treat these as load-bearing — don't change them without explicit user agreement.
 - **Rules clarification / new ruling** → update [docs/rules-reference.md](docs/rules-reference.md) (Errata, Card Clarifications, or FAQ).
-- **New TODO or shipped milestone** → update [Roadmap](README.md#roadmap). Move items between *In progress*, *Next up*, *Backlog*, and *Done* as state changes.
+- **New task card or shipped milestone** → update [ROADMAP.md](ROADMAP.md). Add cards to *Up next*; append shipped work to *Done*. Status (in-progress, blocked) lives in GitHub Issues, not in this file.
 - **New working agreement / convention** → add it to [Working agreements](README.md#working-agreements).
 
 If you find yourself making a decision in chat without writing it down, stop and update the README first. Conversation transcripts are not durable; the README is.
