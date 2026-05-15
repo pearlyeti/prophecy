@@ -12,28 +12,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
-#### WEB-19 — Multi-target damage and shield resolution UI
-**Why now.** WEB-16 wires single-target resolution. The rules allow each die in a resolve action to target a different character. This card updates the UI flow to support that.
-
-**Scope.**
-- Extend `ActiveFlow.resolve` in `store.ts`: replace `targetCharacterId: string | null` with `pendingTargets: readonly { dieInstanceIds: readonly string[]; targetCharacterId: string }[]` (committed die groups) and keep `selectedDieIds` for the currently-being-assigned group.
-- **Resolution loop UX:** Select one or more dice of the same symbol (existing green highlight). Tap an opponent/own character to assign those dice to that target — this commits the group into `pendingTargets` and clears `selectedDieIds`, ready for the next group. Repeat until no dice remain in the pool or player is done.
-- **Commit button:** enabled when `pendingTargets.length > 0` and `selectedDieIds.length === 0` (all selected dice have been assigned). Label: "Deal damage" / "Gain shields" as before.
-- **Visual feedback:** dice already assigned (in `pendingTargets`) appear dimmed in the pool — they've been "spent" into a group. A small counter on the target character card shows pending damage/shields incoming (e.g., `−3` in red, `+2` in blue). Tapping an already-assigned character while building a new group replaces that group.
-- **Dispatch:** send `resolve-dice` with the full `targets` array from `pendingTargets` plus any unassigned `selectedDieIds` (assigned to the most recently tapped character).
-- Resource/disrupt/discard: unchanged single-dispatch path.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (BattlefieldRow, DiceStack, ActionBar, activeFlow wiring)
-- `apps/web/src/store.ts` (ActiveFlow.resolve shape)
-- `packages/game-engine/src/actions/resolve-dice.ts` (new targets shape from ENGINE-8)
-
-**Depends on.** ENGINE-8 ✅.
-
-**Done when.** Typecheck clean. Manual smoke: select 2 melee dice, tap opponent character A — dice dim, counter shows −X on A. Select 1 more melee die, tap opponent character B — counter shows −Y on B. Commit dispatches one resolve-dice with two target groups. Both characters take the correct damage.
-
----
-
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
@@ -354,6 +332,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - **2026-05-15 — ENGINE-6b — Event-owned dice + cross-card die roll mechanic.** `rollEventDie` rolls the event card's own dieFaces into the pool as a transient die; `rollCardDie` rolls any referenced catalog card's die by ID. `CatalogDieEntry` interface threaded through `applyPlayCard` → `applyAction` via `ApplyOptions`. Transient die cleanup on resolve-dice confirmed. Seed cards EVT_056 (Wild Strike) and EVT_057 (Call the Hound) added. `AbilityBuilder.tsx` forms added for both ops. 4 new tests; 175 engine tests green; workspace typecheck clean. (`04fb024`)
 - **2026-05-15 — ENGINE-8 — Multi-target resolve-dice action.** `resolve-dice` action gains `targets: readonly { dieInstanceIds; targetCharacterId? }[]`; resolution loop applies per-group damage/shields; backward-compat flat shape normalised in apply-action.ts; 3 new tests (2-melee split, shield split, legacy compat); all existing tests migrated to new shape; 171 engine tests green, typecheck clean. (`8a0c00e`)
 - **2026-05-15 — SERVER-1 — Reconnect window.** 60-second away timer starts on disconnect when game is in-progress; clears on `lobby.rejoin`. Timer expiry applies a `concede` on behalf of the disconnected player and broadcasts `game.events` + `game.state` + `lobby.state` to the room. Client-side rejoin was already fully wired (`SocketBridge` → `lobby.rejoin` on reconnect, `lobbyCache` for roomId persistence). Game-server typecheck clean; 168 engine tests green. (`5fae253`)
+- **2026-05-15 — WEB-19 — Multi-target damage and shield resolution UI.** `ActiveFlow.resolve` gains `pendingTargets` (committed die groups) replacing `targetCharacterId`. Resolution loop: select dice → tap character to commit group → dice dim as spent → pending counter badge (−N red / +N blue) on target character. Tapping an already-assigned character replaces its group. Commit enabled when `pendingTargets.length > 0 && selectedDieIds.length === 0`. Dispatches `resolve-dice` with `targets` array. DicePool3D and DiceStack both updated. Resource/disrupt unchanged single-group path. Typecheck + 175 engine tests green. (`30e02ca`)
 - **2026-05-15 — WEB-7 — Human-readable activity log.** (`b508409`) Replaced raw JSON event dump with a formatted collapsible activity log in BattleZone. `buildLogEntries` maps all engine events to plain-English strings with bold player/character names and color-coded die chips (`DieChip`). `dice.resolved` is merged with follow-on `damage.dealt` / `shields.placed` / `resources.gained` / `resources.lost` into single entries. `round.begin` renders as a centered divider. Automatic passes, trigger lifecycle, and upkeep noise are suppressed. Log is collapsed by default via `<details>`, scrollable to 30 entries, `aria-live` for screen readers. Typecheck + 168 engine tests green.
 - **2026-05-15 — WEB-3D-3 — Die face picker (focus flow).** (`95c55e3`) Engine: focus path in `applyResolveDice` — focuser dice removed from pool, target dice stay with updated faces, self-targeting blocked, 6 new tests. `focus` added to `RESOLVABLE_SYMBOLS_V1`. `FacePickEvent` union + `face-pick` ActiveFlow in store. UI: tapping a focus die → resolve flow → commit transitions to face-pick; tapping target die opens `FacePickerPanel` (6 face tiles, current face highlighted); picking a face records a flip event and decrements budget; focus-face tap chains die as new focuser; Undo backs out one flip/chain at a time; End focus dispatches resolve-dice with ordered focusFlips. DicePool3D shows focuser as dimmed, open-picker die highlighted, flipped dice amber. Typecheck + 168 engine tests green.
 - **2026-05-15 — WEB-3D-2 — Dice Results Cam.** (`7582337`) Full-screen Three.js roll cam (r3f + useFrame physics). Each die has 6 real Prophecy face textures; physics rolls freely showing all faces; slerps to correct Euler orientation on settle so server-determined face lands on top. Thrown from upper-left with walls, dt-based damping, 3s hard cap. Replaced `@3d-dice/dice-box` entirely. Face texture code extracted to `src/lib/dieFaceTexture.ts` (shared with board dice).

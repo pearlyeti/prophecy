@@ -1858,6 +1858,7 @@ function BattlefieldRow({
   playerState,
   diceByOwner,
   game,
+  playerId,
   catalogById,
   side,
   diceInteractive,
@@ -1872,6 +1873,7 @@ function BattlefieldRow({
   playerState: NonNullable<ReturnType<typeof Object.values<ReturnType<typeof Object.values>>>>[number];
   diceByOwner: Map<string, DieInPool[]>;
   game: GameState;
+  playerId: string;
   catalogById: Map<string, Card>;
   side: ZoneSide;
   diceInteractive: boolean;
@@ -1904,11 +1906,24 @@ function BattlefieldRow({
         const isDmg = resolveSym === 'melee' || resolveSym === 'ranged' || resolveSym === 'indirect';
         const isShield = resolveSym === 'shield';
         const hasSelections = inResolveFlow && (activeFlow as any).selectedDieIds.length > 0;
-        const isCurrentTarget = inResolveFlow && (activeFlow as any).targetCharacterId === cid;
+        const resolveFlow = inResolveFlow && activeFlow?.kind === 'resolve' ? activeFlow : null;
+        const isCurrentTarget = resolveFlow ? resolveFlow.pendingTargets.some(t => t.targetCharacterId === cid) : false;
         let targetRing: 'damage' | 'shield' | undefined;
         if (hasSelections) {
           if (isDmg && side === 'opponent') targetRing = 'damage';
           if (isShield && side === 'player') targetRing = 'shield';
+        }
+        let pendingCounter: { value: number; kind: 'damage' | 'shield' } | undefined;
+        if (resolveFlow && (isDmg || isShield)) {
+          const group = resolveFlow.pendingTargets.find(t => t.targetCharacterId === cid);
+          if (group) {
+            const myPool = game.players[playerId]?.diceInPool ?? [];
+            const groupValue = group.dieInstanceIds.reduce((sum, id) => {
+              const d = myPool.find(p => p.instanceId === id);
+              return sum + (d?.face.value ?? 0);
+            }, 0);
+            if (groupValue > 0) pendingCounter = { value: groupValue, kind: isDmg ? 'damage' : 'shield' };
+          }
         }
 
         // Ability badges — action/powerAction abilities on this character's catalog card.
@@ -1925,7 +1940,13 @@ function BattlefieldRow({
 
         const handleTap = () => {
           if (targetRing && activeFlow?.kind === 'resolve') {
-            setActiveFlow({ ...activeFlow, targetCharacterId: isCurrentTarget ? null : cid });
+            const flow = activeFlow;
+            const newGroup = { dieInstanceIds: flow.selectedDieIds, targetCharacterId: cid };
+            const existingIdx = flow.pendingTargets.findIndex(t => t.targetCharacterId === cid);
+            const newPendingTargets = existingIdx >= 0
+              ? flow.pendingTargets.map((t, i) => i === existingIdx ? newGroup : t)
+              : [...flow.pendingTargets, newGroup];
+            setActiveFlow({ ...flow, pendingTargets: newPendingTargets, selectedDieIds: [] });
             return;
           }
           if (isActivating) { setActiveFlow(null); return; }
@@ -1990,6 +2011,7 @@ function BattlefieldRow({
               pendingExhaust={isActivating}
               {...(targetRing ? { targetRing } : {})}
               {...(abilityBadges.length > 0 ? { abilityBadges } : {})}
+              {...(pendingCounter ? { pendingCounter } : {})}
               onAbilityBadgeTap={handleAbilityBadgeTap}
               onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
@@ -2072,6 +2094,7 @@ function OpponentZone({
           playerState={oppPlayer as any}
           diceByOwner={diceByOwner}
           game={game}
+          playerId={playerId}
           catalogById={catalogById}
           side="opponent"
           diceInteractive={false}
@@ -2134,6 +2157,7 @@ function PlayerZone({
           playerState={myPlayer as any}
           diceByOwner={diceByOwner}
           game={game}
+          playerId={playerId}
           catalogById={catalogById}
           side="player"
           diceInteractive={diceInteractive}
@@ -2376,13 +2400,14 @@ function ActionBar({
         return;
       }
       const needsTarget = activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield';
-      if (needsTarget && !activeFlow.targetCharacterId) return;
-      send({
-        type: 'resolve-dice',
-        playerId,
-        dieInstanceIds: activeFlow.selectedDieIds,
-        ...(activeFlow.targetCharacterId ? { targetCharacterId: activeFlow.targetCharacterId } : {}),
-      });
+      if (needsTarget) {
+        // Multi-target: all dice must be committed into pendingTargets first.
+        if (activeFlow.pendingTargets.length === 0 || activeFlow.selectedDieIds.length > 0) return;
+        send({ type: 'resolve-dice', playerId, targets: activeFlow.pendingTargets });
+      } else {
+        // Resource / disrupt / discard: single group, no target character.
+        send({ type: 'resolve-dice', playerId, targets: [{ dieInstanceIds: activeFlow.selectedDieIds }] });
+      }
       setActiveFlow(null);
       return;
     }
@@ -2461,9 +2486,13 @@ function ActionBar({
             type="button"
             onClick={handleCommit}
             disabled={
-              (activeFlow?.kind === 'resolve' &&
-                (activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield') &&
-                !activeFlow.targetCharacterId) ||
+              (activeFlow?.kind === 'resolve' && (() => {
+                const sym = activeFlow.symbol;
+                if (sym === 'melee' || sym === 'ranged' || sym === 'shield') {
+                  return activeFlow.pendingTargets.length === 0 || activeFlow.selectedDieIds.length > 0;
+                }
+                return false;
+              })()) ||
               (activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice' && !activeFlow.discardCardId)
             }
             className={`min-h-[44px] rounded-xl border px-6 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
@@ -2505,6 +2534,7 @@ function CharacterCard({
   eligible = false,
   pendingExhaust = false,
   targetRing,
+  pendingCounter,
   abilityBadges,
   onAbilityBadgeTap,
   onTap,
@@ -2521,6 +2551,8 @@ function CharacterCard({
   pendingExhaust?: boolean;
   /** 'damage' = red ring (opponent damage target), 'shield' = blue ring (shield target). */
   targetRing?: 'damage' | 'shield';
+  /** Pending value from a committed multi-target resolve group (shown as a counter badge). */
+  pendingCounter?: { value: number; kind: 'damage' | 'shield' };
   abilityBadges?: Array<{ abilityIndex: number; kind: 'action' | 'powerAction'; eligible: boolean }>;
   onAbilityBadgeTap?: (abilityIndex: number, abilityKind: 'action' | 'powerAction') => void;
   onTap: () => void;
@@ -2569,6 +2601,14 @@ function CharacterCard({
             <HeartIcon />{resolvedHp}
           </div>
         </div>
+        {/* Pending counter badge — top-right, shows committed multi-target damage/shield value */}
+        {pendingCounter && (
+          <div className={`absolute right-1 top-1 rounded px-1 py-0.5 text-[9px] font-bold leading-none backdrop-blur-sm ${
+            pendingCounter.kind === 'damage' ? 'bg-red-900/90 text-red-200' : 'bg-blue-900/90 text-blue-200'
+          }`}>
+            {pendingCounter.kind === 'damage' ? '−' : '+'}{pendingCounter.value}
+          </div>
+        )}
       </button>
 
       {/* Upgrade badges — centered at bottom */}
@@ -2704,10 +2744,14 @@ function DiceStack({
       const isSelected = flow.selectedDieIds.includes(d.instanceId);
       if (isSelected) {
         const next = flow.selectedDieIds.filter((id) => id !== d.instanceId);
-        setActiveFlow(next.length === 0 ? null : { ...flow, selectedDieIds: next });
+        if (next.length === 0 && flow.pendingTargets.length === 0) {
+          setActiveFlow(null);
+        } else {
+          setActiveFlow({ ...flow, selectedDieIds: next });
+        }
       } else {
-        // Only add if eligible: same symbol (non-modifier), or modifier of same symbol
-        if (canSelectDie(d, flow.symbol as DieSymbol)) {
+        const spentIds = new Set(flow.pendingTargets.flatMap(t => [...t.dieInstanceIds]));
+        if (!spentIds.has(d.instanceId) && canSelectDie(d, flow.symbol as DieSymbol)) {
           setActiveFlow({ ...flow, selectedDieIds: [...flow.selectedDieIds, d.instanceId] });
         }
       }
@@ -2721,7 +2765,7 @@ function DiceStack({
         setActiveFlow({ kind: 'face-pick', focuserDieIds: [d.instanceId], budget: d.face.value, history: [], pickingForDieId: null });
         return;
       }
-      setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], targetCharacterId: null });
+      setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], pendingTargets: [] });
     }
   };
 
@@ -2743,10 +2787,15 @@ function DiceStack({
             : 'border-amber-600/50 bg-neutral-900 text-neutral-300 ring-1 ring-amber-600/30';
         } else if (inResolveFlow && activeFlow?.kind === 'resolve') {
           const flow = activeFlow;
+          const spentIds = new Set(flow.pendingTargets.flatMap(t => [...t.dieInstanceIds]));
           const isSelected = flow.selectedDieIds.includes(d.instanceId);
-          const canAdd = !isSelected && canSelectDie(d, flow.symbol as DieSymbol);
+          const isSpent = spentIds.has(d.instanceId);
+          const canAdd = !isSelected && !isSpent && canSelectDie(d, flow.symbol as DieSymbol);
           if (isSelected) {
             tileClass = 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500';
+          } else if (isSpent) {
+            tileClass = 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-30';
+            disabled = true;
           } else if (canAdd) {
             tileClass = 'border-emerald-500 bg-neutral-900 text-neutral-300 ring-1 ring-emerald-500/50';
           } else {
