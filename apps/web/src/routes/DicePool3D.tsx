@@ -21,14 +21,13 @@ const DIE_SPACING = 1.05;       // center-to-center spacing
 const CANVAS_HEIGHT_PX = 56;    // px — die (40px equivalent) + breathing room
 const BASE_ZOOM = 46;           // orthographic pixels-per-world-unit at rest
 
-// Color palette per card color. Slightly desaturated so text reads cleanly.
-const CARD_COLORS: Record<string, string> = {
-  red:    '#991b1b',
-  blue:   '#1e40af',
-  yellow: '#92400e',
-  gray:   '#374151',
+const CARD_COLORS: Record<string, { bg: string; text: string }> = {
+  red:    { bg: '#ef4444', text: '#ffffff' },
+  blue:   { bg: '#3b82f6', text: '#ffffff' },
+  yellow: { bg: '#facc15', text: '#1c1917' },
+  gray:   { bg: '#9ca3af', text: '#1c1917' },
 };
-const FALLBACK_COLOR = '#44403c';
+const FALLBACK_COLOR = { bg: '#a8a29e', text: '#1c1917' };
 
 // Abbreviated symbol labels for die faces.
 function symLabel(s: string): string {
@@ -58,6 +57,7 @@ function makeFaceTexture(
   value: number,
   modifier: boolean,
   baseColor: string,
+  textColor: string,
 ): THREE.CanvasTexture {
   const S = 128;
   const c = document.createElement('canvas');
@@ -67,16 +67,16 @@ function makeFaceTexture(
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, S, S);
 
-  // Subtle inner highlight — top-left lighter face suggests ambient lighting
+  // Very subtle inner highlight — keeps the face texture readable without fighting the color
   const grad = ctx.createRadialGradient(S * 0.35, S * 0.3, 0, S * 0.5, S * 0.5, S * 0.7);
-  grad.addColorStop(0, 'rgba(255,255,255,0.25)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.15)');
+  grad.addColorStop(0, 'rgba(255,255,255,0.12)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.08)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, S, S);
 
   // Value text
   const valueStr = symbol === 'blank' ? '—' : `${modifier ? '+' : ''}${value > 0 ? value : ''}`;
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = textColor;
   ctx.font = `bold ${Math.round(S * 0.38)}px ui-monospace, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
@@ -85,10 +85,13 @@ function makeFaceTexture(
   // Symbol label
   const sym = symLabel(symbol);
   if (sym) {
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    // Slightly transparent version of the text color
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = textColor;
     ctx.font = `${Math.round(S * 0.22)}px ui-sans-serif, sans-serif`;
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(sym, S / 2, S * 0.86);
+    ctx.globalAlpha = 1;
   }
 
   return new THREE.CanvasTexture(c);
@@ -102,6 +105,7 @@ function Die3D({
   die,
   position,
   baseColor,
+  textColor,
   state,
   isTumbling,
   onClick,
@@ -109,6 +113,7 @@ function Die3D({
   die: DieInPool;
   position: [number, number, number];
   baseColor: string;
+  textColor: string;
   state: DieState;
   isTumbling: boolean;
   onClick: () => void;
@@ -124,8 +129,8 @@ function Die3D({
   });
 
   const texture = useMemo(
-    () => makeFaceTexture(die.face.symbol, die.face.value, die.face.modifier, baseColor),
-    [die.face.symbol, die.face.value, die.face.modifier, baseColor],
+    () => makeFaceTexture(die.face.symbol, die.face.value, die.face.modifier, baseColor, textColor),
+    [die.face.symbol, die.face.value, die.face.modifier, baseColor, textColor],
   );
   useEffect(() => () => { texture.dispose(); }, [texture]);
 
@@ -246,7 +251,7 @@ export default function DicePool3D({
     }
   };
 
-  const baseColor = CARD_COLORS[cardColor ?? ''] ?? FALLBACK_COLOR;
+  const { bg: baseColor, text: textColor } = CARD_COLORS[cardColor ?? ''] ?? FALLBACK_COLOR;
 
   // Adaptive orthographic zoom: shrink to fit when many dice are in the pool.
   const zoom = Math.min(BASE_ZOOM, 88 / Math.max(1, dice.length * DIE_SPACING));
@@ -303,6 +308,7 @@ export default function DicePool3D({
               die={d}
               position={[xStart + i * DIE_SPACING, 0, 0]}
               baseColor={baseColor}
+              textColor={textColor}
               state={dieState}
               isTumbling={isTumbling}
               onClick={() => handleTap(d)}
