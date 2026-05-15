@@ -67,15 +67,8 @@ export function Game() {
     );
   };
 
-  const me = lobby.members.find((m) => m.playerId === playerId);
-  const opponent = lobby.members.find((m) => m.playerId !== playerId);
   const ended = game.phase === 'ended';
   const myPlayer = game.players[playerId];
-  const showHandStrip =
-    !ended &&
-    (game.phase === 'action' || game.phase === 'upkeep') &&
-    selectionMode === null &&
-    handMode === null;
 
   const openHand = (mode: HandMode, focusId?: string) => {
     const firstCard = myPlayer?.hand[0] ?? null;
@@ -102,37 +95,9 @@ export function Game() {
   return (
     <main
       data-droptarget="play"
-      className={`flex h-dvh flex-col overflow-hidden px-4 pt-3 sm:px-6 ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
+      className={`flex h-dvh flex-col overflow-hidden ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
     >
-      {/* ── Header: name | ⚡ actions button | status ────────────── */}
-      <header className="mb-2 shrink-0 flex items-center gap-2">
-        <h1 className="flex-1 truncate text-base font-semibold">
-          {me?.displayName ?? 'You'}{' '}
-          <span className="text-neutral-500">vs</span>{' '}
-          {opponent?.displayName ?? '…'}
-        </h1>
-
-        {/* Action trigger — only visible on my action-phase turn */}
-        {!ended && game.phase === 'action' && !selectionMode && (
-          <button
-            type="button"
-            onClick={() => setActionPanelOpen(true)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-lg hover:border-neutral-500 active:bg-neutral-800"
-            aria-label="Open actions"
-          >
-            ⚡
-          </button>
-        )}
-
-        <div className="shrink-0 text-right text-xs uppercase tracking-wider text-neutral-500">
-          {game.phase === 'setup' && 'Setup'}
-          {game.phase === 'action' && `R${game.roundNumber} · ${isMyTurn ? 'you' : 'opp'}`}
-          {game.phase === 'upkeep' && `Upkeep`}
-          {ended && 'Ended'}
-        </div>
-      </header>
-
-      {/* ── Setup / ended banners (shrink-wrap, no scroll needed) ── */}
+      {/* ── Setup / ended banners ─────────────────────────────────── */}
       {ended && <EndedBanner game={game} playerId={playerId} />}
       {!ended && game.phase === 'setup' && (
         <div className="shrink-0 overflow-y-auto" style={{ maxHeight: '42%' }}>
@@ -162,27 +127,18 @@ export function Game() {
         </div>
       )}
 
-      {/* ── Battle zone — fills all remaining space ───────────────── */}
-      <BattleZone game={game} playerId={playerId} catalogById={catalogById} className="min-h-0 flex-1" />
-
-      {/* Spacer so the fixed hand strip doesn't cover the board */}
-      {showHandStrip && <div className="shrink-0 h-[104px]" />}
-
-      {selectionMode && !ended && game.phase === 'action' && (
-        <SelectionActionBar game={game} playerId={playerId} send={send} />
-      )}
-
-      {showHandStrip && myPlayer && (
-        <HandStrip
-          hand={myPlayer.hand}
-          game={game}
-          playerId={playerId}
-          catalogById={catalogById}
-          isMyTurn={isMyTurn}
-          onTap={(id) => openHand(isMyTurn ? 'play' : 'browse', id)}
-          getDragHandlers={drag.getHandlers}
-        />
-      )}
+      {/* ── Battle zone — fills all space ────────────────────────── */}
+      <BattleZone
+        game={game}
+        playerId={playerId}
+        catalogById={catalogById}
+        send={send}
+        isMyTurn={isMyTurn}
+        onOpenActionPanel={() => setActionPanelOpen(true)}
+        onOpenHand={openHand}
+        getDragHandlers={drag.getHandlers}
+        className="min-h-0 flex-1"
+      />
 
       {drag.dragging && (
         <DragArtifact
@@ -1181,60 +1137,6 @@ function HandCardTile({
   );
 }
 
-function HandStrip({
-  hand,
-  game,
-  playerId,
-  catalogById,
-  isMyTurn,
-  onTap,
-  getDragHandlers,
-}: {
-  hand: readonly string[];
-  game: GameState;
-  playerId: string;
-  catalogById: Map<string, Card>;
-  isMyTurn: boolean;
-  onTap: (instanceId: string) => void;
-  getDragHandlers: (info: DragCardInfo) => DragHandlers;
-}) {
-  const me = game.players[playerId];
-  const legal = isMyTurn ? getLegalActions(game, playerId) : null;
-
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-800 bg-neutral-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <div className="flex items-center px-3 py-2">
-        {hand.length === 0 ? (
-          <div className="text-[11px] text-neutral-600">Hand empty</div>
-        ) : (
-          <div className="flex w-full items-stretch gap-1">
-            {hand.map((id, idx) => {
-              const cost = game.cardCosts[id] ?? 0;
-              const affordable = (me?.resources ?? 0) >= cost;
-              const eligible = isMyTurn && affordable && (legal?.canPlayCard ?? false);
-              const catalogId = game.cardCatalogIds[id];
-              const card = catalogId ? catalogById.get(catalogId) : undefined;
-              const dragHandlers = eligible
-                ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost, artUrl: card?.artUrl, artFrameX: card?.artFrameX, artFrameY: card?.artFrameY, artFrameZoom: card?.artFrameZoom })
-                : undefined;
-              return (
-                <HandCardTile
-                  key={id}
-                  instanceId={id}
-                  game={game}
-                  catalogById={catalogById}
-                  eligible={eligible}
-                  onTap={() => onTap(id)}
-                  {...(dragHandlers ? { dragHandlers } : {})}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // Single-card expanded view with prev/next navigation.
 function HandOverlay({
@@ -1487,154 +1389,352 @@ function distributeToRows(charIds: readonly string[], maxPerRow = 4): string[][]
   return rows;
 }
 
-/** Vertical board: opponent on top, player on bottom. */
+// ─────────────────────────────────────────────────────────────────────────────
+// Battle zone — mobile-first layout shell (WEB-11)
+// Five stacked regions: AvatarBar / OpponentZone / PlayerZone / HandStrip / ActionBar
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Top-to-bottom mobile-first game shell. */
 function BattleZone({
   game,
   playerId,
   catalogById,
+  send,
+  isMyTurn,
+  onOpenActionPanel,
+  onOpenHand,
+  getDragHandlers,
   className = '',
 }: {
   game: GameState;
   playerId: string;
   catalogById: Map<string, Card>;
+  send: (a: Action) => void;
+  isMyTurn: boolean;
+  onOpenActionPanel: () => void;
+  onOpenHand: (mode: HandMode, focusId?: string) => void;
+  getDragHandlers: (info: DragCardInfo) => DragHandlers;
   className?: string;
 }) {
-  const lobby = useApp.getState().lobby!;
-  const selectionMode = useApp((s) => s.selectionMode);
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
   const [upgradeDetailId, setUpgradeDetailId] = useState<{ ownerId: string; upgradeId: string } | null>(null);
 
   const opponentId = game.playerOrder.find((id) => id !== playerId);
-  const myPlayer = game.players[playerId];
-  const oppPlayer = opponentId ? game.players[opponentId] : null;
-
-  const isMyTurn = game.activePlayerId === playerId;
-  const inActionPhase = game.phase === 'action';
-  const diceInteractive = isMyTurn && inActionPhase && selectionMode === null;
-
-  // Group pool dice by owning character. ownerInstanceId is preferred;
-  // fall back to matching by die instanceId against the character's dice
-  // array so games started before ownerInstanceId was added still work.
-  const myDiceByOwner = useMemo(
-    () => buildDiceByOwner(myPlayer),
-    [myPlayer],
-  );
-  const oppDiceByOwner = useMemo(
-    () => buildDiceByOwner(oppPlayer),
-    [oppPlayer],
-  );
-
-  const detailChar =
-    detailId ? game.players[detailId.ownerId]?.characters[detailId.charId] : null;
-  const upgradeChar =
-    upgradeDetailId ? game.players[upgradeDetailId.ownerId]?.characters[
-      Object.keys(game.players[upgradeDetailId.ownerId]?.characters ?? {}).find(
-        (cid) => game.players[upgradeDetailId.ownerId]?.characters[cid]?.upgradeIds.includes(upgradeDetailId.upgradeId)
-      ) ?? ''
-    ] : null;
-  void upgradeChar;
-
-  const upgradeDetailCatalogId = upgradeDetailId
-    ? game.cardCatalogIds[upgradeDetailId.upgradeId]
-    : undefined;
+  const detailChar = detailId ? game.players[detailId.ownerId]?.characters[detailId.charId] : null;
+  const upgradeDetailCatalogId = upgradeDetailId ? game.cardCatalogIds[upgradeDetailId.upgradeId] : undefined;
   const upgradeDetailCard = upgradeDetailCatalogId ? catalogById.get(upgradeDetailCatalogId) : undefined;
-
-  const opponentName = opponentId
-    ? lobby.members.find((m) => m.playerId === opponentId)?.displayName ?? opponentId
-    : '—';
-  void opponentName;
-
-  const myRows = distributeToRows(myPlayer?.characterOrder ?? []);
-  // Opponent front row sits at the bottom of the opponent zone (closest to player),
-  // so we render rows in reverse (back rows first, front row last).
-  const oppRows = distributeToRows(oppPlayer?.characterOrder ?? []).reverse();
 
   return (
     <>
-      <section
-        className={`mx-auto flex h-full w-full max-w-2xl flex-col gap-2 ${className}`}
-        aria-label="Battle zone"
-      >
-        {/* ── Opponent zone (top): rows flow top→bottom with front row at bottom ── */}
-        <div className="flex min-h-0 flex-1 flex-col justify-end gap-1">
-          {oppRows.map((rowIds, ri) => (
-            <div key={ri} className="flex flex-row justify-center gap-1">
-              {rowIds.map((cid) => {
-                const char = oppPlayer!.characters[cid]!;
-                const charDice = oppDiceByOwner.get(cid) ?? [];
-                const hp = char.health - char.damage;
-                return (
-                  <div key={cid} className="flex min-w-0 flex-1 flex-col items-center gap-0.5" style={{ maxWidth: '25%' }}>
-                    <CharStatsRow hp={hp} shields={char.shields} />
-                    <CharacterCard
-                      char={char}
-                      game={game}
-                      catalogById={catalogById}
-                      className="w-full"
-                      tipDirection="left"
-                      onTap={() => opponentId && setDetailId({ ownerId: opponentId, charId: cid })}
-                      onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
-                    />
-                    <DiceStack
-                      dice={charDice}
-                      diceInteractive={false}
-                      selectionMode={selectionMode}
-                      horizontal
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+      <section className={`flex h-full w-full flex-col ${className}`} aria-label="Battle zone">
+        {/* 1 ── Avatar bar */}
+        <AvatarBar game={game} playerId={playerId} isMyTurn={isMyTurn} onOpenActionPanel={onOpenActionPanel} />
 
-        {/* ── Player zone (bottom): rows flow top→bottom with front row at top ── */}
-        <div className="flex min-h-0 flex-1 flex-col justify-start gap-1">
-          {myRows.map((rowIds, ri) => (
-            <div key={ri} className="flex flex-row justify-center gap-1">
-              {rowIds.map((cid) => {
-                const char = myPlayer!.characters[cid]!;
-                const charDice = myDiceByOwner.get(cid) ?? [];
-                const hp = char.health - char.damage;
-                return (
-                  <div key={cid} className="flex min-w-0 flex-1 flex-col items-center gap-0.5" style={{ maxWidth: '25%' }}>
-                    <DiceStack
-                      dice={charDice}
-                      diceInteractive={diceInteractive}
-                      selectionMode={selectionMode}
-                      horizontal
-                    />
-                    <CharacterCard
-                      char={char}
-                      game={game}
-                      catalogById={catalogById}
-                      className="w-full"
-                      tipDirection="right"
-                      onTap={() => setDetailId({ ownerId: playerId, charId: cid })}
-                      onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
-                    />
-                    <CharStatsRow hp={hp} shields={char.shields} />
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+        {/* 2 ── Opponent zone (placeholder — WEB-12 fills this in) */}
+        <OpponentZone
+          game={game}
+          playerId={playerId}
+          catalogById={catalogById}
+          onDetailTap={(charId) => opponentId && setDetailId({ ownerId: opponentId, charId })}
+          onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
+        />
+
+        {/* 3 ── Player zone (placeholder — WEB-12 fills this in) */}
+        <PlayerZone
+          game={game}
+          playerId={playerId}
+          catalogById={catalogById}
+          onDetailTap={(charId) => setDetailId({ ownerId: playerId, charId })}
+          onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
+        />
+
+        {/* 4 ── Hand strip — always visible, compact, expands on tap */}
+        <InlineHandStrip
+          game={game}
+          playerId={playerId}
+          catalogById={catalogById}
+          isMyTurn={isMyTurn}
+          onCardTap={(id) => onOpenHand(isMyTurn ? 'play' : 'browse', id)}
+          getDragHandlers={getDragHandlers}
+        />
+
+        {/* 5 ── Action bar — Undo (future) | Commit */}
+        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
       </section>
 
       {detailChar && detailId && (
-        <CardDetailOverlay
-          char={detailChar}
-          game={game}
-          catalogById={catalogById}
-          onClose={() => setDetailId(null)}
-        />
+        <CardDetailOverlay char={detailChar} game={game} catalogById={catalogById} onClose={() => setDetailId(null)} />
       )}
-
       {upgradeDetailCard && (
-        <UpgradeDetailOverlay
-          card={upgradeDetailCard}
-          onClose={() => setUpgradeDetailId(null)}
+        <UpgradeDetailOverlay card={upgradeDetailCard} onClose={() => setUpgradeDetailId(null)} />
+      )}
+    </>
+  );
+}
+
+/** Shows player/opponent names, resources, deck counts, phase, and the ⚡ action button. */
+function AvatarBar({
+  game,
+  playerId,
+  isMyTurn,
+  onOpenActionPanel,
+}: {
+  game: GameState;
+  playerId: string;
+  isMyTurn: boolean;
+  onOpenActionPanel: () => void;
+}) {
+  const lobby = useApp.getState().lobby!;
+  const me = lobby.members.find((m) => m.playerId === playerId);
+  const opponent = lobby.members.find((m) => m.playerId !== playerId);
+  const opponentId = game.playerOrder.find((id) => id !== playerId);
+  const myPlayer = game.players[playerId];
+  const oppPlayer = opponentId ? game.players[opponentId] : null;
+  const inActionPhase = game.phase === 'action';
+
+  const phaseLabel =
+    game.phase === 'action' ? `R${game.roundNumber} · ${isMyTurn ? 'your turn' : 'their turn'}`
+    : game.phase === 'upkeep' ? 'Upkeep'
+    : game.phase === 'setup' ? 'Setup'
+    : 'Ended';
+
+  return (
+    <div className="flex shrink-0 items-center gap-2 border-b border-neutral-800 px-3 py-2">
+      {/* Player side */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm font-semibold text-neutral-100">{me?.displayName ?? 'You'}</span>
+        <span className="text-[11px] text-neutral-400">
+          💰 {myPlayer?.resources ?? 0} · 🂠 {myPlayer?.deck.length ?? 0}
+        </span>
+      </div>
+
+      {/* Center: phase + ⚡ */}
+      <div className="flex shrink-0 flex-col items-center gap-1">
+        <span className="text-[10px] uppercase tracking-wider text-neutral-500">{phaseLabel}</span>
+        {isMyTurn && inActionPhase && (
+          <button
+            type="button"
+            onClick={onOpenActionPanel}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-lg hover:border-neutral-500 active:bg-neutral-800"
+            aria-label="Open actions"
+          >
+            ⚡
+          </button>
+        )}
+      </div>
+
+      {/* Opponent side */}
+      <div className="flex min-w-0 flex-1 flex-col items-end">
+        <span className="truncate text-sm font-semibold text-neutral-100">{opponent?.displayName ?? '…'}</span>
+        <span className="text-[11px] text-neutral-400">
+          🂠 {oppPlayer?.hand.length ?? 0} · 🂠 {oppPlayer?.deck.length ?? 0}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Opponent character/support cards + dice. Placeholder until WEB-12. */
+function OpponentZone({
+  game,
+  playerId,
+  catalogById: _catalogById,
+  onDetailTap: _onDetailTap,
+  onUpgradeTap: _onUpgradeTap,
+}: {
+  game: GameState;
+  playerId: string;
+  catalogById: Map<string, Card>;
+  onDetailTap: (charId: string) => void;
+  onUpgradeTap: (upgradeId: string) => void;
+}) {
+  const opponentId = game.playerOrder.find((id) => id !== playerId);
+  const oppPlayer = opponentId ? game.players[opponentId] : null;
+  const charCount = oppPlayer?.characterOrder.length ?? 0;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-end gap-2 px-3 py-2">
+      <div className="text-[11px] uppercase tracking-wider text-neutral-600">
+        Opponent · {charCount} character{charCount !== 1 ? 's' : ''}
+      </div>
+    </div>
+  );
+}
+
+/** Player character/support cards + dice. Placeholder until WEB-12. */
+function PlayerZone({
+  game,
+  playerId,
+  catalogById: _catalogById,
+  onDetailTap: _onDetailTap,
+  onUpgradeTap: _onUpgradeTap,
+}: {
+  game: GameState;
+  playerId: string;
+  catalogById: Map<string, Card>;
+  onDetailTap: (charId: string) => void;
+  onUpgradeTap: (upgradeId: string) => void;
+}) {
+  const myPlayer = game.players[playerId];
+  const charCount = myPlayer?.characterOrder.length ?? 0;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-start gap-2 px-3 py-2">
+      <div className="text-[11px] uppercase tracking-wider text-neutral-600">
+        Your field · {charCount} character{charCount !== 1 ? 's' : ''}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Always-visible compact hand strip. Each card shows a type-color band, name,
+ * and cost. Tapping a card toggles an inline expansion revealing ability text.
+ * Eligible-to-play cards get a green border.
+ */
+function InlineHandStrip({
+  game,
+  playerId,
+  catalogById,
+  isMyTurn,
+  onCardTap,
+  getDragHandlers,
+}: {
+  game: GameState;
+  playerId: string;
+  catalogById: Map<string, Card>;
+  isMyTurn: boolean;
+  onCardTap: (instanceId: string) => void;
+  getDragHandlers: (info: DragCardInfo) => DragHandlers;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const me = game.players[playerId];
+  const hand = me?.hand ?? [];
+  const legal = isMyTurn ? getLegalActions(game, playerId) : null;
+
+  const handleTap = (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(id);
+    }
+  };
+
+  return (
+    <div className="shrink-0 border-t border-neutral-800 bg-neutral-950">
+      {hand.length === 0 ? (
+        <div className="px-3 py-2 text-[11px] text-neutral-600">Hand empty</div>
+      ) : (
+        <div className="flex gap-1.5 overflow-x-auto px-2 py-2">
+          {hand.map((id) => {
+            const cost = game.cardCosts[id] ?? 0;
+            const affordable = (me?.resources ?? 0) >= cost;
+            const eligible = isMyTurn && affordable && (legal?.canPlayCard ?? false);
+            const catalogId = game.cardCatalogIds[id];
+            const card = catalogId ? catalogById.get(catalogId) : undefined;
+            const isExpanded = expandedId === id;
+            const dragHandlers = eligible
+              ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost, artUrl: card?.artUrl, artFrameX: card?.artFrameX, artFrameY: card?.artFrameY, artFrameZoom: card?.artFrameZoom })
+              : undefined;
+
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => handleTap(id)}
+                {...(dragHandlers ?? {})}
+                className={`shrink-0 flex flex-col overflow-hidden rounded-lg border bg-neutral-900 text-left transition-all duration-150 ${
+                  eligible ? 'border-emerald-600' : 'border-neutral-700'
+                }`}
+                style={{ width: isExpanded ? 180 : 80, minHeight: 44 }}
+                aria-pressed={isExpanded}
+              >
+                {/* Type color band */}
+                <div className={`h-1 w-full shrink-0 ${cardTypeBand(card?.type ?? '')}`} />
+                <div className="flex flex-1 flex-col gap-0.5 p-1.5">
+                  {/* Name + cost row */}
+                  <div className="flex items-start justify-between gap-1">
+                    <span className="line-clamp-2 text-[10px] font-medium leading-tight text-neutral-100">
+                      {card?.name ?? '—'}
+                    </span>
+                    <span className={`shrink-0 rounded px-1 text-[9px] font-bold leading-tight ${
+                      eligible ? 'bg-emerald-900 text-emerald-200' : 'bg-neutral-800 text-neutral-400'
+                    }`}>
+                      {cost}
+                    </span>
+                  </div>
+                  {/* Expanded: ability text */}
+                  {isExpanded && (
+                    <p className="mt-0.5 text-[9px] leading-snug text-neutral-400">
+                      {card?.displayText ?? 'No ability text.'}
+                    </p>
+                  )}
+                  {/* Tap to view full card */}
+                  {isExpanded && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onCardTap(id); }}
+                      className="mt-1 text-[9px] text-emerald-400 underline"
+                    >
+                      Full card
+                    </button>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Bottom action bar: Undo (disabled until WEB-14) | Commit ("Pass" → confirm). */
+function ActionBar({
+  game,
+  playerId,
+  send,
+  isMyTurn,
+}: {
+  game: GameState;
+  playerId: string;
+  send: (a: Action) => void;
+  isMyTurn: boolean;
+}) {
+  const [confirmPass, setConfirmPass] = useState(false);
+  const inActionPhase = game.phase === 'action';
+
+  if (!inActionPhase || game.phase === 'ended') return null;
+
+  const handlePass = () => {
+    send({ type: 'pass', playerId });
+    setConfirmPass(false);
+  };
+
+  return (
+    <>
+      <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-3 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
+        {/* Undo — hidden until WEB-14 wires the active flow */}
+        <div className="flex-1" />
+
+        {/* Commit */}
+        {isMyTurn && (
+          <button
+            type="button"
+            onClick={() => setConfirmPass(true)}
+            className="min-h-[44px] rounded-xl border border-neutral-700 bg-neutral-900 px-6 py-2 text-sm font-medium text-neutral-100 hover:border-neutral-500 active:bg-neutral-800"
+          >
+            Pass
+          </button>
+        )}
+      </div>
+
+      {confirmPass && (
+        <ConfirmOverlay
+          message="Pass your turn?"
+          confirmLabel="Pass"
+          onConfirm={handlePass}
+          onCancel={() => setConfirmPass(false)}
         />
       )}
     </>
