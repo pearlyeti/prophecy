@@ -1,8 +1,10 @@
 import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
 import type { Action, Card, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+
+const DicePool3D = lazy(() => import('./DicePool3D.js'));
 
 import { fetchCards } from './designer/api.js';
 
@@ -1691,16 +1693,30 @@ function BattlefieldRow({
           setActiveFlow({ kind: 'cardAction', cardId: cid, abilityIndex, abilityKind });
         };
 
+        const dieCardColor = charCard?.color ?? null;
+        const tumblingCharId = isActivating ? cid : null;
+
         return (
           <div key={cid} className="flex shrink-0 flex-col gap-3" style={{ width: CHAR_COL_WIDTH }}>
             {side === 'player' && (
-              <DiceStack
-                dice={dice}
-                diceInteractive={diceInteractive}
-                selectionMode={selectionMode}
-                horizontal
-                eligibleSymbols={resolvableSymbols}
-              />
+              <Suspense fallback={
+                <DiceStack
+                  dice={dice}
+                  diceInteractive={diceInteractive}
+                  selectionMode={selectionMode}
+                  horizontal
+                  eligibleSymbols={resolvableSymbols}
+                />
+              }>
+                <DicePool3D
+                  dice={dice}
+                  diceInteractive={diceInteractive}
+                  selectionMode={selectionMode}
+                  eligibleSymbols={resolvableSymbols}
+                  cardColor={dieCardColor}
+                  tumblingCharId={tumblingCharId}
+                />
+              </Suspense>
             )}
             <CharacterCard
               char={char}
@@ -1719,12 +1735,21 @@ function BattlefieldRow({
               onUpgradeTap={onUpgradeTap}
             />
             {side === 'opponent' && (
-              <DiceStack
-                dice={dice}
-                diceInteractive={false}
-                selectionMode={selectionMode}
-                horizontal
-              />
+              <Suspense fallback={
+                <DiceStack
+                  dice={dice}
+                  diceInteractive={false}
+                  selectionMode={selectionMode}
+                  horizontal
+                />
+              }>
+                <DicePool3D
+                  dice={dice}
+                  diceInteractive={false}
+                  selectionMode={selectionMode}
+                  cardColor={dieCardColor}
+                />
+              </Suspense>
             )}
           </div>
         );
