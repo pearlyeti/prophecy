@@ -30,12 +30,6 @@ const FORCE_SETTLE_MS = 3000;
 const CAM_POS: [number, number, number] = [0, 5, 4];
 const CAM_TARGET = new THREE.Vector3(0, FLOOR_Y + 0.4, 0);
 
-function CameraLookAt() {
-  const { camera } = useThree();
-  useEffect(() => { camera.lookAt(CAM_TARGET); }, [camera]);
-  return null;
-}
-
 // ── Frustum bounds at floor level ─────────────────────────────────────────────
 // Projects screen corners through the camera onto the floor plane (y = FLOOR_Y)
 // so wall collisions line up with the physical screen edges.
@@ -269,17 +263,29 @@ function DiceScene({
   onDieSettled: () => void;
 }) {
   const { camera, size } = useThree();
+  const [bounds, setBounds] = useState<Bounds | null>(null);
 
-  // Recompute bounds when camera or canvas size changes.
-  const bounds = useMemo(
-    () => getFloorBounds(camera),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [camera, size.width, size.height],
-  );
+  // Aim the camera first, then compute frustum bounds so they reflect the
+  // actual screen edges. useMemo runs before effects so it would use the
+  // default (un-aimed) camera orientation — useEffect is correct here.
+  useEffect(() => {
+    camera.lookAt(CAM_TARGET);
+    camera.updateMatrixWorld(true);
+    const b = getFloorBounds(camera);
+    // Clamp against unreasonably large values (safety net for edge cases)
+    setBounds({
+      minX: Math.max(b.minX, -10),
+      maxX: Math.min(b.maxX,  10),
+      minZ: Math.max(b.minZ, -10),
+      maxZ: Math.min(b.maxZ,  10),
+    });
+  }, [camera, size.width, size.height]);
+
+  // Don't spawn dice until we have correct bounds — one-frame delay, imperceptible.
+  if (!bounds) return null;
 
   return (
     <>
-      <CameraLookAt />
       <ambientLight intensity={0.4} />
       <directionalLight position={[3, 8, 4]} intensity={1.1} />
       <directionalLight position={[-3, 4, -2]} intensity={0.3} />
