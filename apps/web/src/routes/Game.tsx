@@ -1674,7 +1674,7 @@ function BattlefieldRow({
           .map((b) => {
             // Power action eligibility reads from authoritative engine state — never tracked client-side.
             const notUsed = b.kind !== 'powerAction' || !char.powerActionUsedThisRound;
-            return { ...b, eligible: !!(isEligibleForAbility && !char.exhausted && notUsed) };
+            return { ...b, eligible: !!(isEligibleForAbility && notUsed) };
           });
 
         const handleTap = () => {
@@ -2220,10 +2220,6 @@ function CharacterCard({
         aria-label={`${card?.name ?? 'Character'} — ${resolvedHp} HP${char.exhausted ? ' (exhausted)' : ''}`}
       >
         <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} frameX={card?.artFrameX} frameY={card?.artFrameY} frameZoom={card?.artFrameZoom} />
-        {/* name scrim */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-5">
-          <span className="line-clamp-2 text-center text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
-        </div>
         {/* HP + shield overlay — left side, stacked vertically */}
         <div className="absolute left-1 top-1 flex flex-col gap-0.5">
           {resolvedShields > 0 && (
