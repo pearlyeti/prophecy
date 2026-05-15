@@ -20,10 +20,11 @@ const DIE_RADIUS = 0.12;        // chamfer radius — matches physical dice
 const DIE_SPACING = 1.05;       // center-to-center spacing
 const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch more vertical space
 
-// Camera position: mostly overhead, slight lean toward bottom of screen (+Z toward
-// viewer). X=0 keeps the horizontal die row straight in screen space — any X offset
-// makes the row appear diagonal. The bottom-of-screen depth comes from Z alone.
-const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
+// Camera position: overhead with a lean toward the bottom-left of the screen.
+// X=-0.35 gives a left-face reveal on each die without making the row noticeably
+// diagonal (the skew scales with X — keep it under ~0.5 to stay subtle).
+// Z=1.1 deepens the bottom-of-screen tilt.
+const CAM_POS: [number, number, number] = [-0.35, 2.3, 1.1];
 const CAM_FOV = 40;
 
 // Points the camera at the dice origin after mount.
