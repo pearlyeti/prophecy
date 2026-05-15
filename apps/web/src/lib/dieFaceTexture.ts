@@ -1,5 +1,5 @@
-// Shared die face texture generator used by both the board dice (DicePool3D)
-// and the roll cam (ResultsCam). Produces a 128×128 CanvasTexture with the
+// Shared die face texture generator used by the board dice (DicePool3D).
+// Produces a 128×128 CanvasTexture with the
 // die's value and symbol abbreviation on the card's base color.
 
 import * as THREE from 'three';
