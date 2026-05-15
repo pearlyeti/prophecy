@@ -1742,6 +1742,21 @@ function BattlefieldRow({
         const dieCardColor = charCard?.color ?? null;
         const tumblingCharId = isActivating ? cid : null;
 
+        // Compute face overrides for focus-pick preview on player dice.
+        // Reads the latest flip for each target die from the face-pick history.
+        const faceOverrides: Record<string, { faceIndex: number; face: import('@prophecy/game-engine').DieFace }> = {};
+        if (side === 'player' && activeFlow?.kind === 'face-pick') {
+          for (const event of activeFlow.history) {
+            if (event.kind !== 'flip') continue;
+            const poolDie = dice.find((d) => d.instanceId === event.targetDieId);
+            if (!poolDie?.ownerInstanceId) continue;
+            const ownerChar = (playerState as any).characters?.[poolDie.ownerInstanceId];
+            const dieSpec = ownerChar?.dice?.find((d: any) => d.instanceId === event.targetDieId);
+            if (!dieSpec) continue;
+            faceOverrides[event.targetDieId] = { faceIndex: event.faceIndex, face: dieSpec.faces[event.faceIndex] };
+          }
+        }
+
         return (
           <div key={cid} className="flex shrink-0 flex-col gap-3" style={{ width: CHAR_COL_WIDTH }}>
             {side === 'player' && (
@@ -1761,6 +1776,7 @@ function BattlefieldRow({
                   eligibleSymbols={resolvableSymbols}
                   cardColor={dieCardColor}
                   tumblingCharId={tumblingCharId}
+                  faceOverrides={Object.keys(faceOverrides).length > 0 ? faceOverrides : undefined}
                 />
               </Suspense>
             )}

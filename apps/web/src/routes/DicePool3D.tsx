@@ -11,7 +11,7 @@ import { RoundedBox } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
-import type { DieInPool, DieSymbol } from '@prophecy/game-engine';
+import type { DieFace, DieInPool, DieSymbol } from '@prophecy/game-engine';
 import { useApp, type SelectionMode } from '../store.js';
 import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture } from '../lib/dieFaceTexture.js';
 
@@ -27,6 +27,21 @@ const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch mor
 // The "left" component of the perspective comes from the die's rest rotation below.
 const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
 const CAM_FOV = 40;
+
+// Euler rotation that puts BoxGeometry material face k on top (+Y world-space).
+// Material order: +X=0, -X=1, +Y=2, -Y=3, +Z=4, -Z=5
+// Prophecy face index k → material slot k.
+const FACE_UP_EULER: [number, number, number][] = [
+  [ 0,           0, -Math.PI / 2],
+  [ 0,           0,  Math.PI / 2],
+  [ 0,           0,  0          ],
+  [ Math.PI,     0,  0          ],
+  [-Math.PI / 2, 0,  0          ],
+  [ Math.PI / 2, 0,  0          ],
+];
+
+// Default display tilt: slight Y rotation so the left face is visible.
+const DEFAULT_TILT_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.18, 0));
 
 // Points the camera at the dice origin after mount.
 // r3f positions the camera but doesn't auto-aim it for perspective cameras.
@@ -48,6 +63,8 @@ function Die3D({
   textColor,
   state,
   isTumbling,
+  overrideFaceIndex,
+  overrideFace,
   onClick,
 }: {
   die: DieInPool;
@@ -56,29 +73,67 @@ function Die3D({
   textColor: string;
   state: DieState;
   isTumbling: boolean;
+  /** When set, animate the die to show this face index on top. */
+  overrideFaceIndex?: number | null;
+  /** Face data for the overridden face (for texture). */
+  overrideFace?: DieFace | null;
   onClick: () => void;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef  = useRef<THREE.Mesh>(null);
+  const animRef  = useRef(false);
+  const targetQ  = useRef(DEFAULT_TILT_Q.clone());
+  const currentQ = useRef(DEFAULT_TILT_Q.clone());
+  const prevTumbling = useRef(false);
 
-  // Mario Party tumble: rapid multi-axis spin on pre-roll activation
+  // When a new face is chosen, set the target quaternion and kick off slerp.
+  useEffect(() => {
+    if (overrideFaceIndex == null || isTumbling) return;
+    const euler = FACE_UP_EULER[overrideFaceIndex] ?? FACE_UP_EULER[2]!;
+    targetQ.current.setFromEuler(new THREE.Euler(...euler));
+    animRef.current = true;
+  }, [overrideFaceIndex, isTumbling]);
+
+  // All rotation controlled here — no rotation prop on RoundedBox.
   useFrame((_, dt) => {
-    if (!isTumbling || !meshRef.current) return;
-    meshRef.current.rotation.x += dt * 7.0;
-    meshRef.current.rotation.y += dt * 5.3;
-    meshRef.current.rotation.z += dt * 3.1;
+    if (!meshRef.current) return;
+
+    if (isTumbling) {
+      prevTumbling.current = true;
+      meshRef.current.rotation.x += dt * 7.0;
+      meshRef.current.rotation.y += dt * 5.3;
+      meshRef.current.rotation.z += dt * 3.1;
+      return;
+    }
+
+    // Just finished tumbling — snap back to display orientation.
+    if (prevTumbling.current) {
+      prevTumbling.current = false;
+      currentQ.current.copy(targetQ.current);
+      meshRef.current.quaternion.copy(targetQ.current);
+      return;
+    }
+
+    // Smooth slerp toward target face orientation.
+    if (animRef.current) {
+      currentQ.current.slerp(targetQ.current, Math.min(1, dt * 7));
+      meshRef.current.quaternion.copy(currentQ.current);
+      if (currentQ.current.angleTo(targetQ.current) < 0.008) {
+        currentQ.current.copy(targetQ.current);
+        meshRef.current.quaternion.copy(targetQ.current);
+        animRef.current = false;
+      }
+    }
   });
 
+  // Use the override face texture when provided (shows chosen face value while
+  // the die is animating/settled during a focus pick).
+  const displayFace = overrideFace ?? die.face;
   const texture = useMemo(
-    () => makeFaceTexture(die.face.symbol, die.face.value, die.face.modifier, baseColor, textColor),
-    [die.face.symbol, die.face.value, die.face.modifier, baseColor, textColor],
+    () => makeFaceTexture(displayFace.symbol, displayFace.value, displayFace.modifier, baseColor, textColor),
+    [displayFace.symbol, displayFace.value, displayFace.modifier, baseColor, textColor],
   );
   useEffect(() => () => { texture.dispose(); }, [texture]);
 
-  // Slight Y rotation shows the left face without shifting the die's screen position.
-  // Camera stays centered (X=0); this rotation adds the "bottom-left" look per die.
-  const rotation: [number, number, number] = isTumbling ? [0, 0, 0] : [0, -0.18, 0];
-
-  // Emissive tint communicates selection / eligibility without changing geometry.
   const emissive =
     state === 'selected-resolve' ? '#064e3b' :
     state === 'selected-reroll'  ? '#451a03' :
@@ -89,7 +144,6 @@ function Die3D({
     state === 'selected-reroll'  ? 0.9 :
     state === 'eligible'         ? 0.35 :
     0;
-  // Dimmed dice get a dark color multiplier overtop of the texture
   const colorMultiplier = state === 'dimmed' ? '#2a2a2a' : '#ffffff';
 
   return (
@@ -99,7 +153,7 @@ function Die3D({
       radius={DIE_RADIUS}
       smoothness={3}
       position={position}
-      rotation={rotation}
+      // No rotation prop — fully controlled by useFrame to avoid reconciler conflicts.
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
       <meshStandardMaterial
@@ -144,6 +198,8 @@ export interface DicePool3DProps {
    * Dice owned by this character tumble (pre-roll anticipation).
    */
   tumblingCharId?: string | null;
+  /** Face overrides for focus-pick preview: maps die instanceId → chosen face. */
+  faceOverrides?: Record<string, { faceIndex: number; face: DieFace }>;
 }
 
 export default function DicePool3D({
@@ -153,6 +209,7 @@ export default function DicePool3D({
   eligibleSymbols,
   cardColor,
   tumblingCharId,
+  faceOverrides,
 }: DicePool3DProps) {
   const activeFlow    = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
@@ -311,6 +368,7 @@ export default function DicePool3D({
             dieState = 'eligible';
           }
 
+          const override = faceOverrides?.[d.instanceId];
           return (
             <Die3D
               key={d.instanceId}
@@ -320,6 +378,8 @@ export default function DicePool3D({
               textColor={textColor}
               state={dieState}
               isTumbling={isTumbling}
+              overrideFaceIndex={override?.faceIndex ?? null}
+              overrideFace={override?.face ?? null}
               onClick={() => handleTap(d)}
             />
           );
