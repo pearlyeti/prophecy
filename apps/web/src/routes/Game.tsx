@@ -1444,7 +1444,12 @@ function BattleZone({
           onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
         />
 
-        {/* 3 ── Player zone (placeholder — WEB-12 fills this in) */}
+        {/* Center divider — white line with breathing room on both sides */}
+        <div className="shrink-0 px-4 py-3">
+          <div className="h-px w-full bg-white" />
+        </div>
+
+        {/* 3 ── Player zone */}
         <PlayerZone
           game={game}
           playerId={playerId}
@@ -1541,11 +1546,11 @@ function AvatarBar({
 
 // ─── Battlefield column constants ───────────────────────────────────────────
 const DIE_SIZE = 44;  // min tap target (used for touch target sizing)
-const DIE_TILE_SIZE = 32; // visual tile size in horizontal mode (h-8 w-8)
+const DIE_TILE_SIZE = 40; // visual tile size in horizontal mode (h-10 w-10)
 const DIE_GAP = 4;
 const MIN_DICE_COLS = 3;
-// Column width = exactly 3 visual dice + 2 gaps = 104px.
-const CHAR_COL_WIDTH = MIN_DICE_COLS * DIE_TILE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP; // 104px
+// Column width = exactly 3 visual dice + 2 gaps = 128px.
+const CHAR_COL_WIDTH = MIN_DICE_COLS * DIE_TILE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP; // 128px
 
 // ─── Shared battlefield row renderer ────────────────────────────────────────
 
@@ -1575,7 +1580,7 @@ function BattlefieldRow({
   onUpgradeTap: (upgradeId: string) => void;
 }) {
   return (
-    <div className="flex shrink-0 flex-row items-end justify-center gap-2 px-2">
+    <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
       {rowIds.map((cid) => {
         const char = (playerState as any).characters[cid] as CharacterState;
         if (!char) return null;
@@ -2020,9 +2025,9 @@ function DiceStack({
   };
 
   // Horizontal mode: smaller tiles so multiple dice fit side-by-side over the card.
-  const tileSize = horizontal ? 'h-8 w-8' : 'h-12 w-12';
-  const tileText = horizontal ? 'text-[8px]' : 'text-[10px]';
-  const valueText = horizontal ? 'text-xs' : 'text-base';
+  const tileSize = horizontal ? 'h-10 w-10' : 'h-12 w-12';
+  const tileText = horizontal ? 'text-[9px]' : 'text-[10px]';
+  const valueText = horizontal ? 'text-sm' : 'text-base';
 
   return (
     <div className={`flex gap-1 ${horizontal ? 'w-full flex-row flex-wrap justify-center' : 'flex-col'}`}>
