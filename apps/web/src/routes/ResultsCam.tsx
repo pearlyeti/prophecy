@@ -122,18 +122,19 @@ function RollingDie({
     else { doneRef.current = true; onSettled(); }
   }, [forceSettle, onSettled]);
 
-  // Entry: from just off the left screen edge, already at speed + full spin.
-  // Stagger multiple dice vertically so they don't stack exactly.
-  const stagger = (index - (total - 1) / 2);
-  const entryX  = bounds.minX - DIE_HALF - 0.2;
-  const midZ    = (bounds.minZ + bounds.maxZ) / 2;
+  // Spread dice evenly across the full Z range of the visible floor.
+  // Each die gets its own lane so they enter well separated.
+  const margin = DIE_HALF + 0.6;
+  const zRange = bounds.maxZ - bounds.minZ - 2 * margin;
+  const zStep  = total > 1 ? zRange / (total - 1) : 0;
+  const entryZ = bounds.minZ + margin + index * zStep + (Math.random() - 0.5) * 0.3;
+
+  // Stagger entry X and height slightly so they don't arrive simultaneously.
+  const entryX = bounds.minX - DIE_HALF - 0.2 - index * 0.5;
+  const entryY = FLOOR_Y + 1.0 + index * 0.7;
 
   const phys = useRef({
-    pos: [
-      entryX,
-      FLOOR_Y + 1.2 + index * 0.4,
-      midZ + stagger * 0.8 + (Math.random() - 0.5) * 0.4,
-    ] as [number, number, number],
+    pos: [entryX, entryY, entryZ] as [number, number, number],
     vel: [
       13 + Math.random() * 5,                // fast entry rightward
       -2 + (Math.random() - 0.5) * 1.5,      // slight downward
