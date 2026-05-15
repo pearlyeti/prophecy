@@ -56,6 +56,7 @@ const RESOLVABLE_SYMBOLS_V1: readonly DieSymbol[] = [
   'resource',
   'disrupt',
   'discard',
+  'focus',
 ];
 
 export function getLegalActions(state: GameState, playerId: string): LegalActions {

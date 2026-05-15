@@ -12,6 +12,12 @@ export type Action =
       dieInstanceIds: readonly string[];
       /** Required when resolving damage / shields; ignored for resource / disrupt. */
       targetCharacterId?: string;
+      /**
+       * Required when resolving focus dice. Ordered list of face-flip operations.
+       * Each focuser die is in dieInstanceIds (removed from pool on resolve).
+       * Target dice are not in dieInstanceIds — they stay in pool with updated faces.
+       */
+      focusFlips?: readonly { readonly targetDieInstanceId: string; readonly faceIndex: number }[];
     }
   | { type: 'reroll-dice'; playerId: string; discardCardId: string; dieInstanceIds: readonly string[] }
   | {

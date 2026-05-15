@@ -45,6 +45,7 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
         action.playerId,
         action.dieInstanceIds,
         action.targetCharacterId,
+        action.focusFlips,
       );
     case 'play-card':
       return applyPlayCard(state, action.playerId, action.cardId, action.characterTargets);

@@ -37,6 +37,7 @@ export function applyResolveDice(
   playerId: string,
   dieInstanceIds: readonly string[],
   targetCharacterId: string | undefined,
+  focusFlips?: readonly { readonly targetDieInstanceId: string; readonly faceIndex: number }[],
 ): ApplyResult {
   guardCanAct(state, playerId);
 
@@ -79,7 +80,6 @@ export function applyResolveDice(
   }
   if (
     symbol === 'special' ||
-    symbol === 'focus' ||
     symbol === 'indirect' ||
     symbol === 'discard' ||
     symbol === 'draw'
@@ -130,6 +130,52 @@ export function applyResolveDice(
   ];
 
   switch (symbol) {
+    case 'focus': {
+      // Focuser dice (dieInstanceIds) are spent — they get removed at the end.
+      // Target dice stay in pool but with their chosen faces applied in order.
+      // Zero flips is legal (the player spent focus dice without using them).
+      const flips = focusFlips ?? [];
+      let pool = [...(working.players[playerId]?.diceInPool ?? [])];
+
+      for (const flip of flips) {
+        const idx = pool.findIndex((d) => d.instanceId === flip.targetDieInstanceId);
+        if (idx < 0) {
+          throw new IllegalActionError(`target die ${flip.targetDieInstanceId} is not in the pool`);
+        }
+        const targetDie = pool[idx]!;
+
+        // A focuser cannot target itself.
+        if (dieInstanceIds.includes(targetDie.instanceId)) {
+          throw new IllegalActionError(`a focus die cannot target itself (${targetDie.instanceId})`);
+        }
+
+        // Look up die spec via ownerInstanceId to validate faceIndex.
+        const ownerChar = targetDie.ownerInstanceId
+          ? working.players[playerId]?.characters[targetDie.ownerInstanceId]
+          : undefined;
+        const dieSpec = ownerChar?.dice.find((d) => d.instanceId === targetDie.instanceId);
+        if (!dieSpec) {
+          throw new IllegalActionError(`cannot find die spec for ${flip.targetDieInstanceId}`);
+        }
+        if (flip.faceIndex < 0 || flip.faceIndex >= dieSpec.faces.length) {
+          throw new IllegalActionError(
+            `face index ${flip.faceIndex} out of range for die ${flip.targetDieInstanceId}`,
+          );
+        }
+
+        pool[idx] = { ...targetDie, faceIndex: flip.faceIndex, face: dieSpec.faces[flip.faceIndex]! };
+      }
+
+      working = {
+        ...working,
+        players: {
+          ...working.players,
+          [playerId]: { ...working.players[playerId]!, diceInPool: pool },
+        },
+      };
+      break;
+    }
+
     case 'melee':
     case 'ranged': {
       if (!targetCharacterId) {

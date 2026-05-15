@@ -1,4 +1,4 @@
-import type { EngineEvent, GameState, LobbyState } from '@prophecy/protocol';
+import type { DieFace, EngineEvent, GameState, LobbyState } from '@prophecy/protocol';
 import { create } from 'zustand';
 
 import { clearCachedLobby } from './lib/lobbyCache';
@@ -22,9 +22,25 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'di
  * at a time; entering one clears all others. null = idle state.
  * More kinds are added in WEB-15/16/17.
  */
+/** One step in a focus flow — either a face flip or chaining a new focuser. */
+export type FacePickEvent =
+  | { readonly kind: 'flip'; readonly targetDieId: string; readonly faceIndex: number; readonly prevFaceIndex: number; readonly prevFace: DieFace }
+  | { readonly kind: 'chain'; readonly chainedFocuserId: string; readonly budgetAdded: number };
+
 export type ActiveFlow =
   | { readonly kind: 'activate'; readonly charId: string }
   | { readonly kind: 'claim' }
+  | {
+      readonly kind: 'face-pick';
+      /** All focuser dice that will be removed from pool on commit. */
+      readonly focuserDieIds: readonly string[];
+      /** Remaining flips available. */
+      readonly budget: number;
+      /** Ordered history of flip/chain events — drives undo. */
+      readonly history: readonly FacePickEvent[];
+      /** Die whose face picker panel is open, or null. */
+      readonly pickingForDieId: string | null;
+    }
   | {
       readonly kind: 'cardAction';
       readonly cardId: string;

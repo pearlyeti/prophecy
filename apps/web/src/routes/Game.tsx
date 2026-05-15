@@ -8,6 +8,8 @@ const DicePool3D = lazy(() => import('./DicePool3D.js'));
 const ResultsCam = lazy(() => import('./ResultsCam.js'));
 
 import { fetchCards } from './designer/api.js';
+import { CARD_COLORS, FALLBACK_COLOR, symLabel } from '../lib/dieFaceTexture.js';
+import type { FacePickEvent } from '../store.js';
 
 import { getSocket } from '../lib/socket.js';
 import { useApp, type ActiveFlow, type SelectionMode } from '../store.js';
@@ -646,12 +648,16 @@ function canSelectDie(d: DieInPool, lockedSymbol: DieSymbol | null): boolean {
   // Engine doesn't resolve these yet — gate them out of v1 selection.
   if (
     d.face.symbol === 'special' ||
-    d.face.symbol === 'focus' ||
     d.face.symbol === 'indirect' ||
     d.face.symbol === 'discard' ||
     d.face.symbol === 'draw'
   ) {
     return false;
+  }
+  // Focus dice are only selectable as focusers (first tap, no locked symbol).
+  // Once a non-focus symbol is locked, focus dice cannot join the selection.
+  if (d.face.symbol === 'focus') {
+    return lockedSymbol === null;
   }
   if (lockedSymbol === null) {
     // First tap: must be a non-modifier (modifier-only resolution is
@@ -1503,6 +1509,9 @@ function BattleZone({
           onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
         />
 
+        {/* Face picker panel — visible during focus face-pick flow */}
+        <FacePickerPanel game={game} playerId={playerId} />
+
         {/* 4 ── Hand strip — always visible, compact, expands on tap */}
         <InlineHandStrip
           game={game}
@@ -2096,8 +2105,13 @@ function ActionBar({
       if (sym === 'resource') return 'Gain resources';
       if (sym === 'disrupt') return 'Disrupt';
       if (sym === 'discard') return 'Discard cards';
-      if (sym === 'focus') return 'Focus dice';
+      if (sym === 'focus') return `Focus dice`;
       return 'Resolve';
+    }
+    if (activeFlow.kind === 'face-pick') {
+      return activeFlow.budget > 0
+        ? `End focus (${activeFlow.budget} left)`
+        : 'End focus';
     }
     return 'Commit';
   })();
@@ -2136,6 +2150,23 @@ function ActionBar({
       return;
     }
     if (activeFlow.kind === 'resolve') {
+      if (activeFlow.symbol === 'focus') {
+        // Transition into the face-pick flow. Each selected die is a focuser.
+        // Budget = sum of face values across all selected focus dice.
+        const player = game.players[playerId];
+        const budget = activeFlow.selectedDieIds.reduce((sum, id) => {
+          const d = player?.diceInPool.find((p) => p.instanceId === id);
+          return sum + (d?.face.value ?? 0);
+        }, 0);
+        setActiveFlow({
+          kind: 'face-pick',
+          focuserDieIds: activeFlow.selectedDieIds,
+          budget,
+          history: [],
+          pickingForDieId: null,
+        });
+        return;
+      }
       const needsTarget = activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield';
       if (needsTarget && !activeFlow.targetCharacterId) return;
       send({
@@ -2147,13 +2178,44 @@ function ActionBar({
       setActiveFlow(null);
       return;
     }
+    if (activeFlow.kind === 'face-pick') {
+      const focusFlips = activeFlow.history
+        .filter((e): e is Extract<typeof e, { kind: 'flip' }> => e.kind === 'flip')
+        .map((e) => ({ targetDieInstanceId: e.targetDieId, faceIndex: e.faceIndex }));
+      send({
+        type: 'resolve-dice',
+        playerId,
+        dieInstanceIds: activeFlow.focuserDieIds,
+        focusFlips,
+      });
+      setActiveFlow(null);
+      return;
+    }
     setActiveFlow(null);
   };
 
   const handleUndo = () => {
     if (activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice') {
-      // Walk back to card-picker step
       setActiveFlow({ kind: 'reroll', step: 'pick-card', discardCardId: null, selectedDieIds: [] });
+    } else if (activeFlow?.kind === 'face-pick') {
+      if (activeFlow.history.length === 0) {
+        // Nothing to undo in the face-pick — exit the flow entirely
+        setActiveFlow(null);
+        return;
+      }
+      const last = activeFlow.history[activeFlow.history.length - 1]!;
+      if (last.kind === 'flip') {
+        setActiveFlow({ ...activeFlow, budget: activeFlow.budget + 1, history: activeFlow.history.slice(0, -1), pickingForDieId: null });
+      } else {
+        // chain event — remove that focuser and give back budget
+        setActiveFlow({
+          ...activeFlow,
+          focuserDieIds: activeFlow.focuserDieIds.filter((id) => id !== last.chainedFocuserId),
+          budget: activeFlow.budget - last.budgetAdded,
+          history: activeFlow.history.slice(0, -1),
+          pickingForDieId: null,
+        });
+      }
     } else {
       setActiveFlow(null);
     }
@@ -2514,6 +2576,85 @@ function DiceStack({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Face picker panel — shown when the player is in a face-pick flow and has
+ * selected a target die. Displays all 6 faces of that die as tappable tiles.
+ */
+function FacePickerPanel({ game, playerId }: { game: GameState; playerId: string }) {
+  const activeFlow    = useApp((s) => s.activeFlow);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
+
+  if (activeFlow?.kind !== 'face-pick' || !activeFlow.pickingForDieId) return null;
+
+  const myPlayer = game.players[playerId];
+  const targetDie = myPlayer?.diceInPool.find((d) => d.instanceId === activeFlow.pickingForDieId);
+  if (!targetDie) return null;
+
+  // Find the die spec (6 faces) via ownerInstanceId.
+  const ownerChar = targetDie.ownerInstanceId
+    ? myPlayer?.characters[targetDie.ownerInstanceId]
+    : null;
+  const dieSpec = ownerChar?.dice.find((d) => d.instanceId === targetDie.instanceId);
+  if (!dieSpec) return null;
+
+  // Current effective face (may have been flipped already in this flow).
+  const lastFlip = [...activeFlow.history].reverse().find(
+    (e) => e.kind === 'flip' && e.targetDieId === activeFlow.pickingForDieId,
+  );
+  const currentFaceIndex = lastFlip?.kind === 'flip' ? lastFlip.faceIndex : targetDie.faceIndex;
+
+  const handlePickFace = (faceIndex: number) => {
+    const prevFace = dieSpec.faces[currentFaceIndex]!;
+    const newFace  = dieSpec.faces[faceIndex]!;
+    const flipEvent: import('../store.js').FacePickEvent = {
+      kind: 'flip',
+      targetDieId: activeFlow.pickingForDieId!,
+      faceIndex,
+      prevFaceIndex: currentFaceIndex,
+      prevFace,
+    };
+    let next: typeof activeFlow = {
+      ...activeFlow,
+      budget: activeFlow.budget - 1,
+      history: [...activeFlow.history, flipEvent],
+      pickingForDieId: null,
+    };
+    setActiveFlow(next);
+  };
+
+  return (
+    <div className="shrink-0 border-t border-emerald-800 bg-neutral-950 px-3 py-2">
+      <div className="mb-1.5 text-[10px] uppercase tracking-wider text-emerald-500">
+        Pick a face — {activeFlow.budget} flip{activeFlow.budget === 1 ? '' : 's'} remaining
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {dieSpec.faces.map((face, i) => {
+          const isCurrent = i === currentFaceIndex;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => handlePickFace(i)}
+              className={`flex min-h-[56px] min-w-[52px] flex-col items-center justify-center rounded-xl border-2 px-2 py-2 transition-colors ${
+                isCurrent
+                  ? 'border-emerald-500 bg-emerald-900/40 text-emerald-100'
+                  : 'border-neutral-700 bg-neutral-900 text-neutral-200 hover:border-emerald-600'
+              }`}
+            >
+              <span className="font-mono text-lg font-bold leading-none">
+                {face.modifier ? '+' : ''}{face.value > 0 ? face.value : '—'}
+              </span>
+              <span className="mt-0.5 text-[9px] tracking-wider text-neutral-400">
+                {symLabel(face.symbol)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

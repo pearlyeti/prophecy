@@ -6,6 +6,7 @@
 // WebGL context per zone keeps the context count low (browsers cap at ~16).
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import type { FacePickEvent } from '../store.js';
 import { RoundedBox } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -118,7 +119,8 @@ function Die3D({
 function canSelectDie3D(d: DieInPool, lockedSymbol: DieSymbol | null): boolean {
   const s = d.face.symbol;
   if (s === 'blank') return false;
-  if (s === 'special' || s === 'focus' || s === 'indirect' || s === 'discard' || s === 'draw') return false;
+  if (s === 'special' || s === 'indirect' || s === 'discard' || s === 'draw') return false;
+  if (s === 'focus') return lockedSymbol === null; // focuser only as first tap
   if (lockedSymbol === null) return !d.face.modifier;
   return s === lockedSymbol || s === 'modifier';
 }
@@ -184,6 +186,60 @@ export default function DicePool3D({
       }
       return;
     }
+    // ── Face-pick flow ────────────────────────────────────────────────────
+    if (activeFlow?.kind === 'face-pick') {
+      const flow = activeFlow;
+      const isFocuser = flow.focuserDieIds.includes(d.instanceId);
+
+      if (!isFocuser && flow.budget > 0 && flow.pickingForDieId !== d.instanceId) {
+        // Tap a non-focuser die to open its face picker.
+        setActiveFlow({ ...flow, pickingForDieId: d.instanceId });
+        return;
+      }
+
+      if (!isFocuser && flow.pickingForDieId === d.instanceId) {
+        // Tap again to close the picker without selecting.
+        setActiveFlow({ ...flow, pickingForDieId: null });
+        return;
+      }
+
+      // Tap a die that was flipped to a focus face to chain it as a new focuser.
+      const lastFlip = [...flow.history].reverse().find(
+        (e): e is Extract<FacePickEvent, { kind: 'flip' }> =>
+          e.kind === 'flip' && e.targetDieId === d.instanceId,
+      );
+      const currentFaceIndex = lastFlip ? lastFlip.faceIndex : d.faceIndex;
+      const currentSymbol = d.face.symbol === 'focus' && !lastFlip
+        ? 'focus'
+        : lastFlip && d.ownerInstanceId
+          ? 'unknown' // will be resolved by engine; we check the flipped face value
+          : d.face.symbol;
+
+      // Check if the current effective face is a focus face and this die isn't already a focuser.
+      const effectiveFaceIsFocus =
+        !isFocuser &&
+        lastFlip &&
+        (d.face.symbol === 'focus' || currentFaceIndex === lastFlip.faceIndex);
+
+      if (!isFocuser && (d.face.symbol === 'focus' || effectiveFaceIsFocus)) {
+        const budgetAdded = d.face.value;
+        const chainEvent: FacePickEvent = {
+          kind: 'chain',
+          chainedFocuserId: d.instanceId,
+          budgetAdded,
+        };
+        setActiveFlow({
+          ...flow,
+          focuserDieIds: [...flow.focuserDieIds, d.instanceId],
+          budget: flow.budget + budgetAdded,
+          history: [...flow.history, chainEvent],
+          pickingForDieId: null,
+        });
+        return;
+      }
+      return;
+    }
+
     if (diceInteractive && activeFlow === null && !d.face.modifier) {
       if (!eligibleSymbols?.includes(d.face.symbol)) return;
       setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], targetCharacterId: null });
@@ -234,6 +290,18 @@ export default function DicePool3D({
             dieState = isSelected       ? 'selected-resolve'
                      : canRerollDie3D(d) ? 'default'
                      : 'dimmed';
+          } else if (activeFlow?.kind === 'face-pick') {
+            const flow = activeFlow;
+            const isFocuser = flow.focuserDieIds.includes(d.instanceId);
+            const isPickingTarget = flow.pickingForDieId === d.instanceId;
+            const hasBeenFlipped = flow.history.some(
+              (e) => e.kind === 'flip' && e.targetDieId === d.instanceId,
+            );
+            if (isFocuser) dieState = 'dimmed';                        // focuser is "spent"
+            else if (isPickingTarget) dieState = 'selected-resolve';   // open picker
+            else if (hasBeenFlipped) dieState = 'selected-reroll';     // flipped this focus
+            else if (flow.budget > 0) dieState = 'eligible';           // valid target
+            else dieState = 'dimmed';
           } else if (eligibleSymbols?.includes(d.face.symbol) && !d.face.modifier) {
             dieState = 'eligible';
           }

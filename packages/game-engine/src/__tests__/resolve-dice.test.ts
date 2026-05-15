@@ -116,13 +116,12 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     ).toThrow(/modifier/);
   });
 
-  it('rejects blank, special, focus, indirect, discard, draw', () => {
+  it('rejects blank, special, indirect, discard, draw (focus is now implemented)', () => {
     const initial = setup();
     const active = initial.activePlayerId!;
     for (const symbol of [
       'blank',
       'special',
-      'focus',
       'indirect',
       'discard',
       'draw',
