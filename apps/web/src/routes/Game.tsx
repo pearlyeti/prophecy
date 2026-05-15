@@ -1709,7 +1709,9 @@ function ActionBar({
   const [confirmPass, setConfirmPass] = useState(false);
   const inActionPhase = game.phase === 'action';
 
-  if (!inActionPhase || game.phase === 'ended') return null;
+  if (game.phase === 'ended') return null;
+  // Always render during action + upkeep to hold space so the hand strip doesn't shift.
+  if (!inActionPhase) return <div className="shrink-0 h-[60px] border-t border-neutral-800" />;
 
   const handlePass = () => {
     send({ type: 'pass', playerId });
