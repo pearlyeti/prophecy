@@ -37,8 +37,25 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
   useEffect(() => {
     let cancelled = false;
 
+    // Inject CSS so dice-box's canvas covers the screen above our dark backdrop.
+    // dice-box appends a plain canvas with no positioning; we need to fix that.
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      .dice-box-canvas {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 51 !important;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
     const run = async () => {
-      const box = new DiceBox('#results-cam-canvas', {
+      // Target body so the canvas is a direct child of the document —
+      // targeting a nested div gives dice-box a 300×150 default canvas.
+      const box = new DiceBox('body', {
         assetPath: '/assets/dice-box/',
         id: 'results-cam-canvas',
         offscreen: false,
@@ -65,8 +82,7 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
 
     return () => {
       cancelled = true;
-      // boxRef.current is only set after init() succeeds — safe to call clear().
-      // Wrap in try/catch in case dice-box internal state is still partially set up.
+      document.head.removeChild(styleEl);
       try { boxRef.current?.clear(); } catch {}
       boxRef.current = null;
     };
@@ -97,9 +113,6 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* dice-box mounts its canvas inside this div */}
-      <div id="results-cam-canvas" className="absolute inset-0" />
-
       {/* Dismiss hint — fades in once dice have settled */}
       <div
         className="relative z-10 mb-16 text-center transition-opacity duration-500"
