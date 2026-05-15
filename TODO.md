@@ -240,6 +240,131 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ---
 
+---
+> **Multi-target resolution — ENGINE-8 + WEB-19.**
+> One action can resolve multiple dice of the same symbol against different targets. ENGINE-8 adds engine support; WEB-19 updates the UI to match.
+---
+
+#### ENGINE-8 — Multi-target resolve-dice action
+**Why now.** The rules allow resolving multiple melee/ranged/shield dice in one action where each die targets a different character. The current `resolve-dice` action only accepts a single `targetCharacterId`, forcing all dice to one target. This blocks correct gameplay.
+
+**Scope.**
+- Change `resolve-dice` action shape in `packages/game-engine/src/actions/resolve-dice.ts` and its protocol type: replace the flat `targetCharacterId?: string` with `targets: readonly { dieInstanceIds: readonly string[]; targetCharacterId?: string }[]`. Each entry is a group of dice resolved against one target.
+- For backward compat during transition, also accept the old flat shape and normalize it internally to the new shape.
+- The resolution loop iterates over `targets` in order, applying damage/shields to each `targetCharacterId` for the dice in that group.
+- Indirect damage (`targetCharacterId` omitted): opponent distributes the total value across their characters as before.
+- Resource/disrupt/discard: `targets` has a single entry with no `targetCharacterId`.
+- Update all existing tests that construct `resolve-dice` actions to use the new shape.
+- Mirror shape change in `@prophecy/protocol`.
+
+**Context to load.**
+- `packages/game-engine/src/actions/resolve-dice.ts`
+- `packages/game-engine/src/state/types.ts` (Action union)
+- `packages/protocol/src/events.ts`
+- `packages/game-engine/src/__tests__/resolve-dice.test.ts`
+
+**Out of scope.** UI changes (WEB-19). Focus / special resolution (separate cards).
+
+**Done when.** Typecheck clean. Engine tests green. New tests: (a) 2 melee dice each targeting a different character — both take damage; (b) shield dice split across two characters; (c) flat single-target shape still works (backward compat).
+
+---
+
+#### WEB-19 — Multi-target damage and shield resolution UI
+**Why now.** WEB-16 wires single-target resolution. The rules allow each die in a resolve action to target a different character. This card updates the UI flow to support that.
+
+**Scope.**
+- Extend `ActiveFlow.resolve` in `store.ts`: replace `targetCharacterId: string | null` with `pendingTargets: readonly { dieInstanceIds: readonly string[]; targetCharacterId: string }[]` (committed die groups) and keep `selectedDieIds` for the currently-being-assigned group.
+- **Resolution loop UX:** Select one or more dice of the same symbol (existing green highlight). Tap an opponent/own character to assign those dice to that target — this commits the group into `pendingTargets` and clears `selectedDieIds`, ready for the next group. Repeat until no dice remain in the pool or player is done.
+- **Commit button:** enabled when `pendingTargets.length > 0` and `selectedDieIds.length === 0` (all selected dice have been assigned). Label: "Deal damage" / "Gain shields" as before.
+- **Visual feedback:** dice already assigned (in `pendingTargets`) appear dimmed in the pool — they've been "spent" into a group. A small counter on the target character card shows pending damage/shields incoming (e.g., `−3` in red, `+2` in blue). Tapping an already-assigned character while building a new group replaces that group.
+- **Dispatch:** send `resolve-dice` with the full `targets` array from `pendingTargets` plus any unassigned `selectedDieIds` (assigned to the most recently tapped character).
+- Resource/disrupt/discard: unchanged single-dispatch path.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (BattlefieldRow, DiceStack, ActionBar, activeFlow wiring)
+- `apps/web/src/store.ts` (ActiveFlow.resolve shape)
+- `packages/game-engine/src/actions/resolve-dice.ts` (new targets shape from ENGINE-8)
+
+**Depends on.** ENGINE-8.
+
+**Done when.** Typecheck clean. Manual smoke: select 2 melee dice, tap opponent character A — dice dim, counter shows −X on A. Select 1 more melee die, tap opponent character B — counter shows −Y on B. Commit dispatches one resolve-dice with two target groups. Both characters take the correct damage.
+
+---
+> **3D dice — WEB-3D-1 through WEB-3D-3.**
+> Three connected cards delivering the full 3D dice experience: persistent Three.js dice on the board, the physics-based Dice Results Cam via dice-box, and the face-picker UX for focus/event effects. Pick them up in order.
+---
+
+#### WEB-3D-1 — Three.js board dice layer
+**Why now.** Flat 2D die tiles don't communicate the physical feel of the game. Dice sitting in the pool should look like real dice — 3D rounded cubes with the correct face showing up, proper lighting, subtle perspective angle as if looking down at a table.
+
+**Scope.**
+- Install `three` and `@react-three/fiber` + `@react-three/drei`. Lazy-load — only bundled when the game route is visited.
+- Replace the flat `DiceStack` tile rendering with a `<DicePool3D>` component: a `<Canvas>` element (react-three-fiber) that renders each die in the pool as a `RoundedBoxGeometry` (from drei) with chamfered edges matching physical dice.
+- **At rest:** die is static, correct face showing up, ambient + point light from above-right so the top face is brightest, side faces mid-tone. Subtle fixed tilt (~15° rotateX, ~10° rotateY) so the 3D shape reads clearly — like looking down at a die on a table.
+- **Pre-roll state:** when `activeFlow = { kind: 'activate', charId }` and these dice belong to that character — begin the Mario Party tumble. Rapid face-cycling, tumbling on all axes. This runs on the board in place, building anticipation before the player commits to Roll Dice.
+- Die faces show value + symbol label. Use card color (`getDieBaseClass` logic) for face color.
+- Touch targets: the Canvas is sized to the same footprint as the current tile area. Tap events map through to the existing `handleTap` logic.
+- Keep the existing flat `DiceStack` component as a fallback (`<Suspense fallback={<DiceStack ... />}>`).
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (DiceStack, BattlefieldRow, activeFlow wiring)
+- `packages/db/seed/cards.json` (card color field for die coloring)
+
+**Out of scope.** Roll animation / Results Cam (WEB-3D-2). Face picker (WEB-3D-3). Dice in the opponent pool are read-only — same 3D rendering, no interaction.
+
+**Done when.** Typecheck clean. Manual smoke: dice in pool appear as small 3D rounded cubes with correct face up; activating a character makes their unrolled dice tumble; non-activating dice remain static; fallback flat tiles show during canvas load.
+
+---
+
+#### WEB-3D-2 — Dice Results Cam (dice-box physics overlay)
+**Why now.** Rolling dice is the central action of the game. It should feel like a real roll — tactile, unpredictable, satisfying. The Results Cam is a full-screen physics simulation that plays when the player commits Roll Dice, then cuts back to the board with dice already in position.
+
+**Scope.**
+- Install `@3d-dice/dice-box`. Lazy-load — only initialized when the first roll happens (background fetch starts at game-start so it's ready by the time the first activation occurs).
+- **Trigger:** when the player commits Roll Dice (`activeFlow = { kind: 'activate' }` + Commit), before dispatching the `activate` action:
+  1. Start the Results Cam overlay (full-screen, dark background, centered canvas).
+  2. Pass the number and type of dice to roll. Pass the server-determined result values so dice-box guides the physics to land on the correct faces.
+  3. The `activate` action dispatches to the server simultaneously — no waiting.
+- **Physics play:** dice-box runs the Ammo.js simulation. Dice tumble, bounce off each other and the surface, gradually settle.
+- **Results display:** once dice are still, briefly show the result (symbol + value) for each die on-screen.
+- **Dismiss:** player taps / swipes up to dismiss. The overlay fades/sweeps away. Hard cut back to the board — the Three.js board dice (WEB-3D-1) are already showing the correct faces since the game state has updated.
+- Server-determined result values: read from the `character.activated` engine event payload (`rolledDice`) which arrives via socket while the overlay is playing. Hold the overlay open until the event arrives if needed.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (activation flow, send dispatch, socket event handling)
+- `apps/web/src/store.ts` (activeFlow, appendEvents)
+- `packages/game-engine/src/events.ts` (`character.activated` event payload shape)
+
+**Out of scope.** Per-symbol particle effects on landing (post-launch polish). Opponent roll cam (show opponent's rolls too — backlog). Sound effects (separate card).
+
+**Depends on.** WEB-3D-1 (board dice layer must exist for the cut-back to work).
+
+**Done when.** Typecheck clean. Manual smoke: tap a ready character, commit Roll Dice — full-screen dice cam appears, dice tumble with real physics, settle on the server-determined faces, dismiss → board shows correct dice in pool. Bundle: dice-box WASM only loads after game start; measured load time on throttled connection is acceptable.
+
+---
+
+#### WEB-3D-3 — Die face picker (focus + event card effects)
+**Why now.** Focus dice and many event cards let the player choose a new face for one or more dice in their pool. This needs clear UX: see all options, make a strategic choice, watch the die update.
+
+**Scope.**
+- **Trigger:** when resolving focus dice (or an event card effect that requires face selection), enter a `{ kind: 'face-pick', targetDieIds: string[], budget: number, chosen: Record<string, DieFace> }` flow.
+- **Panel:** tapping a die in face-pick mode opens a compact panel anchored to that die showing all 6 of its faces as small tiles (symbol + value). The current face is highlighted. Tapping any face selects it — the 3D die in WEB-3D-1 spins to show that face. The panel closes.
+- **Budget:** a visible counter shows "X dice remaining to focus." Once all budget is spent (or player skips remaining), Commit = "End focus" becomes active.
+- **Focus chaining:** if a newly chosen face is also a focus face, that die joins `targetDieIds` and adds to the budget. Keep a running total visible.
+- **Direct manipulation (secondary):** the player can also swipe/drag on the 3D die to rotate it and select a face that way. Tap to confirm. This is a power-user shortcut; the panel is always the primary path.
+- Dispatch the face assignments via `resolve-dice` with the focus dice and chosen face indices once "End focus" is committed.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (DiceStack / DicePool3D, activeFlow, ActionBar)
+- `apps/web/src/store.ts` (ActiveFlow — add face-pick kind)
+- `packages/game-engine/src/actions/resolve-dice.ts` (focus resolution path — verify face-index API)
+
+**Depends on.** WEB-3D-1 (3D die must exist to spin to chosen face).
+
+**Done when.** Typecheck clean. Manual smoke: resolve a focus die → budget counter appears → tap a die → panel shows all 6 faces → tap a face → 3D die spins to it → budget decrements → End focus commits correctly. Focus chaining: choosing a focus face adds to budget.
+
+---
+
 #### ENGINE-6b — Event-owned dice + cross-card die roll mechanic
 **Why now.** Some events should roll a die into the pool — either the event's own die (events can carry `dieFaces`, a mechanic not possible in the physical game) or a specific card's die by catalog reference (e.g. "Howl at the Moon" rolls a Werewolf die even if Werewolf isn't in the active player's deck). Neither case is handled by the existing pool machinery.
 
