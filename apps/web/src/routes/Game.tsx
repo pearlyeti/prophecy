@@ -1676,7 +1676,8 @@ function BattlefieldRow({
               tipDirection="right"
               hp={hp}
               shields={char.shields}
-              eligible={eligible || isActivating}
+              eligible={eligible}
+              pendingExhaust={isActivating}
               onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
             />
@@ -1959,7 +1960,16 @@ function ActionBar({
       setConfirmPass(true);
       return;
     }
-    // WEB-15/17 will wire actual dispatch here; for now just clear the flow
+    if (activeFlow.kind === 'activate') {
+      send({ type: 'activate', playerId, cardId: activeFlow.charId });
+      setActiveFlow(null);
+      return;
+    }
+    if (activeFlow.kind === 'claim') {
+      send({ type: 'claim-battlefield', playerId });
+      setActiveFlow(null);
+      return;
+    }
     setActiveFlow(null);
   };
 
@@ -2035,6 +2045,8 @@ function CharacterCard({
   shields?: number;
   /** Green ring — this card can be activated this turn. */
   eligible?: boolean;
+  /** Client-side tilt preview while activation is pending (before server confirms). */
+  pendingExhaust?: boolean;
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2043,6 +2055,7 @@ function CharacterCard({
   const exhaustedTransform = tipDirection === 'right' ? 'rotate(6deg)' : 'rotate(-6deg)';
   const resolvedHp = hp ?? (char.health - char.damage);
   const resolvedShields = shields ?? char.shields;
+  const showTilt = char.exhausted || pendingExhaust;
 
   return (
     <div className={`relative overflow-visible ${className}`} style={{ aspectRatio: '1' }}>
@@ -2054,10 +2067,12 @@ function CharacterCard({
             ? 'border-emerald-500 ring-2 ring-emerald-500/60'
             : char.exhausted
               ? 'border-neutral-600 opacity-70'
-              : 'border-neutral-700'
+              : pendingExhaust
+                ? 'border-emerald-600'
+                : 'border-neutral-700'
         }`}
         style={{
-          transform: char.exhausted ? exhaustedTransform : 'none',
+          transform: showTilt ? exhaustedTransform : 'none',
           transformOrigin: 'center center',
         }}
         aria-label={`${card?.name ?? 'Character'} — ${resolvedHp} HP${char.exhausted ? ' (exhausted)' : ''}`}
