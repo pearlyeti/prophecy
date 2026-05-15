@@ -155,6 +155,7 @@ export function Game() {
         onOpenActionPanel={() => setActionPanelOpen(true)}
         onOpenHand={openHand}
         getDragHandlers={drag.getHandlers}
+        onShowResultsCam={(n) => setResultsCam({ diceCount: n })}
         className="min-h-0 flex-1"
       />
 
@@ -1432,6 +1433,7 @@ function BattleZone({
   onOpenActionPanel,
   onOpenHand,
   getDragHandlers,
+  onShowResultsCam,
   className = '',
 }: {
   game: GameState;
@@ -1442,6 +1444,7 @@ function BattleZone({
   onOpenActionPanel: () => void;
   onOpenHand: (mode: HandMode, focusId?: string) => void;
   getDragHandlers: (info: DragCardInfo) => DragHandlers;
+  onShowResultsCam: (diceCount: number) => void;
   className?: string;
 }) {
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
@@ -1492,7 +1495,7 @@ function BattleZone({
         />
 
         {/* 5 ── Action bar — Undo (future) | Commit */}
-        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} onShowResultsCam={(n) => setResultsCam({ diceCount: n })} />
+        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} onShowResultsCam={onShowResultsCam} />
       </section>
 
       {detailChar && detailId && (
