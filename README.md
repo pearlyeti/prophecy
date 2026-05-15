@@ -98,7 +98,8 @@ WebSocket service (**Socket.io** for room/namespace ergonomics and reconnect han
 - **TanStack Query** + **tRPC client** for server state.
 - **Zustand** for ephemeral client game state (animation queues, UI interactions).
 - **Socket.io-client** for the live game connection.
-- **Pixi.js v8** + **@pixi/particle-emitter** for the 2D game board, dice, particles, and combat-effect overlays (energy blade trails, ranged-shot tracers, impact bursts, dust, screen-flashes). Pixi sprite-sheets cover celebration animations too — no separate Lottie pipeline.
+- **Three.js + @react-three/fiber + @react-three/drei** for 3D dice in the pool — persistent rounded-cube geometry with proper lighting, pre-roll tumble, and quaternion-slerp face picker. See [Live match experience → 3D dice architecture](#live-match-experience).
+- **Pixi.js v8** + **@pixi/particle-emitter** for 2D combat-effect overlays (energy blade trails, ranged-shot tracers, impact bursts, dust, screen-flashes) and Pixi sprite-sheets for celebration / pack-opening animations — no separate Lottie pipeline.
 - **Framer Motion** for DOM-side animations: card lifts, drag-and-drop, modal transitions, pack-opening choreography.
 - **Howler.js** for SFX + music with mixing buses (UI, card, dice, ambient, music) and a per-bus volume slider.
 - **Tailwind CSS + shadcn/ui** for the surrounding UI (lobby, deckbuilder, store, profile, admin).
