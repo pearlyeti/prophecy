@@ -82,11 +82,6 @@ interface AppStore {
   activeFlow: ActiveFlow | null;
   setActiveFlow: (flow: ActiveFlow | null) => void;
 
-  /** Power action instance ids used this round. Key = `${charId}:${abilityIndex}`. */
-  usedPowerActionKeys: ReadonlySet<string>;
-  markPowerActionUsed: (key: string) => void;
-  clearPowerActions: () => void;
-
   reset: () => void;
 }
 
@@ -134,11 +129,6 @@ export const useApp = create<AppStore>((set) => ({
   activeFlow: null,
   setActiveFlow: (flow) => set({ activeFlow: flow }),
 
-  usedPowerActionKeys: new Set(),
-  markPowerActionUsed: (key) =>
-    set((s) => ({ usedPowerActionKeys: new Set([...s.usedPowerActionKeys, key]) })),
-  clearPowerActions: () => set({ usedPowerActionKeys: new Set() }),
-
   reset: () => {
     clearCachedLobby();
     set({
@@ -148,7 +138,6 @@ export const useApp = create<AppStore>((set) => ({
       lastError: null,
       selectionMode: null,
       activeFlow: null,
-      usedPowerActionKeys: new Set(),
     });
   },
 }));

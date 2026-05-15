@@ -89,7 +89,9 @@ export function runUpkeepAndStartRound(
     for (const cid of p.characterOrder) {
       const c = p.characters[cid];
       if (!c) continue;
-      readied[cid] = c.exhausted ? { ...c, exhausted: false } : c;
+      readied[cid] = (c.exhausted || c.powerActionUsedThisRound)
+        ? { ...c, exhausted: false, powerActionUsedThisRound: false }
+        : c;
     }
     players[id] = {
       ...p,

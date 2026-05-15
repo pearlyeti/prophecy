@@ -24,7 +24,6 @@ export function Game() {
   const exitSelectionMode = useApp((s) => s.exitSelectionMode);
   const enterRerollMode = useApp((s) => s.enterRerollMode);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
-  const clearPowerActions = useApp((s) => s.clearPowerActions);
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
@@ -60,9 +59,6 @@ export function Game() {
     if (!isMyTurn || !inActionPhase) setActionPanelOpen(false);
   }, [isMyTurn, inActionPhase]);
 
-  // Clear used power actions at the start of each new round.
-  const roundNumber = game?.roundNumber;
-  useEffect(() => { clearPowerActions(); }, [roundNumber, clearPowerActions]);
 
   if (!lobby || !game) return null;
 
@@ -1643,7 +1639,6 @@ function BattlefieldRow({
 }) {
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
-  const usedPowerActionKeys = useApp((s) => s.usedPowerActionKeys);
 
   return (
     <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
@@ -1677,8 +1672,8 @@ function BattlefieldRow({
           .map((ab, i) => ({ abilityIndex: i, kind: ab.kind as 'action' | 'powerAction', eligible: false }))
           .filter((b) => b.kind === 'action' || b.kind === 'powerAction')
           .map((b) => {
-            const key = `${cid}:${b.abilityIndex}`;
-            const notUsed = b.kind !== 'powerAction' || !usedPowerActionKeys.has(key);
+            // Power action eligibility reads from authoritative engine state — never tracked client-side.
+            const notUsed = b.kind !== 'powerAction' || !char.powerActionUsedThisRound;
             return { ...b, eligible: !!(isEligibleForAbility && !char.exhausted && notUsed) };
           });
 
@@ -2019,8 +2014,6 @@ function ActionBar({
     (myPlayer?.hand.length ?? 0) > 0 &&
     (myPlayer?.diceInPool.length ?? 0) > 0;
 
-  const markPowerActionUsed = useApp((s) => s.markPowerActionUsed);
-
   const commitLabel = (() => {
     if (!activeFlow) return 'Pass';
     if (activeFlow.kind === 'activate') return 'Roll Dice';
@@ -2058,10 +2051,7 @@ function ActionBar({
       return;
     }
     if (activeFlow.kind === 'cardAction') {
-      if (activeFlow.abilityKind === 'powerAction') {
-        markPowerActionUsed(`${activeFlow.cardId}:${activeFlow.abilityIndex}`);
-      }
-      send({ type: 'use-card-action', playerId, cardId: activeFlow.cardId });
+      send({ type: 'use-card-action', playerId, cardId: activeFlow.cardId, abilityIndex: activeFlow.abilityIndex });
       setActiveFlow(null);
       return;
     }

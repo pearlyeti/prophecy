@@ -96,6 +96,12 @@ export interface CharacterState {
   /** 0..3 per the rules. */
   readonly shields: number;
   readonly exhausted: boolean;
+  /**
+   * True if this character's power action has been used this round.
+   * Reset to false at the start of each round by runUpkeepAndStartRound.
+   * Authoritative — the client reads this field; it never tracks it locally.
+   */
+  readonly powerActionUsedThisRound: boolean;
   /** 1 die for non-elite, 2 for elite. */
   readonly dice: readonly CardDie[];
   /** Upgrade instance ids attached to this character. */

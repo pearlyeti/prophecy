@@ -19,6 +19,7 @@ export type EngineEvent =
   | { readonly type: 'character.activated'; readonly payload: CharacterActivatedPayload }
   | { readonly type: 'character.defeated'; readonly payload: CharacterDefeatedPayload }
   | { readonly type: 'card.played'; readonly payload: CardPlayedPayload }
+  | { readonly type: 'card.action-used'; readonly payload: CardActionUsedPayload }
   | { readonly type: 'dice.resolved'; readonly payload: DiceResolvedPayload }
   | { readonly type: 'dice.rerolled'; readonly payload: DiceRerolledPayload }
   | { readonly type: 'damage.dealt'; readonly payload: DamageDealtPayload }
@@ -110,6 +111,13 @@ export interface CardPlayedPayload {
   readonly playerId: string;
   readonly cardId: string;
   readonly costPaid: number;
+}
+
+export interface CardActionUsedPayload {
+  readonly playerId: string;
+  readonly cardId: string;
+  readonly abilityIndex: number;
+  readonly abilityKind: 'action' | 'powerAction';
 }
 
 export interface DiceResolvedPayload {

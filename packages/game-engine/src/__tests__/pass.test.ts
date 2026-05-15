@@ -261,14 +261,15 @@ describe('applyAction({ type: "pass" })', () => {
     expect(sequence().resources).toBe(6); // 2 starting + 2 per round * 2 rounds
   });
 
-  it('throws on actions that are not yet implemented (placeholder dispatch)', () => {
+  it('throws IllegalActionError when use-card-action targets a non-existent character', () => {
     const initial = setup();
     expect(() =>
       applyAction(initial, {
         type: 'use-card-action',
         playerId: initial.activePlayerId!,
-        cardId: 'X',
+        cardId: 'does-not-exist',
+        abilityIndex: 0,
       }),
-    ).toThrow(/not yet implemented/);
+    ).toThrow(/not an in-play character/);
   });
 });

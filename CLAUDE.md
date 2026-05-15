@@ -81,6 +81,19 @@ If you are about to fetch, scrape, or paste card data from a third-party source,
 
 If you find yourself reaching into `__fixtures__/` from a non-test path, stop.
 
+## Zero trust on the client — game state lives in the engine only
+
+The client is untrusted. Players can modify browser memory, intercept WebSocket messages, and replay actions. The only defence is that the server validates every action through the engine before it takes effect.
+
+This means:
+
+- **Never track game state in Zustand, component state, or localStorage.** "Game state" means anything that affects the outcome of the game: health, resources, whose turn it is, whether a power action has been used, which dice are in the pool, etc. If it needs to be enforced by a rule, it lives in `GameState` inside the engine — full stop.
+- **`GameState` is the source of truth.** The client receives `GameState` from the server after every action and renders it. It never derives game-truth from local tracking.
+- **Cosmetic / animation state is fine in Zustand.** Whether a card is visually tilted as part of a pending-activation preview, which flow the player is currently in (ActiveFlow), scroll position, overlay visibility — none of this affects game outcomes and is fine client-side.
+- **The engine enforces all rules.** If a rule (e.g. "power action once per round") is only checked on the client, it isn't enforced — a cheater ignores the client. Add the check to the engine action handler.
+
+When reviewing or writing client code: if you find yourself updating a variable to track "has X happened this game/round/turn", stop and ask whether the engine already exposes that in `GameState`. If not, add it to the engine first.
+
 ## Where game logic lives
 
 All rules live in `packages/game-engine`. Pure TypeScript, no I/O dependencies, fully deterministic given a seed.

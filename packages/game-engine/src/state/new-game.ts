@@ -141,6 +141,7 @@ export function newGame(input: NewGameInput): GameState {
         damage: 0,
         shields: 0,
         exhausted: false,
+        powerActionUsedThisRound: false,
         dice,
         upgradeIds: [],
       };

@@ -6,6 +6,7 @@ import { applyPass } from '../actions/pass.js';
 import { applyPlayCard } from '../actions/play-card.js';
 import { applyRerollDice } from '../actions/reroll-dice.js';
 import { applyResolveDice } from '../actions/resolve-dice.js';
+import { applyUseCardAction } from '../actions/use-card-action.js';
 import { applyChooseFirstPlayer, applyPlaceShield } from '../actions/setup.js';
 import { IllegalActionError } from '../actions/illegal.js';
 import type { Action } from '../actions/types.js';
@@ -55,7 +56,7 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
         action.dieInstanceIds,
       );
     case 'use-card-action':
-      throw new IllegalActionError(`action type "${action.type}" not yet implemented`);
+      return applyUseCardAction(state, action.playerId, action.cardId, action.abilityIndex);
     case 'order-triggers':
       return applyOrderTriggersAction(state, action.playerId, action.order);
   }
