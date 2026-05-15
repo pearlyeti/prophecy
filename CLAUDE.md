@@ -18,6 +18,17 @@ If a question can be answered from the README, prefer that over guessing or grep
 
 The binding spec for game mechanics is [docs/rules-reference.md](docs/rules-reference.md). Read it before writing engine code.
 
+Each package and app also has its own README covering how to run it locally, its file layout, and conventions specific to that codebase. **Load the relevant package/app README whenever a task card sends you into that directory** — it tells you where things go, what patterns to follow, and what the hard boundaries are. These READMEs document *how to work here*; the top-level README documents *why decisions were made*.
+
+| Directory | README covers |
+|---|---|
+| `packages/game-engine` | Adding actions and ability ops, determinism rules, fixture policy |
+| `packages/protocol` | What belongs on the wire, schema drift test |
+| `packages/db` | Schema changes, migration workflow, enum drift |
+| `apps/game-server` | Room conventions, reconnect window, HTTP routes |
+| `apps/api` | What belongs here vs. game-server, tRPC procedure pattern |
+| `apps/web` | Zustand rules, socket event flow, touch-first requirements, designer pages |
+
 ## Promoting a backlog item to a task card
 
 The backlog in `ROADMAP.md` is a parking lot for future ideas — rough scope, no spec yet, not claimable. When the user decides an item is ready to work on:
