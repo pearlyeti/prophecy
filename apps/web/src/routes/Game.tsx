@@ -1546,11 +1546,11 @@ function AvatarBar({
 
 // ─── Battlefield column constants ───────────────────────────────────────────
 const DIE_SIZE = 44;  // min tap target (used for touch target sizing)
-const DIE_TILE_SIZE = 40; // visual tile size in horizontal mode (h-10 w-10)
+const DIE_TILE_SIZE = 36; // visual tile size in horizontal mode (h-9 w-9)
 const DIE_GAP = 4;
 const MIN_DICE_COLS = 3;
-// Column width = exactly 3 visual dice + 2 gaps = 128px.
-const CHAR_COL_WIDTH = MIN_DICE_COLS * DIE_TILE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP; // 128px
+// Column width = exactly 3 visual dice + 2 gaps = 116px.
+const CHAR_COL_WIDTH = MIN_DICE_COLS * DIE_TILE_SIZE + (MIN_DICE_COLS - 1) * DIE_GAP; // 116px
 
 // ─── Shared battlefield row renderer ────────────────────────────────────────
 
@@ -1588,9 +1588,6 @@ function BattlefieldRow({
         const hp = char.health - char.damage;
         return (
           <div key={cid} className="flex shrink-0 flex-col gap-4" style={{ width: CHAR_COL_WIDTH }}>
-            {side === 'opponent' && (
-              <CharStatsRow hp={hp} shields={char.shields} />
-            )}
             {side === 'player' && (
               <DiceStack
                 dice={dice}
@@ -1605,6 +1602,8 @@ function BattlefieldRow({
               catalogById={catalogById}
               className="w-full"
               tipDirection="right"
+              hp={hp}
+              shields={char.shields}
               onTap={() => onDetailTap(cid)}
               onUpgradeTap={onUpgradeTap}
             />
@@ -1615,9 +1614,6 @@ function BattlefieldRow({
                 selectionMode={selectionMode}
                 horizontal
               />
-            )}
-            {side === 'player' && (
-              <CharStatsRow hp={hp} shields={char.shields} />
             )}
           </div>
         );
@@ -1895,13 +1891,15 @@ function ActionBar({
   );
 }
 
-/** Square character card tile. Exhausted = slight inward tilt, not a full rotation. */
+/** Square character card tile. Exhausted = slight clockwise tilt. Stats overlay on left side. */
 function CharacterCard({
   char,
   game,
   catalogById,
   className = '',
   tipDirection = 'right',
+  hp,
+  shields,
   onTap,
   onUpgradeTap,
 }: {
@@ -1909,19 +1907,19 @@ function CharacterCard({
   game: GameState;
   catalogById: Map<string, Card>;
   className?: string;
-  /** Tilt direction when exhausted. 'right' tilts CW (top toward dice on right), 'left' tilts CCW. */
   tipDirection?: 'right' | 'left';
+  hp?: number;
+  shields?: number;
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
   const catalogId = game.cardCatalogIds[char.id];
   const card = catalogId ? catalogById.get(catalogId) : undefined;
-
-  // 6° tilt toward the dice pool — clear exhaustion indicator without layout disruption.
   const exhaustedTransform = tipDirection === 'right' ? 'rotate(6deg)' : 'rotate(-6deg)';
+  const resolvedHp = hp ?? (char.health - char.damage);
+  const resolvedShields = shields ?? char.shields;
 
   return (
-    // Square aspect ratio. overflow-visible so the 6° tilt corner isn't clipped.
     <div className={`relative overflow-visible ${className}`} style={{ aspectRatio: '1' }}>
       <button
         type="button"
@@ -1933,12 +1931,23 @@ function CharacterCard({
           transform: char.exhausted ? exhaustedTransform : 'none',
           transformOrigin: 'center center',
         }}
-        aria-label={`${card?.name ?? 'Character'} — ${char.health - char.damage} HP${char.exhausted ? ' (exhausted)' : ''}`}
+        aria-label={`${card?.name ?? 'Character'} — ${resolvedHp} HP${char.exhausted ? ' (exhausted)' : ''}`}
       >
         <CardArtBg artUrl={card?.artUrl} type={card?.type ?? 'character'} frameX={card?.artFrameX} frameY={card?.artFrameY} frameZoom={card?.artFrameZoom} />
-        {/* name scrim — only useful when card is upright */}
+        {/* name scrim */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-5">
           <span className="line-clamp-2 text-center text-[8px] leading-tight text-white">{card?.name ?? '—'}</span>
+        </div>
+        {/* HP + shield overlay — left side, stacked vertically */}
+        <div className="absolute left-1 top-1 flex flex-col gap-0.5">
+          {resolvedShields > 0 && (
+            <div className="flex items-center gap-0.5 rounded bg-blue-900/80 px-1 py-0.5 text-[9px] font-bold leading-none text-blue-200 backdrop-blur-sm">
+              <ShieldIcon />{resolvedShields}
+            </div>
+          )}
+          <div className="flex items-center gap-0.5 rounded bg-black/60 px-1 py-0.5 text-[9px] font-bold leading-none text-red-300 backdrop-blur-sm">
+            <HeartIcon />{resolvedHp}
+          </div>
         </div>
       </button>
 
@@ -2025,9 +2034,9 @@ function DiceStack({
   };
 
   // Horizontal mode: smaller tiles so multiple dice fit side-by-side over the card.
-  const tileSize = horizontal ? 'h-10 w-10' : 'h-12 w-12';
-  const tileText = horizontal ? 'text-[9px]' : 'text-[10px]';
-  const valueText = horizontal ? 'text-sm' : 'text-base';
+  const tileSize = horizontal ? 'h-9 w-9' : 'h-12 w-12';
+  const tileText = horizontal ? 'text-[8px]' : 'text-[10px]';
+  const valueText = horizontal ? 'text-xs' : 'text-base';
 
   return (
     <div className={`flex gap-1 ${horizontal ? 'w-full flex-row flex-wrap justify-center' : 'flex-col'}`}>
