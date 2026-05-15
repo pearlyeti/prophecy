@@ -54,7 +54,6 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
       cardId: 'FC',
       faceIndex: 0,
       face: focuserFace,
-      ownerInstanceId: undefined,
     };
     const targetDie: DieInPool = {
       instanceId: dieSpec.instanceId,

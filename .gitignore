@@ -24,4 +24,6 @@ test-results
 prometheus.json
 testing-cards.json
 *.local.json
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
