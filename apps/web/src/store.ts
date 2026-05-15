@@ -24,7 +24,15 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'di
  */
 export type ActiveFlow =
   | { readonly kind: 'activate'; readonly charId: string }
-  | { readonly kind: 'claim' };
+  | { readonly kind: 'claim' }
+  | {
+      readonly kind: 'resolve';
+      /** Locked die symbol — all selected dice must match this. */
+      readonly symbol: string;
+      readonly selectedDieIds: readonly string[];
+      /** Target character for melee/ranged damage or shields. null = not yet chosen. */
+      readonly targetCharacterId: string | null;
+    };
 
 export type SelectionMode =
   | { readonly kind: 'resolve'; readonly selectedDieIds: readonly string[] }

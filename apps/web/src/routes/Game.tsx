@@ -1644,17 +1644,31 @@ function BattlefieldRow({
         const dice = diceByOwner.get(cid) ?? [];
         const hp = char.health - char.damage;
 
+        // Activation flow
         const eligible = activatableIds.includes(cid) && activeFlow === null;
         const isActivating = activeFlow?.kind === 'activate' && activeFlow.charId === cid;
 
+        // Resolve flow targeting
+        const inResolveFlow = activeFlow?.kind === 'resolve';
+        const resolveSym = inResolveFlow ? activeFlow!.symbol : null;
+        const isDmg = resolveSym === 'melee' || resolveSym === 'ranged' || resolveSym === 'indirect';
+        const isShield = resolveSym === 'shield';
+        const hasSelections = inResolveFlow && (activeFlow as any).selectedDieIds.length > 0;
+        const isCurrentTarget = inResolveFlow && (activeFlow as any).targetCharacterId === cid;
+        let targetRing: 'damage' | 'shield' | undefined;
+        if (hasSelections) {
+          if (isDmg && side === 'opponent') targetRing = 'damage';
+          if (isShield && side === 'player') targetRing = 'shield';
+        }
+
         const handleTap = () => {
-          if (isActivating) {
-            setActiveFlow(null);
-          } else if (eligible) {
-            setActiveFlow({ kind: 'activate', charId: cid });
-          } else {
-            onDetailTap(cid);
+          if (targetRing && activeFlow?.kind === 'resolve') {
+            setActiveFlow({ ...activeFlow, targetCharacterId: isCurrentTarget ? null : cid });
+            return;
           }
+          if (isActivating) { setActiveFlow(null); return; }
+          if (eligible) { setActiveFlow({ kind: 'activate', charId: cid }); return; }
+          onDetailTap(cid);
         };
 
         return (
@@ -1678,6 +1692,7 @@ function BattlefieldRow({
               shields={char.shields}
               eligible={eligible}
               pendingExhaust={isActivating}
+              targetRing={targetRing}
               onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
             />
@@ -1952,6 +1967,22 @@ function ActionBar({
     if (!activeFlow) return 'Pass';
     if (activeFlow.kind === 'activate') return 'Roll Dice';
     if (activeFlow.kind === 'claim') return 'Claim';
+    if (activeFlow.kind === 'resolve') {
+      const sym = activeFlow.symbol;
+      const total = activeFlow.selectedDieIds.reduce((sum, id) => {
+        // value is computed from game state — use 0 as fallback; actual values shown by dice tiles
+        return sum;
+      }, 0);
+      void total;
+      if (sym === 'melee' || sym === 'ranged') return 'Deal damage';
+      if (sym === 'indirect') return 'Deal indirect damage';
+      if (sym === 'shield') return 'Gain shields';
+      if (sym === 'resource') return 'Gain resources';
+      if (sym === 'disrupt') return 'Disrupt';
+      if (sym === 'discard') return 'Discard cards';
+      if (sym === 'focus') return 'Focus dice';
+      return 'Resolve';
+    }
     return 'Commit';
   })();
 
@@ -1967,6 +1998,18 @@ function ActionBar({
     }
     if (activeFlow.kind === 'claim') {
       send({ type: 'claim-battlefield', playerId });
+      setActiveFlow(null);
+      return;
+    }
+    if (activeFlow.kind === 'resolve') {
+      const needsTarget = activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield';
+      if (needsTarget && !activeFlow.targetCharacterId) return; // commit disabled until target chosen
+      send({
+        type: 'resolve-dice',
+        playerId,
+        dieInstanceIds: activeFlow.selectedDieIds,
+        ...(activeFlow.targetCharacterId ? { targetCharacterId: activeFlow.targetCharacterId } : {}),
+      });
       setActiveFlow(null);
       return;
     }
@@ -1998,7 +2041,12 @@ function ActionBar({
           <button
             type="button"
             onClick={handleCommit}
-            className={`min-h-[44px] rounded-xl border px-6 py-2 text-sm font-medium transition-colors ${
+            disabled={
+              activeFlow?.kind === 'resolve' &&
+              (activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield') &&
+              !activeFlow.targetCharacterId
+            }
+            className={`min-h-[44px] rounded-xl border px-6 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               activeFlow
                 ? 'border-emerald-700 bg-emerald-900 text-emerald-50 hover:bg-emerald-800'
                 : 'border-neutral-700 bg-neutral-900 text-neutral-100 hover:border-neutral-500'
@@ -2033,6 +2081,8 @@ function CharacterCard({
   hp,
   shields,
   eligible = false,
+  pendingExhaust = false,
+  targetRing,
   onTap,
   onUpgradeTap,
 }: {
@@ -2043,10 +2093,10 @@ function CharacterCard({
   tipDirection?: 'right' | 'left';
   hp?: number;
   shields?: number;
-  /** Green ring — this card can be activated this turn. */
   eligible?: boolean;
-  /** Client-side tilt preview while activation is pending (before server confirms). */
   pendingExhaust?: boolean;
+  /** 'damage' = red ring (opponent damage target), 'shield' = blue ring (shield target). */
+  targetRing?: 'damage' | 'shield';
   onTap: () => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2063,13 +2113,17 @@ function CharacterCard({
         type="button"
         onClick={onTap}
         className={`absolute inset-0 overflow-hidden rounded-xl border text-left transition-transform ${
-          eligible
-            ? 'border-emerald-500 ring-2 ring-emerald-500/60'
-            : char.exhausted
-              ? 'border-neutral-600 opacity-70'
-              : pendingExhaust
-                ? 'border-emerald-600'
-                : 'border-neutral-700'
+          targetRing === 'damage'
+            ? 'border-red-500 ring-2 ring-red-500/60'
+            : targetRing === 'shield'
+              ? 'border-blue-500 ring-2 ring-blue-500/60'
+              : eligible
+                ? 'border-emerald-500 ring-2 ring-emerald-500/60'
+                : char.exhausted
+                  ? 'border-neutral-600 opacity-70'
+                  : pendingExhaust
+                    ? 'border-emerald-600'
+                    : 'border-neutral-700'
         }`}
         style={{
           transform: showTilt ? exhaustedTransform : 'none',
@@ -2152,35 +2206,44 @@ function DiceStack({
   diceInteractive: boolean;
   selectionMode: SelectionMode | null;
   horizontal?: boolean;
-  /** Symbols currently resolvable — dice showing these get a green ring when idle. */
   eligibleSymbols?: readonly string[];
 }) {
+  const activeFlow = useApp((s) => s.activeFlow);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
+  // Reroll path still uses selectionMode
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
-  const enterResolveMode = useApp((s) => s.enterResolveMode);
 
-  const selectedIds = selectionMode?.selectedDieIds ?? null;
-  const lockedSymbol: DieSymbol | null = (() => {
-    if (selectionMode?.kind !== 'resolve' || !selectedIds?.length) return null;
-    const first = dice.find((d) => selectedIds.includes(d.instanceId));
-    return first?.face.symbol ?? null;
-  })();
+  const inRerollMode = selectionMode?.kind === 'reroll';
+  const inResolveFlow = activeFlow?.kind === 'resolve';
 
   const handleTap = (d: DieInPool) => {
-    if (!diceInteractive && selectionMode === null) return;
-    if (selectionMode === null) {
-      // Enter resolve mode and immediately select this die.
-      enterResolveMode();
-      useApp.setState((s) => ({
-        selectionMode: s.selectionMode
-          ? { ...s.selectionMode, selectedDieIds: [...s.selectionMode.selectedDieIds, d.instanceId] }
-          : { kind: 'resolve' as const, selectedDieIds: [d.instanceId] },
-      }));
-    } else {
-      toggleSelectedDie(d.instanceId);
+    // ── Reroll path (WEB-17) ──────────────────────────────────────────────
+    if (inRerollMode) { toggleSelectedDie(d.instanceId); return; }
+
+    // ── Resolve path ──────────────────────────────────────────────────────
+    if (inResolveFlow) {
+      const flow = activeFlow!; // narrowed
+      if (flow.kind !== 'resolve') return;
+      const isSelected = flow.selectedDieIds.includes(d.instanceId);
+      if (isSelected) {
+        const next = flow.selectedDieIds.filter((id) => id !== d.instanceId);
+        setActiveFlow(next.length === 0 ? null : { ...flow, selectedDieIds: next });
+      } else {
+        // Only add if eligible: same symbol (non-modifier), or modifier of same symbol
+        if (canSelectDie(d, flow.symbol as DieSymbol)) {
+          setActiveFlow({ ...flow, selectedDieIds: [...flow.selectedDieIds, d.instanceId] });
+        }
+      }
+      return;
+    }
+
+    // ── Idle: start a resolve flow ─────────────────────────────────────────
+    if (diceInteractive && activeFlow === null && !d.face.modifier) {
+      if (!eligibleSymbols?.includes(d.face.symbol)) return;
+      setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], targetCharacterId: null });
     }
   };
 
-  // Horizontal mode: smaller tiles so multiple dice fit side-by-side over the card.
   const tileSize = horizontal ? 'h-10 w-10' : 'h-12 w-12';
   const tileText = horizontal ? 'text-[8px]' : 'text-[10px]';
   const valueText = horizontal ? 'text-xs' : 'text-base';
@@ -2188,26 +2251,35 @@ function DiceStack({
   return (
     <div className={`flex gap-1 ${horizontal ? 'w-full flex-row flex-wrap justify-center' : 'flex-col'}`}>
       {dice.map((d) => {
-        const selected = !!selectedIds?.includes(d.instanceId);
-        const inSelectionMode = selectionMode !== null;
-        const canInteract =
-          inSelectionMode &&
-          (selected ||
-            (selectionMode?.kind === 'reroll'
-              ? canRerollDie(d)
-              : canSelectDie(d, lockedSymbol)));
-        const interactive = diceInteractive || inSelectionMode;
+        // ── Appearance ───────────────────────────────────────────────────
+        let tileClass = 'border-neutral-700 bg-neutral-900 text-neutral-300';
+        let disabled = false;
+
+        if (inResolveFlow && activeFlow?.kind === 'resolve') {
+          const flow = activeFlow;
+          const isSelected = flow.selectedDieIds.includes(d.instanceId);
+          const canAdd = !isSelected && canSelectDie(d, flow.symbol as DieSymbol);
+          if (isSelected) {
+            tileClass = 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500';
+          } else if (canAdd) {
+            tileClass = 'border-emerald-500 bg-neutral-900 text-neutral-300 ring-1 ring-emerald-500/50';
+          } else {
+            tileClass = 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50';
+            disabled = true;
+          }
+        } else if (inRerollMode) {
+          const isSelected = selectionMode!.selectedDieIds.includes(d.instanceId);
+          const canPick = isSelected || canRerollDie(d);
+          if (isSelected) tileClass = 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500';
+          else if (!canPick) { tileClass = 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50'; disabled = true; }
+        } else if (eligibleSymbols?.includes(d.face.symbol)) {
+          tileClass = 'border-emerald-500 bg-neutral-900 text-neutral-300 ring-1 ring-emerald-500/50';
+        }
+
+        const interactive = diceInteractive || inRerollMode || inResolveFlow;
         const tile = (
           <div
-            className={`flex ${tileSize} flex-col items-center justify-center rounded border ${tileText} uppercase ${
-              selected
-                ? 'border-emerald-500 bg-emerald-950 text-emerald-100 ring-2 ring-emerald-500'
-                : interactive && inSelectionMode && !canInteract
-                  ? 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50'
-                  : eligibleSymbols?.includes(d.face.symbol) && !inSelectionMode
-                    ? 'border-emerald-500 bg-neutral-900 text-neutral-300 ring-1 ring-emerald-500/50'
-                    : 'border-neutral-700 bg-neutral-900 text-neutral-300'
-            }`}
+            className={`flex ${tileSize} flex-col items-center justify-center rounded border ${tileText} uppercase ${tileClass}`}
             title={`${d.face.symbol} ${d.face.value}${d.face.modifier ? ' +mod' : ''}`}
           >
             <span className={`font-mono ${valueText} text-neutral-100`}>
@@ -2218,12 +2290,11 @@ function DiceStack({
         );
 
         if (!interactive) return <div key={d.instanceId}>{tile}</div>;
-
         return (
           <button
             key={d.instanceId}
             type="button"
-            disabled={inSelectionMode && !canInteract && !selected}
+            disabled={disabled}
             onClick={() => handleTap(d)}
             className={`${horizontal ? 'min-h-[44px]' : 'min-h-[44px] min-w-[44px]'} rounded disabled:cursor-not-allowed`}
           >
