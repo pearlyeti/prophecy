@@ -1,4 +1,5 @@
 import { applyEffects } from '../abilities/dispatch.js';
+import type { CatalogDieEntry } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, commitTriggers } from '../queue/scan.js';
@@ -27,6 +28,7 @@ export function applyPlayCard(
   playerId: string,
   cardId: string,
   characterTargets: readonly string[] = [],
+  catalog?: readonly CatalogDieEntry[],
 ): ApplyResult {
   guardCanAct(state, playerId);
 
@@ -74,7 +76,12 @@ export function applyPlayCard(
   };
 
   // Run immediate abilities in order.
-  const ctx = { playerId, characterTargets };
+  const ctx = {
+    playerId,
+    characterTargets,
+    sourceCharacterId: cardId,
+    ...(catalog !== undefined ? { catalog } : {}),
+  };
   for (const ability of immediateAbilities) {
     if (ability.kind !== 'immediate') continue;
     const result = applyEffects(working, ctx, ability.effects);

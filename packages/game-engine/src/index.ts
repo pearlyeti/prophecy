@@ -24,6 +24,8 @@ export type {
   GainResourcesEffect,
   LoseResourcesEffect,
   HealDamageEffect,
+  RollEventDieEffect,
+  RollCardDieEffect,
   TargetSpec,
   PlayCondition,
   TriggerEvent,

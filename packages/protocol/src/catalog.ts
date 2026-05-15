@@ -14,6 +14,8 @@ import type {
   CardDisposition,
   Effect,
   PlayCondition,
+  RollCardDieEffect,
+  RollEventDieEffect,
   TargetSpec,
   TriggerEvent,
   ValueRef,
@@ -181,6 +183,18 @@ const healDamageEffect = z.object({
   optional: z.boolean().default(false),
 });
 
+// ENGINE-6b: event-owned and cross-card die roll ops.
+const rollEventDieEffect = z.object({
+  op: z.literal('rollEventDie'),
+  optional: z.boolean().default(false),
+});
+
+const rollCardDieEffect = z.object({
+  op: z.literal('rollCardDie'),
+  cardId: z.string().min(1),
+  optional: z.boolean().default(false),
+});
+
 // Stub helper: op name + optional flag + any additional fields.
 function stub(op: string) {
   return z.object({ op: z.literal(op), optional: z.boolean().default(false) }).passthrough();
@@ -202,14 +216,16 @@ export const effectSchema: z.ZodType<Effect> = z.discriminatedUnion('op', [
   gainResourcesEffect,
   loseResourcesEffect,
   healDamageEffect,
-  // Stub ops (ENGINE-6b and beyond)
+  // ENGINE-6b: die roll ops
+  rollEventDieEffect,
+  rollCardDieEffect,
+  // Stub ops
   stub('removeDie'),
   stub('rerollDice'),
   stub('turnDie'),
   stub('resolveDie'),
   stub('resolveWithoutRemoving'),
   stub('rollDie'),
-  stub('rollCardDie'),
   stub('activateCharacter'),
   stub('exhaustCard'),
   stub('readyCard'),
@@ -246,6 +262,8 @@ export const KNOWN_OPS = [
   'addShields',
   'removeShields',
   'healDamage',
+  'rollEventDie',
+  'rollCardDie',
 ] as const;
 export type KnownOp = (typeof KNOWN_OPS)[number];
 

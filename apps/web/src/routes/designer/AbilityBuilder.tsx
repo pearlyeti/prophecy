@@ -33,7 +33,7 @@ type AbilityKind = (typeof ABILITY_KINDS)[number];
 
 const STUB_OPS = [
   'removeDie', 'rerollDice', 'turnDie', 'resolveDie', 'resolveWithoutRemoving',
-  'rollDie', 'rollCardDie', 'activateCharacter', 'exhaustCard', 'readyCard',
+  'rollDie', 'activateCharacter', 'exhaustCard', 'readyCard',
   'moveDamage', 'moveShields', 'discardCards', 'discardFromDeck', 'lookAtCards',
   'revealTopCard', 'searchDeck', 'playCard', 'returnToHand', 'takeBattlefieldControl',
   'claimBattlefield', 'endActionPhase', 'takeAdditionalActions', 'forceActivate',
@@ -92,6 +92,8 @@ function defaultEffect(op: OpKind): Effect {
     case 'addShields': return { op: 'addShields', amount: 1, target: { kind: 'ownCharacter' } };
     case 'removeShields': return { op: 'removeShields', amount: 1, target: { kind: 'anyCharacter' } };
     case 'healDamage': return { op: 'healDamage', amount: 1, target: { kind: 'ownCharacter' } };
+    case 'rollEventDie': return { op: 'rollEventDie' };
+    case 'rollCardDie': return { op: 'rollCardDie', cardId: '' };
     case 'new': return { op: 'new', workingName: '', notes: '' };
     default: return { op, optional: false } as Effect;
   }
@@ -719,6 +721,20 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
             onChange={(t) => onChange({ ...effect, target: t })}
           />
         </div>
+      );
+    case 'rollEventDie':
+      return (
+        <p className="text-[11px] text-neutral-400">
+          Rolls this event card's own die (from its <code>dieFaces</code>) and adds it to the active player's pool as a transient die.
+        </p>
+      );
+    case 'rollCardDie':
+      return (
+        <TextField
+          label="Card ID (catalog ID whose die to roll, e.g. CHAR_003)"
+          value={(effect as { op: 'rollCardDie'; cardId: string }).cardId}
+          onChange={(v) => onChange({ ...effect, cardId: v } as Effect)}
+        />
       );
     case 'new':
       return (

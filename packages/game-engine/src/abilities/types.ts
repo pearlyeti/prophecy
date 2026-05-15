@@ -123,6 +123,20 @@ export type HealDamageEffect = {
   optional?: boolean;
 };
 
+// ENGINE-6b: event-owned and cross-card die roll ops.
+
+export type RollEventDieEffect = {
+  op: 'rollEventDie';
+  optional?: boolean;
+};
+
+export type RollCardDieEffect = {
+  op: 'rollCardDie';
+  /** Catalog card ID whose die faces to roll. */
+  cardId: string;
+  optional?: boolean;
+};
+
 // Stub ops: schema-defined, dispatcher throws NotImplementedError.
 // Index signature lets card authors add fields before the op ships.
 type StubEffect<Op extends string> = { op: Op; optional?: boolean; [k: string]: unknown };
@@ -135,14 +149,14 @@ export type Effect =
   | GainResourcesEffect
   | LoseResourcesEffect
   | HealDamageEffect
+  | RollEventDieEffect
+  | RollCardDieEffect
   | StubEffect<'removeDie'>
   | StubEffect<'rerollDice'>
   | StubEffect<'turnDie'>
   | StubEffect<'resolveDie'>
   | StubEffect<'resolveWithoutRemoving'>
   | StubEffect<'rollDie'>
-  | StubEffect<'rollEventDie'>
-  | StubEffect<'rollCardDie'>
   | StubEffect<'activateCharacter'>
   | StubEffect<'exhaustCard'>
   | StubEffect<'readyCard'>

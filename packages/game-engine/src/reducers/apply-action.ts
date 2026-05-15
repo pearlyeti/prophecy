@@ -9,15 +9,23 @@ import { applyResolveDice } from '../actions/resolve-dice.js';
 import { applyUseCardAction } from '../actions/use-card-action.js';
 import { applyChooseFirstPlayer, applyPlaceShield } from '../actions/setup.js';
 import { IllegalActionError } from '../actions/illegal.js';
+import type { CatalogDieEntry } from '../abilities/dispatch.js';
 import type { Action } from '../actions/types.js';
 import type { EngineEvent } from '../events.js';
 import type { GameState } from '../state/types.js';
 
 export type { EngineEvent } from '../events.js';
+export type { CatalogDieEntry } from '../abilities/dispatch.js';
 
 export interface ApplyResult {
   readonly state: GameState;
   readonly events: readonly EngineEvent[];
+}
+
+/** Optional context threaded into certain action handlers (e.g. catalog for die-roll ops). */
+export interface ApplyOptions {
+  /** Minimal catalog entries required for rollEventDie / rollCardDie ops. */
+  readonly catalog?: readonly CatalogDieEntry[];
 }
 
 /**
@@ -25,7 +33,7 @@ export interface ApplyResult {
  * function that does its own validation and throws `IllegalActionError` on
  * illegal input. The dispatcher itself stays trivial.
  */
-export function applyAction(state: GameState, action: Action): ApplyResult {
+export function applyAction(state: GameState, action: Action, options?: ApplyOptions): ApplyResult {
   switch (action.type) {
     case 'setup.choose-first-player':
       return applyChooseFirstPlayer(state, action.playerId, action.firstPlayerId);
@@ -50,7 +58,7 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
       return applyResolveDice(state, action.playerId, targets, action.focusFlips);
     }
     case 'play-card':
-      return applyPlayCard(state, action.playerId, action.cardId, action.characterTargets);
+      return applyPlayCard(state, action.playerId, action.cardId, action.characterTargets, options?.catalog);
     case 'reroll-dice':
       return applyRerollDice(
         state,
