@@ -20,7 +20,7 @@ Dependencies between cards are noted under **Depends on**. If a card lists one, 
 Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N` (apps/game-server), `API-N` (apps/api + packages/db), `ADMIN-N` (admin tooling spanning game-server + web), `OPS-N` (infra, CI, deploy).
 
 ### In progress
-- **WEB-17** — Focus flow + claim battlefield + discard-to-reroll (2026-05-14)
+- _(none — claim a card from Up next.)_
 
 ### Up next — task cards
 
@@ -640,6 +640,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-14 — WEB-17 — Discard-to-reroll + claim (already in WEB-15).** Reroll flow: pick-card (amber hand), pick-dice (amber tiles), Undo walks back steps. Focus deferred pending engine support. (`3f8f48c`)
 - **2026-05-14 — WEB-16 — Dice resolution flows.** Tap-to-resolve with symbol locking; red/blue targeting rings on chars; resolve-dice dispatch with target; Commit disabled until target chosen for damage/shields. (`8cdb871`)
 - **2026-05-14 — WEB-15 — Activation flow.** Roll Dice dispatches activate action; claim-battlefield wired; pendingExhaust tilt on card while flow is active. (`c15773c`)
 - **2026-05-14 — WEB-14 — Green highlight system + turn state machine.** ActiveFlow in store; green rings on activatable chars, resolvable dice, claimable battlefield; Undo button; Commit label changes by flow; clears on turn rotation. (`5b5d0e0`)
