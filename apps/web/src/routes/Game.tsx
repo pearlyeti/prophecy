@@ -1867,6 +1867,9 @@ function InlineHandStrip({
   const hand = me?.hand ?? [];
   const legal = isMyTurn ? getLegalActions(game, playerId) : null;
   const pickingCardForReroll = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-card';
+  const pickingDiceForReroll = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice';
+  const rerollDiscardId = activeFlow?.kind === 'reroll' ? activeFlow.discardCardId : null;
+  const inRerollMode = pickingCardForReroll || pickingDiceForReroll;
 
   const handleTap = (id: string) => {
     if (pickingCardForReroll) {
@@ -1879,9 +1882,12 @@ function InlineHandStrip({
   };
 
   return (
-    <div className={`shrink-0 border-t bg-neutral-950 ${pickingCardForReroll ? 'border-amber-700' : 'border-neutral-800'}`}>
+    <div className={`shrink-0 border-t bg-neutral-950 ${inRerollMode ? 'border-amber-700' : 'border-neutral-800'}`}>
       {pickingCardForReroll && (
         <div className="px-3 pt-1.5 text-[10px] font-medium text-amber-400">Choose a card to discard:</div>
+      )}
+      {pickingDiceForReroll && (
+        <div className="px-3 pt-1.5 text-[10px] font-medium text-amber-400">Select dice to reroll:</div>
       )}
       {hand.length === 0 ? (
         <div className="px-3 py-2 text-[11px] text-neutral-600">Hand empty</div>
@@ -1890,7 +1896,8 @@ function InlineHandStrip({
           {hand.map((id) => {
             const cost = game.cardCosts[id] ?? 0;
             const affordable = (me?.resources ?? 0) >= cost;
-            const eligible = !pickingCardForReroll && isMyTurn && affordable && (legal?.canPlayCard ?? false);
+            const eligible = !inRerollMode && isMyTurn && affordable && (legal?.canPlayCard ?? false);
+            const isSelectedForDiscard = id === rerollDiscardId;
             const catalogId = game.cardCatalogIds[id];
             const card = catalogId ? catalogById.get(catalogId) : undefined;
             const isExpanded = expandedId === id;
@@ -1905,7 +1912,15 @@ function InlineHandStrip({
                 onClick={() => handleTap(id)}
                 {...(dragHandlers ?? {})}
                 className={`shrink-0 flex flex-col overflow-hidden rounded-lg border bg-neutral-900 text-left transition-all duration-150 ${
-                  pickingCardForReroll ? 'border-amber-600' : eligible ? 'border-emerald-600' : 'border-neutral-700'
+                  pickingCardForReroll
+                    ? 'border-amber-600'
+                    : pickingDiceForReroll && isSelectedForDiscard
+                      ? 'border-amber-500 ring-1 ring-amber-500/50'
+                      : pickingDiceForReroll
+                        ? 'border-neutral-800 opacity-30'
+                        : eligible
+                          ? 'border-emerald-600'
+                          : 'border-neutral-700'
                 }`}
                 style={{ width: isExpanded ? 180 : 80, minHeight: 44 }}
                 aria-pressed={isExpanded}
@@ -1981,7 +1996,8 @@ function ActionBar({
     if (activeFlow.kind === 'claim') return 'Claim';
     if (activeFlow.kind === 'reroll') {
       if (activeFlow.step === 'pick-card') return 'Cancel';
-      return activeFlow.selectedDieIds.length > 0 ? 'Reroll' : 'Skip reroll';
+      const n = activeFlow.selectedDieIds.length;
+      return n > 0 ? `Reroll ${n} ${n === 1 ? 'die' : 'dice'}` : 'Skip reroll';
     }
     if (activeFlow.kind === 'resolve') {
       const sym = activeFlow.symbol;
