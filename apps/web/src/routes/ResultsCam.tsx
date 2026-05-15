@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import type { CardDie, DieFace } from '@prophecy/game-engine';
 import { useApp } from '../store.js';
 import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture, symLabel } from '../lib/dieFaceTexture.js';
+import { FACE_CORRECT_Q } from './DicePool3D.js';
 
 // ── Physics (all damping per-second, frame-rate independent) ──────────────────
 const GRAVITY         = -24;
@@ -59,17 +60,8 @@ function getFloorBounds(camera: THREE.Camera): Bounds {
   };
 }
 
-// ── Face up rotations ─────────────────────────────────────────────────────────
-// Euler that puts BoxGeometry material face k onto +Y (visible from above).
-// Material order: +X=0, -X=1, +Y=2, -Y=3, +Z=4, -Z=5
-const FACE_UP_EULER: [number, number, number][] = [
-  [ 0,           0, -Math.PI / 2],
-  [ 0,           0,  Math.PI / 2],
-  [ 0,           0,  0          ],
-  [ Math.PI,     0,  0          ],
-  [-Math.PI / 2, 0,  0          ],
-  [ Math.PI / 2, 0,  0          ],
-];
+// FACE_CORRECT_Q imported from DicePool3D — puts face k on top AND orients
+// the UV so text reads correctly from an overhead camera.
 
 // ── Single die ────────────────────────────────────────────────────────────────
 function RollingDie({
@@ -104,8 +96,7 @@ function RollingDie({
   // Compute target quaternion when the rolled face is known.
   useEffect(() => {
     if (rolledFaceIndex == null) return;
-    const euler = FACE_UP_EULER[rolledFaceIndex] ?? FACE_UP_EULER[2]!;
-    targetQ.current.setFromEuler(new THREE.Euler(...euler));
+    targetQ.current.copy(FACE_CORRECT_Q[rolledFaceIndex] ?? FACE_CORRECT_Q[2]!);
     targetSet.current = true;
     if (!physActive.current && !doneRef.current) settling.current = true;
   }, [rolledFaceIndex]);

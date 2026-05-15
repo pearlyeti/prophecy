@@ -28,16 +28,30 @@ const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch mor
 const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
 const CAM_FOV = 40;
 
-// Euler rotation that puts BoxGeometry material face k on top (+Y world-space).
-// Material order: +X=0, -X=1, +Y=2, -Y=3, +Z=4, -Z=5
-// Prophecy face index k → material slot k.
-const FACE_UP_EULER: [number, number, number][] = [
-  [ 0,           0, -Math.PI / 2],
-  [ 0,           0,  Math.PI / 2],
-  [ 0,           0,  0          ],
-  [ Math.PI,     0,  0          ],
-  [-Math.PI / 2, 0,  0          ],
-  [ Math.PI / 2, 0,  0          ],
+// Quaternions that put BoxGeometry material face k on top AND orient the
+// face texture so the value text reads correctly from the overhead camera.
+//
+// Two-step per face:
+//   1. Bring the face normal to +Y  (so the die is "face up")
+//   2. Rotate around Y until the UV V+ axis points toward -Z
+//      (the direction that reads upright to a camera at [0, 2.5, 0.9])
+//
+// Material order: +X=0  -X=1  +Y=2  -Y=3  +Z=4  -Z=5
+// Prophecy face index k → material slot k (one-to-one).
+const _AX = new THREE.Vector3(1, 0, 0);
+const _AY = new THREE.Vector3(0, 1, 0);
+const _AZ = new THREE.Vector3(0, 0, 1);
+const _q  = (axis: THREE.Vector3, angle: number) => new THREE.Quaternion().setFromAxisAngle(axis, angle);
+// compose(a, b) = apply b first, then a
+const _c  = (a: THREE.Quaternion, b: THREE.Quaternion) => a.clone().multiply(b);
+
+export const FACE_CORRECT_Q: readonly THREE.Quaternion[] = [
+  _c(_q(_AY, -Math.PI / 2), _q(_AZ,  Math.PI / 2)), // 0: +X→top, V+ was +Y → becomes -X → Ry(-π/2) → -Z ✓
+  _c(_q(_AY,  Math.PI / 2), _q(_AZ, -Math.PI / 2)), // 1: -X→top, V+ was +Y → becomes +X → Ry(+π/2) → -Z ✓
+  new THREE.Quaternion(),                             // 2: +Y identity, V+ already -Z ✓
+  _q(_AX, Math.PI),                                  // 3: -Y→top, V+ was +Z → Rx(π) → -Z ✓
+  _q(_AX, -Math.PI / 2),                             // 4: +Z→top, V+ was +Y → Rx(-π/2) → -Z ✓
+  _c(_q(_AY,  Math.PI),     _q(_AX,  Math.PI / 2)), // 5: -Z→top, V+ was +Y → Rx(π/2) → +Z → Ry(π) → -Z ✓
 ];
 
 // Default display tilt: slight Y rotation so the left face is visible.
@@ -88,8 +102,7 @@ function Die3D({
   // When a new face is chosen, set the target quaternion and kick off slerp.
   useEffect(() => {
     if (overrideFaceIndex == null || isTumbling) return;
-    const euler = FACE_UP_EULER[overrideFaceIndex] ?? FACE_UP_EULER[2]!;
-    targetQ.current.setFromEuler(new THREE.Euler(...euler));
+    targetQ.current.copy(FACE_CORRECT_Q[overrideFaceIndex] ?? FACE_CORRECT_Q[2]!);
     animRef.current = true;
   }, [overrideFaceIndex, isTumbling]);
 
