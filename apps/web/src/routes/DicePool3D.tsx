@@ -45,13 +45,18 @@ const _q  = (axis: THREE.Vector3, angle: number) => new THREE.Quaternion().setFr
 // compose(a, b) = apply b first, then a
 const _c  = (a: THREE.Quaternion, b: THREE.Quaternion) => a.clone().multiply(b);
 
+// Empirical UV correction: RoundedBoxGeometry UV axes are rotated ~90° from
+// standard BoxGeometry, so all face-up quaternions need a Ry(-π/2) post-step
+// to orient the text upright from the overhead camera.
+const _O = _q(_AY, -Math.PI / 2); // orientation correction
+
 export const FACE_CORRECT_Q: readonly THREE.Quaternion[] = [
-  _c(_q(_AY, -Math.PI / 2), _q(_AZ,  Math.PI / 2)), // 0: +X→top, V+ was +Y → becomes -X → Ry(-π/2) → -Z ✓
-  _c(_q(_AY,  Math.PI / 2), _q(_AZ, -Math.PI / 2)), // 1: -X→top, V+ was +Y → becomes +X → Ry(+π/2) → -Z ✓
-  new THREE.Quaternion(),                             // 2: +Y identity, V+ already -Z ✓
-  _q(_AX, Math.PI),                                  // 3: -Y→top, V+ was +Z → Rx(π) → -Z ✓
-  _q(_AX, -Math.PI / 2),                             // 4: +Z→top, V+ was +Y → Rx(-π/2) → -Z ✓
-  _c(_q(_AY,  Math.PI),     _q(_AX,  Math.PI / 2)), // 5: -Z→top, V+ was +Y → Rx(π/2) → +Z → Ry(π) → -Z ✓
+  _c(_O, _c(_q(_AY, -Math.PI / 2), _q(_AZ,  Math.PI / 2))), // 0: +X → top
+  _c(_O, _c(_q(_AY,  Math.PI / 2), _q(_AZ, -Math.PI / 2))), // 1: -X → top
+  _c(_O, new THREE.Quaternion()),                             // 2: +Y → top
+  _c(_O, _q(_AX, Math.PI)),                                   // 3: -Y → top
+  _c(_O, _q(_AX, -Math.PI / 2)),                              // 4: +Z → top
+  _c(_O, _c(_q(_AY,  Math.PI),     _q(_AX,  Math.PI / 2))),  // 5: -Z → top
 ];
 
 // Default display tilt: slight Y rotation so the left face is visible.
