@@ -1587,7 +1587,7 @@ function BattlefieldRow({
         const dice = diceByOwner.get(cid) ?? [];
         const hp = char.health - char.damage;
         return (
-          <div key={cid} className="flex shrink-0 flex-col gap-2" style={{ width: CHAR_COL_WIDTH }}>
+          <div key={cid} className="flex shrink-0 flex-col gap-4" style={{ width: CHAR_COL_WIDTH }}>
             {side === 'opponent' && (
               <CharStatsRow hp={hp} shields={char.shields} />
             )}
