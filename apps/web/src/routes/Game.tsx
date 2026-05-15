@@ -1,11 +1,10 @@
-import { getLegalActions, type CardDie, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
+import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
 import type { Action, Card, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 const DicePool3D = lazy(() => import('./DicePool3D.js'));
-const ResultsCam = lazy(() => import('./ResultsCam.js'));
 
 import { fetchCards } from './designer/api.js';
 import { CARD_COLORS, FALLBACK_COLOR, symLabel } from '../lib/dieFaceTexture.js';
@@ -32,23 +31,12 @@ export function Game() {
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
-  const [resultsCam, setResultsCam] = useState<{
-    diceCount: number;
-    cardColor: string | null;
-    charId: string;
-    /** All 6 faces for each die — used to texture each face of the 3D die. */
-    dice: readonly CardDie[];
-  } | null>(null);
   const [handFocusId, setHandFocusId] = useState<string | null>(null);
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
 
   useEffect(() => {
     fetchCards().then(setCatalog).catch(() => {});
   }, []);
-
-  // Pre-fetch the ResultsCam + dice-box WASM bundle in the background at
-  // game-start so it's warm before the first Roll Dice commit fires.
-  useEffect(() => { import('./ResultsCam.js').catch(() => {}); }, []);
 
   const catalogById = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
 
@@ -163,17 +151,6 @@ export function Game() {
         onOpenActionPanel={() => setActionPanelOpen(true)}
         onOpenHand={openHand}
         getDragHandlers={drag.getHandlers}
-        onShowResultsCam={(n, id) => {
-          const catalogId = game.cardCatalogIds[id];
-          const card = catalogId ? catalogById.get(catalogId) : undefined;
-          const char = game.players[playerId]?.characters[id];
-          setResultsCam({
-            diceCount: n,
-            cardColor: card?.color ?? null,
-            charId: id,
-            dice: char?.dice ?? [],
-          });
-        }}
         className="min-h-0 flex-1"
       />
 
@@ -200,17 +177,6 @@ export function Game() {
         />
       )}
 
-      {resultsCam && (
-        <Suspense fallback={null}>
-          <ResultsCam
-            diceCount={resultsCam.diceCount}
-            cardColor={resultsCam.cardColor}
-            charId={resultsCam.charId}
-            dice={resultsCam.dice}
-            onDismiss={() => setResultsCam(null)}
-          />
-        </Suspense>
-      )}
     </main>
   );
 }
@@ -1458,7 +1424,6 @@ function BattleZone({
   onOpenActionPanel,
   onOpenHand,
   getDragHandlers,
-  onShowResultsCam,
   className = '',
 }: {
   game: GameState;
@@ -1469,7 +1434,6 @@ function BattleZone({
   onOpenActionPanel: () => void;
   onOpenHand: (mode: HandMode, focusId?: string) => void;
   getDragHandlers: (info: DragCardInfo) => DragHandlers;
-  onShowResultsCam: (diceCount: number, charId: string) => void;
   className?: string;
 }) {
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
@@ -1523,7 +1487,7 @@ function BattleZone({
         />
 
         {/* 5 ── Action bar — Undo (future) | Commit */}
-        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} onShowResultsCam={onShowResultsCam} />
+        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
       </section>
 
       {detailChar && detailId && (
@@ -2082,13 +2046,11 @@ function ActionBar({
   playerId,
   send,
   isMyTurn,
-  onShowResultsCam,
 }: {
   game: GameState;
   playerId: string;
   send: (a: Action) => void;
   isMyTurn: boolean;
-  onShowResultsCam: (diceCount: number, charId: string) => void;
 }) {
   const [confirmPass, setConfirmPass] = useState(false);
   const activeFlow = useApp((s) => s.activeFlow);
@@ -2135,12 +2097,8 @@ function ActionBar({
   const handleCommit = () => {
     if (!activeFlow) { setConfirmPass(true); return; }
     if (activeFlow.kind === 'activate') {
-      // Dispatch to server and show the Results Cam simultaneously.
-      const char = game.players[playerId]?.characters[activeFlow.charId];
-      const diceCount = char?.dice.length ?? 1;
       send({ type: 'activate', playerId, cardId: activeFlow.charId });
       setActiveFlow(null);
-      onShowResultsCam(diceCount, activeFlow.charId);
       return;
     }
     if (activeFlow.kind === 'claim') {

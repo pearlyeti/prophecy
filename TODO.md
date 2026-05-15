@@ -370,6 +370,9 @@ Render support cards in play inside `BattleZone` below their owning player's cha
 - Player support runbook.
 - Backup/restore drill runbook + quarterly exercise.
 
+### Backlog — client (not yet sized)
+- **Roll cam (revamp)** — the physics-based full-screen dice roll overlay was removed (2026-05-15) because the feel was too janky. Bring it back when there's time to do it right: proper die geometry with six individually-textured faces, physics that feels weighty and satisfying, and a clean camera-cut back to the board. The board dice (WEB-3D-1) and the face-correct quaternion table (FACE_CORRECT_Q in DicePool3D) are good foundations to build on.
+
 ### Backlog — post-v1.0
 Game modes beyond 1v1, plus other features deferred until v1 ships and stabilizes.
 
