@@ -35,13 +35,13 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
   };
 
   useEffect(() => {
-    let box: DiceBox | null = null;
+    let cancelled = false;
 
     const run = async () => {
-      box = new DiceBox('#results-cam-canvas', {
+      const box = new DiceBox('#results-cam-canvas', {
         assetPath: '/assets/dice-box/',
         id: 'results-cam-canvas',
-        offscreen: false,       // wider compatibility (iOS)
+        offscreen: false,
         scale: 7,
         gravity: 2.5,
         startingHeight: 9,
@@ -49,22 +49,25 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
         throwForce: 5,
         lightIntensity: 1.2,
         settleTimeout: 5000,
-        onRollComplete: () => setSettled(true),
+        onRollComplete: () => { if (!cancelled) setSettled(true); },
       });
 
       await box.init();
-      boxRef.current = box;
 
-      // Roll one or two d6s — Prophecy dice are 6-sided.
-      // Physics is purely cosmetic here; the server-authoritative result
-      // already drives the board the moment the activate event arrives.
+      // If the component was unmounted while init was running, clean up and bail.
+      if (cancelled) { try { box.clear(); } catch {} return; }
+
+      boxRef.current = box;
       await box.roll(`${diceCount}d6`);
     };
 
     run().catch(console.error);
 
     return () => {
-      box?.clear();
+      cancelled = true;
+      // boxRef.current is only set after init() succeeds — safe to call clear().
+      // Wrap in try/catch in case dice-box internal state is still partially set up.
+      try { boxRef.current?.clear(); } catch {}
       boxRef.current = null;
     };
   }, [diceCount]);
