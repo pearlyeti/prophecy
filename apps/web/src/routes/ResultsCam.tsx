@@ -23,15 +23,20 @@ import { useApp } from '../store.js';
 import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture, symLabel } from '../lib/dieFaceTexture.js';
 
 // ── Physics constants ─────────────────────────────────────────────────────────
-const GRAVITY     = -14;   // world units / s²
-const RESTITUTION = 0.42;  // bounciness
-const FRICTION    = 0.78;  // how much lateral velocity is kept on bounce
-const ANG_DAMP    = 0.88;  // angular velocity multiplier per frame (at 60 fps)
-const LIN_DAMP    = 0.995; // linear velocity air resistance per frame
-const DIE_HALF    = 0.42;  // half-width of die (die is 0.84 units)
-const FLOOR_Y     = -1.8;  // where the floor sits in world space
-const SETTLE_VEL  = 0.04;  // speed threshold below which die is considered settled
-const SETTLE_FRAMES = 40;  // consecutive frames below threshold before settled
+// All damping is time-based (per second) so behaviour is frame-rate independent.
+const GRAVITY         = -22;   // m/s²  — strong pull so dice hit floor fast
+const RESTITUTION     = 0.52;  // bounce fraction on floor/wall impact
+const FLOOR_FRICTION  = 0.60;  // lateral speed retained on floor bounce
+const WALL_RESTITUTION = 0.45; // wall bounce fraction
+const ANG_DAMP_S      = 0.18;  // fraction of angular speed retained per second
+const LIN_DAMP_S      = 0.82;  // fraction of linear speed retained per second (air)
+const DIE_HALF        = 0.42;  // half-width of die body
+const FLOOR_Y         = -1.8;  // world-space Y of floor surface
+const WALL_X          =  4.2;  // ±X walls
+const WALL_Z          =  3.5;  // ±Z walls
+const SETTLE_VEL      = 0.06;  // combined speed threshold for "settled"
+const SETTLE_SECS     = 0.5;   // must stay below threshold for this long
+const FORCE_SETTLE_MS = 3000;  // hard cap — results in ≤3 s no matter what
 
 // ── Camera ────────────────────────────────────────────────────────────────────
 // Slightly cinematic: above and in front, looking down at the floor.
@@ -68,24 +73,31 @@ function RollingDie({
   face,
   cardColor,
   onSettled,
+  forceSettle,
 }: {
   index: number;
   total: number;
   face: DieFace | null;
   cardColor: string | null;
   onSettled: () => void;
+  forceSettle: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const settled = useRef(false);
+  const settledTime = useRef(0);
 
-  // Spread dice horizontally so they don't start in the same spot.
-  const xOffset = total === 1 ? 0 : (index - (total - 1) / 2) * 1.4;
-
+  // Throw dice from the upper-left at an angle toward the floor center.
+  // Stagger slightly so 2-die rolls don't overlap.
+  const stagger = (index - (total - 1) / 2) * 0.8;
   const state = useRef<DiePhysState>({
-    pos: [xOffset, 5 + index * 0.6, (Math.random() - 0.5) * 0.4],
-    vel: [(Math.random() - 0.5) * 2, -2, (Math.random() - 0.5) * 1],
-    rot: [Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, 0],
-    angVel: randomAngVel(18),
+    pos: [-3.5 + stagger * 0.4, 4.5 + index * 0.5, -2 + stagger * 0.3],
+    vel: [
+      5.5 + (Math.random() - 0.5) * 1.5 + stagger * 0.5,  // rightward
+      -4  + (Math.random() - 0.5) * 1,                     // downward
+       3  + (Math.random() - 0.5) * 1,                     // toward camera
+    ],
+    rot: [Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI],
+    angVel: randomAngVel(26),
     settledFrames: 0,
     settled: false,
   });
@@ -109,56 +121,84 @@ function RollingDie({
   }, [texture]);
 
   useFrame((_, dt) => {
-    if (settled.current || !meshRef.current) return;
+    if (!meshRef.current) return;
+
+    // Force-settle snaps the die to floor level and stops it.
+    if (forceSettle && !settled.current) {
+      settled.current = true;
+      state.current.pos[1] = FLOOR_Y + DIE_HALF;
+      meshRef.current.position.set(...state.current.pos);
+      onSettled();
+      return;
+    }
+    if (settled.current) return;
+
     const s = state.current;
+    const safeDt = Math.min(dt, 0.05); // cap dt so a tab-wake spike doesn't explode physics
 
-    // Gravity
-    s.vel[1] += GRAVITY * dt;
+    // Gravity + air damping (dt-based — frame-rate independent)
+    s.vel[1] += GRAVITY * safeDt;
+    const linRetain = Math.pow(LIN_DAMP_S, safeDt);
+    s.vel[0] *= linRetain;
+    s.vel[2] *= linRetain;
 
-    // Linear damping (air resistance)
-    s.vel[0] *= LIN_DAMP;
-    s.vel[2] *= LIN_DAMP;
+    // Integrate position
+    s.pos[0] += s.vel[0] * safeDt;
+    s.pos[1] += s.vel[1] * safeDt;
+    s.pos[2] += s.vel[2] * safeDt;
 
-    // Update position
-    s.pos[0] += s.vel[0] * dt;
-    s.pos[1] += s.vel[1] * dt;
-    s.pos[2] += s.vel[2] * dt;
-
-    // Floor collision
+    // Floor
     if (s.pos[1] < FLOOR_Y + DIE_HALF) {
       s.pos[1] = FLOOR_Y + DIE_HALF;
       s.vel[1] = Math.abs(s.vel[1]) * RESTITUTION;
-      s.vel[0] *= FRICTION;
-      s.vel[2] *= FRICTION;
-      // Impact randomises angular velocity slightly for visual variety
-      s.angVel[0] += (Math.random() - 0.5) * 2;
-      s.angVel[2] += (Math.random() - 0.5) * 2;
+      s.vel[0] *= FLOOR_FRICTION;
+      s.vel[2] *= FLOOR_FRICTION;
+      s.angVel[0] += (Math.random() - 0.5) * 3;
+      s.angVel[2] += (Math.random() - 0.5) * 3;
     }
 
-    // Update rotation
-    s.rot[0] += s.angVel[0] * dt;
-    s.rot[1] += s.angVel[1] * dt;
-    s.rot[2] += s.angVel[2] * dt;
+    // Side walls — bounce dice back into view
+    if (s.pos[0] < -WALL_X + DIE_HALF) {
+      s.pos[0] = -WALL_X + DIE_HALF;
+      s.vel[0] = Math.abs(s.vel[0]) * WALL_RESTITUTION;
+    }
+    if (s.pos[0] > WALL_X - DIE_HALF) {
+      s.pos[0] = WALL_X - DIE_HALF;
+      s.vel[0] = -Math.abs(s.vel[0]) * WALL_RESTITUTION;
+    }
+    if (s.pos[2] < -WALL_Z + DIE_HALF) {
+      s.pos[2] = -WALL_Z + DIE_HALF;
+      s.vel[2] = Math.abs(s.vel[2]) * WALL_RESTITUTION;
+    }
+    if (s.pos[2] > WALL_Z - DIE_HALF) {
+      s.pos[2] = WALL_Z - DIE_HALF;
+      s.vel[2] = -Math.abs(s.vel[2]) * WALL_RESTITUTION;
+    }
 
-    // Angular damping
-    s.angVel[0] *= ANG_DAMP;
-    s.angVel[1] *= ANG_DAMP;
-    s.angVel[2] *= ANG_DAMP;
+    // Angular damping (dt-based)
+    const angRetain = Math.pow(ANG_DAMP_S, safeDt);
+    s.angVel[0] *= angRetain;
+    s.angVel[1] *= angRetain;
+    s.angVel[2] *= angRetain;
 
-    // Apply to mesh
+    // Integrate rotation
+    s.rot[0] += s.angVel[0] * safeDt;
+    s.rot[1] += s.angVel[1] * safeDt;
+    s.rot[2] += s.angVel[2] * safeDt;
+
     meshRef.current.position.set(...s.pos);
     meshRef.current.rotation.set(...s.rot);
 
-    // Settle detection
+    // Settle detection: combined speed below threshold for SETTLE_SECS
     const speed = Math.hypot(...s.vel) + Math.hypot(...s.angVel);
     if (speed < SETTLE_VEL) {
-      s.settledFrames += 1;
-      if (s.settledFrames >= SETTLE_FRAMES) {
+      settledTime.current += safeDt;
+      if (settledTime.current >= SETTLE_SECS) {
         settled.current = true;
         onSettled();
       }
     } else {
-      s.settledFrames = 0;
+      settledTime.current = 0;
     }
   });
 
@@ -195,8 +235,18 @@ interface Props {
 
 export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: Props) {
   const [settled, setSettled] = useState(false);
+  const [forceSettle, setForceSettle] = useState(false);
   const [dismissing, setDismissing] = useState(false);
   const settledCount = useRef(0);
+
+  // Hard 3-second cap — whatever state the dice are in, show results.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setForceSettle(true);
+      setSettled(true);
+    }, FORCE_SETTLE_MS);
+    return () => clearTimeout(t);
+  }, []);
 
   // Watch for the character.activated event carrying the real rolled faces.
   const recentEvents = useApp((s) => s.recentEvents);
@@ -264,6 +314,7 @@ export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: 
             face={rolledFaces[i] ?? null}
             cardColor={cardColor ?? null}
             onSettled={handleDieSettled}
+            forceSettle={forceSettle}
           />
         ))}
       </Canvas>
