@@ -54,7 +54,6 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
       cardId: 'FC',
       faceIndex: 0,
       face: focuserFace,
-      ownerInstanceId: undefined,
     };
     const targetDie: DieInPool = {
       instanceId: dieSpec.instanceId,
@@ -69,7 +68,7 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: [focuserDie.instanceId],
+      targets: [{ dieInstanceIds: [focuserDie.instanceId] }],
       focusFlips: [{ targetDieInstanceId: dieSpec.instanceId, faceIndex: 2 }],
     });
 
@@ -92,7 +91,7 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: [focuserDie.instanceId],
+      targets: [{ dieInstanceIds: [focuserDie.instanceId] }],
       focusFlips: [],
     });
 
@@ -120,7 +119,7 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: [focuserDie.instanceId],
+      targets: [{ dieInstanceIds: [focuserDie.instanceId] }],
       focusFlips: [
         { targetDieInstanceId: dieSpec.instanceId, faceIndex: 1 },
         { targetDieInstanceId: dieSpec.instanceId, faceIndex: 4 }, // overrides the first flip
@@ -151,7 +150,7 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
       applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: [dieSpec.instanceId],
+        targets: [{ dieInstanceIds: [dieSpec.instanceId] }],
         focusFlips: [{ targetDieInstanceId: dieSpec.instanceId, faceIndex: 0 }],
       }),
     ).toThrow(IllegalActionError);
@@ -167,7 +166,7 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
       applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: [focuserDie.instanceId],
+        targets: [{ dieInstanceIds: [focuserDie.instanceId] }],
         focusFlips: [{ targetDieInstanceId: 'ghost-die', faceIndex: 0 }],
       }),
     ).toThrow(/not in the pool/);
@@ -195,7 +194,7 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
       applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: [focuserDie.instanceId],
+        targets: [{ dieInstanceIds: [focuserDie.instanceId] }],
         focusFlips: [{ targetDieInstanceId: dieSpec.instanceId, faceIndex: 99 }],
       }),
     ).toThrow(/out of range/);
@@ -210,7 +209,7 @@ describe('applyAction({ type: "resolve-dice", symbol: "focus" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: [focuserDie.instanceId],
+      targets: [{ dieInstanceIds: [focuserDie.instanceId] }],
       focusFlips: [],
     });
 
