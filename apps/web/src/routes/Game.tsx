@@ -30,7 +30,7 @@ export function Game() {
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
-  const [resultsCam, setResultsCam] = useState<{ diceCount: number } | null>(null);
+  const [resultsCam, setResultsCam] = useState<{ diceCount: number; cardColor: string | null; charId: string } | null>(null);
   const [handFocusId, setHandFocusId] = useState<string | null>(null);
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
 
@@ -155,7 +155,11 @@ export function Game() {
         onOpenActionPanel={() => setActionPanelOpen(true)}
         onOpenHand={openHand}
         getDragHandlers={drag.getHandlers}
-        onShowResultsCam={(n) => setResultsCam({ diceCount: n })}
+        onShowResultsCam={(n, id) => {
+          const catalogId = game.cardCatalogIds[id];
+          const card = catalogId ? catalogById.get(catalogId) : undefined;
+          setResultsCam({ diceCount: n, cardColor: card?.color ?? null, charId: id });
+        }}
         className="min-h-0 flex-1"
       />
 
@@ -186,6 +190,8 @@ export function Game() {
         <Suspense fallback={null}>
           <ResultsCam
             diceCount={resultsCam.diceCount}
+            cardColor={resultsCam.cardColor}
+            charId={resultsCam.charId}
             onDismiss={() => setResultsCam(null)}
           />
         </Suspense>
@@ -1444,7 +1450,7 @@ function BattleZone({
   onOpenActionPanel: () => void;
   onOpenHand: (mode: HandMode, focusId?: string) => void;
   getDragHandlers: (info: DragCardInfo) => DragHandlers;
-  onShowResultsCam: (diceCount: number) => void;
+  onShowResultsCam: (diceCount: number, charId: string) => void;
   className?: string;
 }) {
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
@@ -2044,7 +2050,7 @@ function ActionBar({
   playerId: string;
   send: (a: Action) => void;
   isMyTurn: boolean;
-  onShowResultsCam: (diceCount: number) => void;
+  onShowResultsCam: (diceCount: number, charId: string) => void;
 }) {
   const [confirmPass, setConfirmPass] = useState(false);
   const activeFlow = useApp((s) => s.activeFlow);
@@ -2091,7 +2097,7 @@ function ActionBar({
       const diceCount = char?.dice.length ?? 1;
       send({ type: 'activate', playerId, cardId: activeFlow.charId });
       setActiveFlow(null);
-      onShowResultsCam(diceCount);
+      onShowResultsCam(diceCount, activeFlow.charId);
       return;
     }
     if (activeFlow.kind === 'claim') {

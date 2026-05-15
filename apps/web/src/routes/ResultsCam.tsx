@@ -1,44 +1,79 @@
 // Full-screen physics dice roll overlay — the "Results Cam".
 //
-// Lazy-loaded via React.lazy so the dice-box WASM (~2 MB) only enters the
-// bundle when the game route is visited. The Game component kicks off the
-// dynamic import at game-start (background) so the module is warm by the
-// time the first Roll Dice commit fires.
-//
 // Architecture: "sports camera cut" pattern.
-//   1. Player commits Roll Dice → activate action dispatches to server.
-//   2. This overlay appears and runs real Ammo.js physics.
-//   3. Server processes the action, broadcasts updated game state.
-//   4. Player taps to dismiss → overlay sweeps away.
-//   5. Board (WEB-3D-1 Three.js dice) already shows server-authoritative
-//      faces. No result bridging needed — the cut handles the transition.
+//   1. Player commits Roll Dice → activate action dispatches to server simultaneously.
+//   2. This overlay appears and runs real Ammo.js physics with matching die color.
+//   3. Server processes the action, broadcasts character.activated with rolledDice.
+//   4. Once dice settle, actual Prophecy face results overlay the cam.
+//   5. Player taps to dismiss → board already shows server-authoritative faces.
 
 import DiceBox from '@3d-dice/dice-box';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+import type { DieFace } from '@prophecy/game-engine';
+import { useApp } from '../store.js';
+
+// ── card color → dice-box themeColor ────────────────────────────────────────
+const THEME_COLORS: Record<string, string> = {
+  red:    '#ef4444',
+  blue:   '#3b82f6',
+  yellow: '#facc15',
+  gray:   '#9ca3af',
+};
+
+function symShort(s: string): string {
+  switch (s) {
+    case 'melee':    return 'MEL';
+    case 'ranged':   return 'RNG';
+    case 'indirect': return 'IND';
+    case 'shield':   return 'SHD';
+    case 'resource': return 'RES';
+    case 'disrupt':  return 'DSR';
+    case 'discard':  return 'DSC';
+    case 'draw':     return 'DRW';
+    case 'focus':    return 'FOC';
+    case 'special':  return 'S';
+    case 'modifier': return 'MOD';
+    case 'blank':    return '—';
+    default:         return s.slice(0, 3).toUpperCase();
+  }
+}
 
 interface Props {
-  /** Number of dice to roll (1 for non-elite, 2 for elite). */
   diceCount: number;
+  cardColor?: string | null;
+  charId: string;
   onDismiss: () => void;
 }
 
-export default function ResultsCam({ diceCount, onDismiss }: Props) {
+export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: Props) {
   const [settled, setSettled] = useState(false);
   const [dismissing, setDismissing] = useState(false);
   const boxRef = useRef<DiceBox | null>(null);
 
+  // Watch recentEvents for the character.activated result matching our roll.
+  const recentEvents = useApp((s) => s.recentEvents);
+  const rolledFaces = useMemo<DieFace[]>(() => {
+    for (let i = recentEvents.length - 1; i >= 0; i--) {
+      const e = recentEvents[i]!;
+      if (e.type === 'character.activated' && e.payload.characterId === charId) {
+        return e.payload.rolledDice.map((d) => d.face);
+      }
+    }
+    return [];
+  }, [recentEvents, charId]);
+
   const dismiss = () => {
     if (!settled || dismissing) return;
     setDismissing(true);
-    // Brief sweep-out animation, then unmount.
     setTimeout(onDismiss, 280);
   };
+
+  const themeColor = THEME_COLORS[cardColor ?? ''] ?? '#9ca3af';
 
   useEffect(() => {
     let cancelled = false;
 
-    // Inject CSS so dice-box's canvas covers the screen above our dark backdrop.
-    // dice-box appends a plain canvas with no positioning; we need to fix that.
     const styleEl = document.createElement('style');
     styleEl.textContent = `
       .dice-box-canvas {
@@ -53,8 +88,6 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
     document.head.appendChild(styleEl);
 
     const run = async () => {
-      // Target body so the canvas is a direct child of the document —
-      // targeting a nested div gives dice-box a 300×150 default canvas.
       const box = new DiceBox('body', {
         assetPath: '/assets/dice-box/',
         id: 'results-cam-canvas',
@@ -66,12 +99,11 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
         throwForce: 5,
         lightIntensity: 1.2,
         settleTimeout: 5000,
+        themeColor,
         onRollComplete: () => { if (!cancelled) setSettled(true); },
       });
 
       await box.init();
-
-      // If the component was unmounted while init was running, clean up and bail.
       if (cancelled) { try { box.clear(); } catch {} return; }
 
       boxRef.current = box;
@@ -86,9 +118,8 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
       try { boxRef.current?.clear(); } catch {}
       boxRef.current = null;
     };
-  }, [diceCount]);
+  }, [diceCount, themeColor]);
 
-  // Swipe-up gesture: track touch start Y, dismiss on upward flick.
   const touchStartY = useRef<number | null>(null);
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0]?.clientY ?? null;
@@ -96,7 +127,7 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartY.current === null) return;
     const dy = (e.changedTouches[0]?.clientY ?? 0) - touchStartY.current;
-    if (dy < -40) dismiss(); // upward flick ≥ 40px
+    if (dy < -40) dismiss();
     touchStartY.current = null;
   };
 
@@ -104,7 +135,7 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-end"
       style={{
-        background: 'rgba(0,0,0,0.92)',
+        background: 'rgba(0,0,0,0.88)',
         transition: dismissing ? 'opacity 0.28s ease-out, transform 0.28s ease-out' : 'none',
         opacity: dismissing ? 0 : 1,
         transform: dismissing ? 'translateY(-32px)' : 'none',
@@ -113,12 +144,32 @@ export default function ResultsCam({ diceCount, onDismiss }: Props) {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Dismiss hint — fades in once dice have settled */}
+      {/* Actual Prophecy die results — appear once server event arrives and dice settle */}
+      {settled && rolledFaces.length > 0 && (
+        <div className="relative z-60 mb-8 flex gap-3">
+          {rolledFaces.map((face, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center justify-center rounded-xl border-2 px-4 py-3"
+              style={{ borderColor: themeColor, background: 'rgba(0,0,0,0.75)', minWidth: 64 }}
+            >
+              <span className="text-2xl font-bold font-mono text-white">
+                {face.modifier ? '+' : ''}{face.value > 0 ? face.value : ''}
+              </span>
+              <span className="text-xs text-white/70 tracking-wider mt-0.5">
+                {symShort(face.symbol)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Dismiss hint */}
       <div
-        className="relative z-10 mb-16 text-center transition-opacity duration-500"
+        className="relative z-60 mb-10 text-center transition-opacity duration-500"
         style={{ opacity: settled ? 1 : 0, pointerEvents: 'none' }}
       >
-        <p className="text-sm font-medium text-white/70 tracking-wide">
+        <p className="text-sm font-medium text-white/60 tracking-wide">
           Tap to continue
         </p>
       </div>
