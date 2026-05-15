@@ -18,6 +18,16 @@ If a question can be answered from the README, prefer that over guessing or grep
 
 The binding spec for game mechanics is [docs/rules-reference.md](docs/rules-reference.md). Read it before writing engine code.
 
+## Promoting a backlog item to a task card
+
+The backlog in `ROADMAP.md` is a parking lot for future ideas — rough scope, no spec yet, not claimable. When the user decides an item is ready to work on:
+
+1. **Spec it out.** Move it from the backlog into "Up next — task cards" in `ROADMAP.md` and fill in the full card structure: Why now, Scope, Context to load, Out of scope, Depends on (if any), Done when.
+2. **Create a GitHub Issue.** One issue per card, titled `CARD-N — Short title`. Body links to the ROADMAP.md spec and lists the "Done when" checks. Add the appropriate `area:*` label. Add `blocked` if it has an unmet dependency.
+3. **Commit the ROADMAP.md change** directly to main (it's a doc-only change).
+
+The item is now claimable. Pick it up using the protocol below.
+
 ## Picking up a task card
 
 Most work in this repo is handed off as a **task card** — a self-contained entry in `ROADMAP.md` under "Up next — task cards". Each card lists what to build, which files to load, what's out of scope, and how to verify the work is done. The point is that a fresh agent context can start cheaply: you don't need to spelunk the whole codebase to be useful; the card has already pre-selected what matters.
