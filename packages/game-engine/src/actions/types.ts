@@ -9,13 +9,24 @@ export type Action =
   | {
       type: 'resolve-dice';
       playerId: string;
-      dieInstanceIds: readonly string[];
-      /** Required when resolving damage / shields; ignored for resource / disrupt. */
+      /**
+       * Multi-target shape: each entry groups dice resolved against one target.
+       * Takes precedence over the legacy flat fields when present.
+       *
+       * Melee/ranged/shield: each group's dice value is applied to that group's
+       * targetCharacterId. Resource/disrupt/discard: single entry, no targetCharacterId.
+       * Focus: single entry, no targetCharacterId; use focusFlips for face choices.
+       */
+      targets?: readonly { readonly dieInstanceIds: readonly string[]; readonly targetCharacterId?: string }[];
+      /** @deprecated Use targets instead. Kept for backward compatibility. */
+      dieInstanceIds?: readonly string[];
+      /** @deprecated Use targets[n].targetCharacterId instead. Kept for backward compatibility. */
       targetCharacterId?: string;
       /**
        * Required when resolving focus dice. Ordered list of face-flip operations.
-       * Each focuser die is in dieInstanceIds (removed from pool on resolve).
-       * Target dice are not in dieInstanceIds — they stay in pool with updated faces.
+       * Each focuser die is in dieInstanceIds / targets[0].dieInstanceIds (removed
+       * from pool on resolve). Target dice are not in the focuser list — they stay
+       * in pool with their faces updated.
        */
       focusFlips?: readonly { readonly targetDieInstanceId: string; readonly faceIndex: number }[];
     }

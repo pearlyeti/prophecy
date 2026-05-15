@@ -57,7 +57,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out, events } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1'],
+      targets: [{ dieInstanceIds: ['d1'] }],
     });
 
     expect(out.players[active]!.resources).toBe(state.players[active]!.resources + 2);
@@ -80,7 +80,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1', 'd2'],
+      targets: [{ dieInstanceIds: ['d1', 'd2'] }],
     });
     expect(out.players[active]!.resources).toBe(state.players[active]!.resources + 3);
   });
@@ -96,7 +96,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
       applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: ['d1', 'd2'],
+        targets: [{ dieInstanceIds: ['d1', 'd2'] }],
       }),
     ).toThrow(/share a symbol/);
   });
@@ -111,7 +111,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
       applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: ['d1'],
+        targets: [{ dieInstanceIds: ['d1'] }],
       }),
     ).toThrow(/modifier/);
   });
@@ -133,7 +133,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
         applyAction(state, {
           type: 'resolve-dice',
           playerId: active,
-          dieInstanceIds: ['d1'],
+          targets: [{ dieInstanceIds: ['d1'] }],
         }),
       ).toThrow();
     }
@@ -156,8 +156,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
       const { state: out, events } = applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: ['d1', 'd2'],
-        targetCharacterId: targetId,
+        targets: [{ dieInstanceIds: ['d1', 'd2'], targetCharacterId: targetId }],
       });
 
       const resolved = events.find((e) => e.type === 'dice.resolved');
@@ -178,7 +177,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
         applyAction(state, {
           type: 'resolve-dice',
           playerId: active,
-          dieInstanceIds: ['d1', 'd2'],
+          targets: [{ dieInstanceIds: ['d1', 'd2'] }],
         }),
       ).toThrow(/modifier/);
     });
@@ -197,8 +196,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
       const { events } = applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: ['d1', 'd2'],
-        targetCharacterId: targetId,
+        targets: [{ dieInstanceIds: ['d1', 'd2'], targetCharacterId: targetId }],
       });
 
       const resolved = events.find((e) => e.type === 'dice.resolved');
@@ -217,7 +215,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
         applyAction(state, {
           type: 'resolve-dice',
           playerId: active,
-          dieInstanceIds: ['d1'],
+          targets: [{ dieInstanceIds: ['d1'] }],
         }),
       ).toThrow(/modifier/);
     });
@@ -236,7 +234,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
         applyAction(state, {
           type: 'resolve-dice',
           playerId: active,
-          dieInstanceIds: ['d1', 'd2'],
+          targets: [{ dieInstanceIds: ['d1', 'd2'] }],
         }),
       ).toThrow();
     });
@@ -252,7 +250,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1'],
+      targets: [{ dieInstanceIds: ['d1'] }],
     });
     // Gained 3, paid 1.
     expect(out.players[active]!.resources).toBe(before + 3 - 1);
@@ -268,7 +266,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
       applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: ['d1'],
+        targets: [{ dieInstanceIds: ['d1'] }],
       }),
     ).toThrow(/resources/);
   });
@@ -286,8 +284,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1'],
-      targetCharacterId: targetId,
+      targets: [{ dieInstanceIds: ['d1'], targetCharacterId: targetId }],
     });
     expect(out.players[opponent]!.characters[targetId]!.damage).toBe(3);
   });
@@ -320,8 +317,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out, events } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1'],
-      targetCharacterId: targetId,
+      targets: [{ dieInstanceIds: ['d1'], targetCharacterId: targetId }],
     });
     expect(out.players[opponent]!.characters[targetId]!.shields).toBe(0);
     expect(out.players[opponent]!.characters[targetId]!.damage).toBe(1);
@@ -340,8 +336,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1', 'd2'],
-      targetCharacterId: myCharId,
+      targets: [{ dieInstanceIds: ['d1', 'd2'], targetCharacterId: myCharId }],
     });
     expect(out.players[active]!.characters[myCharId]!.shields).toBe(3); // capped
   });
@@ -358,8 +353,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
       applyAction(state, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: ['d1'],
-        targetCharacterId: opponentCharId,
+        targets: [{ dieInstanceIds: ['d1'], targetCharacterId: opponentCharId }],
       }),
     ).toThrow(/your own/);
   });
@@ -374,7 +368,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1'],
+      targets: [{ dieInstanceIds: ['d1'] }],
     });
     expect(out.players[opponent]!.resources).toBe(0);
   });
@@ -392,8 +386,7 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     const { state: out, events } = applyAction(state, {
       type: 'resolve-dice',
       playerId: active,
-      dieInstanceIds: ['d1'],
-      targetCharacterId: targetId,
+      targets: [{ dieInstanceIds: ['d1'], targetCharacterId: targetId }],
     });
     expect(out.players[opponent]!.characterOrder).not.toContain(targetId);
     expect(out.players[opponent]!.characters[targetId]).toBeUndefined();
@@ -413,8 +406,125 @@ describe('applyAction({ type: "resolve-dice" })', () => {
       applyAction(initial, {
         type: 'resolve-dice',
         playerId: active,
-        dieInstanceIds: ['ghost-die'],
+        targets: [{ dieInstanceIds: ['ghost-die'] }],
       }),
     ).toThrow(IllegalActionError);
+  });
+
+  describe('multi-target resolve', () => {
+    it('2 melee dice each targeting a different character — both take damage', () => {
+      // Use a 2-character-per-side setup.
+      const twoCharInput = basicGameInput({
+        seed: 'rd-multi',
+        playerCharacters: {
+          alice: [
+            { id: 'alice.c1', cardId: 'CHAR_TEST_001', elite: false },
+            { id: 'alice.c2', cardId: 'CHAR_TEST_001', elite: false },
+          ],
+          bob: [
+            { id: 'bob.c1', cardId: 'CHAR_TEST_001', elite: false },
+            { id: 'bob.c2', cardId: 'CHAR_TEST_001', elite: false },
+          ],
+        },
+      });
+      const initial = newGameInActionPhase(twoCharInput);
+      const active = initial.activePlayerId!;
+      const opp = initial.playerOrder.find((id) => id !== active)!;
+      const [charA, charB] = initial.players[opp]!.characterOrder as [string, string];
+
+      // Clear shields on both targets for clean damage reads.
+      let state = clearShields(initial, opp, charA);
+      state = clearShields(state, opp, charB);
+      state = withPool(state, active, [
+        { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face('melee', 3) },
+        { instanceId: 'd2', cardId: 'X', faceIndex: 0, face: face('melee', 2) },
+      ]);
+
+      const { state: out } = applyAction(state, {
+        type: 'resolve-dice',
+        playerId: active,
+        targets: [
+          { dieInstanceIds: ['d1'], targetCharacterId: charA },
+          { dieInstanceIds: ['d2'], targetCharacterId: charB },
+        ],
+      });
+
+      expect(out.players[opp]!.characters[charA]!.damage).toBe(3);
+      expect(out.players[opp]!.characters[charB]!.damage).toBe(2);
+      // Both dice removed from pool.
+      expect(out.players[active]!.diceInPool).toHaveLength(0);
+    });
+
+    it('shield dice split across two own characters', () => {
+      const twoCharInput = basicGameInput({
+        seed: 'rd-shield-split',
+        playerCharacters: {
+          alice: [
+            { id: 'alice.c1', cardId: 'CHAR_TEST_001', elite: false },
+            { id: 'alice.c2', cardId: 'CHAR_TEST_001', elite: false },
+          ],
+          bob: [
+            { id: 'bob.c1', cardId: 'CHAR_TEST_001', elite: false },
+            { id: 'bob.c2', cardId: 'CHAR_TEST_001', elite: false },
+          ],
+        },
+      });
+      const initial = newGameInActionPhase(twoCharInput);
+      const active = initial.activePlayerId!;
+      const [charA, charB] = initial.players[active]!.characterOrder as [string, string];
+
+      // Ensure both start at 0 shields for clean reads.
+      let state: GameState = {
+        ...initial,
+        players: {
+          ...initial.players,
+          [active]: {
+            ...initial.players[active]!,
+            characters: {
+              ...initial.players[active]!.characters,
+              [charA]: { ...initial.players[active]!.characters[charA]!, shields: 0 },
+              [charB]: { ...initial.players[active]!.characters[charB]!, shields: 0 },
+            },
+          },
+        },
+      };
+      state = withPool(state, active, [
+        { instanceId: 's1', cardId: 'X', faceIndex: 0, face: face('shield', 2) },
+        { instanceId: 's2', cardId: 'X', faceIndex: 0, face: face('shield', 1) },
+      ]);
+
+      const { state: out } = applyAction(state, {
+        type: 'resolve-dice',
+        playerId: active,
+        targets: [
+          { dieInstanceIds: ['s1'], targetCharacterId: charA },
+          { dieInstanceIds: ['s2'], targetCharacterId: charB },
+        ],
+      });
+
+      expect(out.players[active]!.characters[charA]!.shields).toBe(2);
+      expect(out.players[active]!.characters[charB]!.shields).toBe(1);
+    });
+
+    it('legacy flat single-target shape still works (backward compat)', () => {
+      const initial = setup();
+      const active = initial.activePlayerId!;
+      const opp = initial.playerOrder.find((id) => id !== active)!;
+      const targetId = initial.players[opp]!.characterOrder[0]!;
+      const cleared = clearShields(initial, opp, targetId);
+      const state = withPool(cleared, active, [
+        { instanceId: 'd1', cardId: 'X', faceIndex: 0, face: face('melee', 4) },
+      ]);
+
+      // Use the old flat shape (no targets field).
+      const { state: out } = applyAction(state, {
+        type: 'resolve-dice',
+        playerId: active,
+        dieInstanceIds: ['d1'],
+        targetCharacterId: targetId,
+      });
+
+      expect(out.players[opp]!.characters[targetId]!.damage).toBe(4);
+    });
   });
 });

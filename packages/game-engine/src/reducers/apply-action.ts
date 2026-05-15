@@ -39,14 +39,16 @@ export function applyAction(state: GameState, action: Action): ApplyResult {
       return applyConcede(state, action.playerId);
     case 'activate':
       return applyActivate(state, action.playerId, action.cardId);
-    case 'resolve-dice':
-      return applyResolveDice(
-        state,
-        action.playerId,
-        action.dieInstanceIds,
-        action.targetCharacterId,
-        action.focusFlips,
-      );
+    case 'resolve-dice': {
+      // Normalize legacy flat shape → targets array.
+      type TargetGroup = { readonly dieInstanceIds: readonly string[]; readonly targetCharacterId?: string };
+      const targets: readonly TargetGroup[] =
+        action.targets ??
+        (action.dieInstanceIds
+          ? [{ dieInstanceIds: action.dieInstanceIds, ...(action.targetCharacterId !== undefined ? { targetCharacterId: action.targetCharacterId } : {}) }]
+          : []);
+      return applyResolveDice(state, action.playerId, targets, action.focusFlips);
+    }
     case 'play-card':
       return applyPlayCard(state, action.playerId, action.cardId, action.characterTargets);
     case 'reroll-dice':

@@ -9,59 +9,44 @@ import { IllegalActionError } from './illegal.js';
 import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass.js';
 
 /**
- * Resolve one or more dice in the player's pool.
+ * Resolve one or more dice in the player's pool, optionally against multiple targets.
  *
- * Per the rules document: dice resolved together must share a symbol;
- * a modifier (+N) face cannot resolve alone. Resource costs on faces
- * are paid from the player's resources before effects apply.
+ * `targets` is the normalized multi-target shape from apply-action.ts. Each entry
+ * groups one or more dice against a single targetCharacterId. All dice across all
+ * groups must share a symbol; per-group values are applied independently so each
+ * target character only receives damage / shields from its assigned dice.
  *
- * v1 supports: melee, ranged, shield, resource, disrupt. Special,
- * focus, indirect, discard, and blank throw IllegalActionError —
- * each needs its own follow-up slice (special needs ability resolvers,
- * focus needs a face-selection UI, indirect needs opponent-distributes
- * flow, discard needs per-card hand tracking).
- *
- * Damage application:
- * - Combined value (sum of face values across all resolved dice).
- * - Shields block damage 1-for-1 (rules: shields used before damage).
- * - Excess damage reduces remaining health.
- * - On `damage >= health`, the character is defeated: removed from
- *   characterOrder, its dice removed from the pool, the player loses
- *   when no characters remain.
- *
- * Targeting v1: one target character for the whole action. The rules
- * allow per-die targeting; that comes when the UI does too.
+ * v1 supports: melee, ranged, shield, resource, disrupt, focus. Special,
+ * indirect, discard, and blank throw IllegalActionError.
  */
 export function applyResolveDice(
   state: GameState,
   playerId: string,
-  dieInstanceIds: readonly string[],
-  targetCharacterId: string | undefined,
+  targets: readonly { readonly dieInstanceIds: readonly string[]; readonly targetCharacterId?: string }[],
   focusFlips?: readonly { readonly targetDieInstanceId: string; readonly faceIndex: number }[],
 ): ApplyResult {
   guardCanAct(state, playerId);
 
-  if (dieInstanceIds.length === 0) {
+  const allDieInstanceIds = targets.flatMap((t) => [...t.dieInstanceIds]);
+
+  if (allDieInstanceIds.length === 0) {
     throw new IllegalActionError('must select at least one die to resolve');
   }
 
   const player = state.players[playerId];
   if (!player) throw new Error(`player ${playerId} missing from state`);
 
-  const dice: DieInPool[] = dieInstanceIds.map((id) => {
+  // Look up all dice across every target group.
+  const allDice: DieInPool[] = allDieInstanceIds.map((id) => {
     const d = player.diceInPool.find((p) => p.instanceId === id);
     if (!d) throw new IllegalActionError(`die ${id} is not in your pool`);
     return d;
   });
 
-  // Split modifiers from non-modifiers so we can enforce the rule
-  // explicitly: a symboled modifier needs a same-symbol non-modifier
-  // in the selection; a symbolless modifier ('modifier' symbol) needs
-  // ANY non-modifier with value > 0 (special and blank are value 0 and
-  // never qualify). Non-modifiers among themselves still have to share
-  // one symbol for v1 (card-routed mixed-symbol resolutions land later).
-  const nonModifiers = dice.filter((d) => !d.face.modifier);
-  const modifiers = dice.filter((d) => d.face.modifier);
+  // Split modifiers from non-modifiers. Validation is across the full
+  // combined selection — all dice in all groups must share one symbol.
+  const nonModifiers = allDice.filter((d) => !d.face.modifier);
+  const modifiers = allDice.filter((d) => d.face.modifier);
 
   if (nonModifiers.length === 0) {
     throw new IllegalActionError(
@@ -87,8 +72,6 @@ export function applyResolveDice(
     throw new IllegalActionError(`resolving "${symbol}" is not yet implemented`);
   }
   if (symbol === 'modifier') {
-    // A non-modifier face whose symbol claims it's a "modifier" face is
-    // a data-shape invariant violation, not a player-illegal action.
     throw new Error(
       `data invariant: a non-modifier die has symbol 'modifier' (instance ${nonModifiers[0]!.instanceId})`,
     );
@@ -97,7 +80,6 @@ export function applyResolveDice(
   const valuedNonMods = nonModifiers.filter((d) => d.face.value > 0);
   for (const m of modifiers) {
     if (m.face.symbol === 'modifier') {
-      // Symbolless wild modifier — needs ANY valued non-modifier in selection.
       if (valuedNonMods.length === 0) {
         throw new IllegalActionError(
           'a symbolless modifier needs a non-modifier with a value in the selection',
@@ -110,30 +92,27 @@ export function applyResolveDice(
     }
   }
 
-  const totalCost = dice.reduce((s, d) => s + d.face.cost, 0);
+  const totalCost = allDice.reduce((s, d) => s + d.face.cost, 0);
   if (player.resources < totalCost) {
     throw new IllegalActionError(
       `pool cost is ${totalCost} but ${playerId} has only ${player.resources} resources`,
     );
   }
 
-  const totalValue = dice.reduce((s, d) => s + d.face.value, 0);
+  const totalValue = allDice.reduce((s, d) => s + d.face.value, 0);
 
-  // Effects apply against a copy of state; we then pay cost and remove
-  // dice from the pool, then rotate.
   let working = state;
   const events: EngineEvent[] = [
     {
       type: 'dice.resolved',
-      payload: { playerId, dieInstanceIds: [...dieInstanceIds], symbol, totalValue, totalCost },
+      payload: { playerId, dieInstanceIds: allDieInstanceIds, symbol, totalValue, totalCost },
     },
   ];
 
   switch (symbol) {
     case 'focus': {
-      // Focuser dice (dieInstanceIds) are spent — they get removed at the end.
-      // Target dice stay in pool but with their chosen faces applied in order.
-      // Zero flips is legal (the player spent focus dice without using them).
+      // Focus uses the flat die IDs as focusers; focusFlips carries the face choices.
+      const focuserSet = new Set(allDieInstanceIds);
       const flips = focusFlips ?? [];
       let pool = [...(working.players[playerId]?.diceInPool ?? [])];
 
@@ -144,12 +123,10 @@ export function applyResolveDice(
         }
         const targetDie = pool[idx]!;
 
-        // A focuser cannot target itself.
-        if (dieInstanceIds.includes(targetDie.instanceId)) {
+        if (focuserSet.has(targetDie.instanceId)) {
           throw new IllegalActionError(`a focus die cannot target itself (${targetDie.instanceId})`);
         }
 
-        // Look up die spec via ownerInstanceId to validate faceIndex.
         const ownerChar = targetDie.ownerInstanceId
           ? working.players[playerId]?.characters[targetDie.ownerInstanceId]
           : undefined;
@@ -178,50 +155,74 @@ export function applyResolveDice(
 
     case 'melee':
     case 'ranged': {
-      if (!targetCharacterId) {
-        throw new IllegalActionError(`${symbol} damage requires a target character`);
+      // Iterate over target groups; apply each group's dice value to its character.
+      for (const group of targets) {
+        if (!group.targetCharacterId) {
+          throw new IllegalActionError(`${symbol} damage requires a target character`);
+        }
+        const ownerId = ownerOf(working, group.targetCharacterId);
+        if (!ownerId) {
+          throw new IllegalActionError(`character ${group.targetCharacterId} is not in play`);
+        }
+
+        const groupValue = group.dieInstanceIds.reduce((s, id) => {
+          const d = allDice.find((die) => die.instanceId === id);
+          return s + (d?.face.value ?? 0);
+        }, 0);
+
+        // Before triggers fire per-group, before that group's damage lands.
+        const beforeCandidates = collectBeforeTriggers(working, 'beforeTakeDamage', {
+          targetCharacterId: group.targetCharacterId,
+          targetOwnerId: ownerId,
+        });
+        const sortedBefore = [...beforeCandidates].sort((a, b) =>
+          a.sourceCardInstanceId.localeCompare(b.sourceCardInstanceId),
+        );
+        for (const candidate of sortedBefore) {
+          const ctx = {
+            playerId: candidate.playerId,
+            characterTargets: [],
+            sourceCharacterId: candidate.sourceCardInstanceId,
+          };
+          const r = applyEffects(working, ctx, candidate.ability.effects);
+          working = r.state;
+          events.push(...r.events);
+        }
+
+        working = dealDamage(working, ownerId, group.targetCharacterId, groupValue, events);
+
+        // If this group's damage ended the game, stop processing further groups.
+        if (working.winnerId !== null) break;
       }
-      const ownerId = ownerOf(state, targetCharacterId);
-      if (!ownerId) {
-        throw new IllegalActionError(`character ${targetCharacterId} is not in play`);
-      }
-      // Before triggers: run inline before damage lands.
-      const beforeCandidates = collectBeforeTriggers(working, 'beforeTakeDamage', {
-        targetCharacterId,
-        targetOwnerId: ownerId,
-      });
-      const sortedBefore = [...beforeCandidates].sort((a, b) =>
-        a.sourceCardInstanceId.localeCompare(b.sourceCardInstanceId),
-      );
-      for (const candidate of sortedBefore) {
-        const ctx = {
-          playerId: candidate.playerId,
-          characterTargets: [],
-          sourceCharacterId: candidate.sourceCardInstanceId,
-        };
-        const r = applyEffects(working, ctx, candidate.ability.effects);
-        working = r.state;
-        events.push(...r.events);
-      }
-      working = dealDamage(working, ownerId, targetCharacterId, totalValue, events);
       break;
     }
+
     case 'shield': {
-      if (!targetCharacterId) {
-        throw new IllegalActionError('shield placement requires a target character');
+      for (const group of targets) {
+        if (!group.targetCharacterId) {
+          throw new IllegalActionError('shield placement requires a target character');
+        }
+        const ownerId = ownerOf(working, group.targetCharacterId);
+        if (ownerId !== playerId) {
+          throw new IllegalActionError('shields can only be placed on your own characters');
+        }
+
+        const groupValue = group.dieInstanceIds.reduce((s, id) => {
+          const d = allDice.find((die) => die.instanceId === id);
+          return s + (d?.face.value ?? 0);
+        }, 0);
+
+        working = addShields(working, playerId, group.targetCharacterId, groupValue, events);
       }
-      const ownerId = ownerOf(state, targetCharacterId);
-      if (ownerId !== playerId) {
-        throw new IllegalActionError('shields can only be placed on your own characters');
-      }
-      working = addShields(working, playerId, targetCharacterId, totalValue, events);
       break;
     }
+
     case 'resource': {
       working = adjustResources(working, playerId, +totalValue);
       events.push({ type: 'resources.gained', payload: { playerId, amount: totalValue } });
       break;
     }
+
     case 'disrupt': {
       const oppId = state.playerOrder.find((p) => p !== playerId);
       if (!oppId) throw new Error('disrupt: no opponent in playerOrder');
@@ -233,12 +234,12 @@ export function applyResolveDice(
     }
   }
 
-  // Pay the dice costs and remove the resolved dice from the player's
-  // pool. Defeated characters in dealDamage may have already removed
-  // *their* dice from the pool — re-fetch the player.
+  // Pay the dice costs and remove all resolved dice from the player's pool.
+  // dealDamage may have already removed dice belonging to defeated characters;
+  // re-fetch the player from working state.
   const post = working.players[playerId];
   if (!post) throw new Error(`resolver lost track of player ${playerId}`);
-  const removed = new Set(dieInstanceIds);
+  const removed = new Set(allDieInstanceIds);
   const remainingDice = post.diceInPool.filter((d) => !removed.has(d.instanceId) && !d.transient);
   const finalPlayer: PlayerState = {
     ...post,
@@ -251,12 +252,10 @@ export function applyResolveDice(
     consecutivePasses: 0,
   };
 
-  // If dealing damage already ended the game, skip triggers + rotation.
   if (finalState.winnerId !== null) {
     return { state: finalState, events };
   }
 
-  // After triggers: scan the emitted events for after-trigger matches.
   const afterCandidates = collectAfterTriggers(finalState, events);
   finalState = commitTriggers(finalState, afterCandidates);
 

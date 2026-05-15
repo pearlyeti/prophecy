@@ -111,8 +111,7 @@ describe('(a) before-trigger modifies a damage event', () => {
     const { state: after, events } = applyAction(state, {
       type: 'resolve-dice',
       playerId: pid,
-      dieInstanceIds: [die.instanceId],
-      targetCharacterId: oppChar,
+      targets: [{ dieInstanceIds: [die.instanceId], targetCharacterId: oppChar }],
     });
 
     // Before trigger fired: 2 shields added, then 3 melee damage → 1 net
