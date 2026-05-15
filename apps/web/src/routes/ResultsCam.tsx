@@ -24,7 +24,8 @@ const DIE_HALF        = 0.42;
 const FLOOR_Y         = -1.8;
 const SETTLE_VEL      = 0.07;
 const SETTLE_SECS     = 0.45;
-const FORCE_SETTLE_MS = 3000;
+const FORCE_SETTLE_MS = 3000;  // dice always settled by 3 s
+const AUTO_DISMISS_MS = 5000;  // overlay closes at 5 s; tap skips early
 
 // ── Camera ────────────────────────────────────────────────────────────────────
 const CAM_POS: [number, number, number] = [0, 5, 4];
@@ -329,9 +330,10 @@ export default function ResultsCam({ diceCount, cardColor, charId, dice, onDismi
   const settledCount = useRef(0);
 
   useEffect(() => {
-    const t = setTimeout(() => { setForceSettle(true); setSettled(true); }, FORCE_SETTLE_MS);
-    return () => clearTimeout(t);
-  }, []);
+    const settle = setTimeout(() => { setForceSettle(true); setSettled(true); }, FORCE_SETTLE_MS);
+    const dismiss = setTimeout(() => { setDismissing(true); setTimeout(onDismiss, 300); }, AUTO_DISMISS_MS);
+    return () => { clearTimeout(settle); clearTimeout(dismiss); };
+  }, [onDismiss]);
 
   const recentEvents = useApp((s) => s.recentEvents);
   const rolledDice = useMemo(() => {
@@ -423,12 +425,6 @@ export default function ResultsCam({ diceCount, cardColor, charId, dice, onDismi
         </div>
       )}
 
-      <div
-        className="relative z-10 mb-8 w-full text-center transition-opacity duration-700"
-        style={{ opacity: settled ? 1 : 0, pointerEvents: 'none' }}
-      >
-        <p className="text-sm font-medium tracking-widest text-white/50">TAP TO CONTINUE</p>
-      </div>
     </div>
   );
 }
