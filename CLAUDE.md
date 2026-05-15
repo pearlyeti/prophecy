@@ -25,13 +25,15 @@ Most work in this repo is handed off as a **task card** — a self-contained ent
 When the user hands you a task code (e.g. `ENGINE-2`, `WEB-1`), follow this protocol:
 
 1. **Find the card.** Read its full entry under "Up next — task cards" in `TODO.md`. If a `Depends on:` line points to an unfinished card, stop and ask the user before proceeding.
-2. **Claim it.** Move the card line into `TODO.md`'s "In progress" subsection with today's date.
-3. **Load only the listed files.** The card's "Context to load" section is the contract for context — load those, plus what they transitively reveal. Don't grep the codebase for general "understanding" outside the card's scope.
-4. **Stay strictly in scope.** If you find related work that doesn't fit, surface it to the user and propose a new card — don't bundle it in. Scope creep is the #1 way a fresh context burns tokens for no value.
-5. **Run the listed checks.** "Done when" gates completion. Don't claim done if anything's red. For UI cards, "manual smoke" means actually run the dev server and verify in a browser — typecheck does not prove a feature works.
-6. **Close out in TODO.md.** Move the card from "In progress" to "Done" with today's date and a one-line summary. Don't leave stale "In progress" entries behind.
-7. **Commit, then backfill the hash.** Stage everything (including the README close-out) and commit. Then edit the Done entry to append the resulting short hash in backticks at the end of the line — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. The hash is non-negotiable for traceability; every Done entry must end up with one.
-8. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
+2. **Check for conflicts.** Read the full "In progress" section of `TODO.md`. Compare the "Context to load" files of every in-progress card against this card's files. If there is any overlap, stop and report it to the user — do not claim the card. Multiple sessions may be running concurrently; `TODO.md` is the coordination layer.
+3. **Claim it.** Move the card line into `TODO.md`'s "In progress" subsection with today's date.
+4. **Load only the listed files.** The card's "Context to load" section is the contract for context — load those, plus what they transitively reveal. Don't grep the codebase for general "understanding" outside the card's scope.
+5. **Stay strictly in scope.** If you find related work that doesn't fit, surface it to the user and propose a new card — don't bundle it in. Scope creep is the #1 way a fresh context burns tokens for no value.
+6. **Run the listed checks.** "Done when" gates completion. Don't claim done if anything's red. For UI cards, "manual smoke" means actually run the dev server and verify in a browser — typecheck does not prove a feature works.
+7. **Merge cleanly.** Before merging your branch to `main`: run `git fetch origin && git rebase origin/main`, re-run all "Done when" checks, then merge. If the rebase has conflicts, stop and report to the user.
+8. **Close out in TODO.md.** Move the card from "In progress" to "Done" with today's date and a one-line summary. Don't leave stale "In progress" entries behind.
+9. **Commit, then backfill the hash.** Stage everything (including the README close-out) and commit. Then edit the Done entry to append the resulting short hash in backticks at the end of the line — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. The hash is non-negotiable for traceability; every Done entry must end up with one.
+10. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
 
 Cards are sized for one focused session — roughly 200–500 lines of changes including tests. If a card feels much bigger than that once you've loaded the files, that's a signal: flag it and propose splitting before you start writing code.
 
