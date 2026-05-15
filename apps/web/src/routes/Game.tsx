@@ -1692,7 +1692,7 @@ function BattlefieldRow({
               shields={char.shields}
               eligible={eligible}
               pendingExhaust={isActivating}
-              targetRing={targetRing}
+              {...(targetRing ? { targetRing } : {})}
               onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
             />
