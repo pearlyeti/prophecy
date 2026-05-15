@@ -1434,7 +1434,7 @@ function BattleZone({
     <>
       <section className={`flex h-full w-full flex-col ${className}`} aria-label="Battle zone">
         {/* 1 ── Avatar bar */}
-        <AvatarBar game={game} playerId={playerId} isMyTurn={isMyTurn} onOpenActionPanel={onOpenActionPanel} />
+        <AvatarBar game={game} playerId={playerId} catalogById={catalogById} isMyTurn={isMyTurn} onOpenActionPanel={onOpenActionPanel} />
 
         {/* 2 ── Opponent zone (placeholder — WEB-12 fills this in) */}
         <OpponentZone
@@ -1483,15 +1483,17 @@ function BattleZone({
   );
 }
 
-/** Shows player/opponent names, resources, deck counts, phase, and the ⚡ action button. */
+/** Top bar: player info (left) | battlefield card + ⚡ (center) | opponent info (right). */
 function AvatarBar({
   game,
   playerId,
+  catalogById,
   isMyTurn,
   onOpenActionPanel,
 }: {
   game: GameState;
   playerId: string;
+  catalogById: Map<string, Card>;
   isMyTurn: boolean;
   onOpenActionPanel: () => void;
 }) {
@@ -1503,25 +1505,48 @@ function AvatarBar({
   const oppPlayer = opponentId ? game.players[opponentId] : null;
   const inActionPhase = game.phase === 'action';
 
+  // Battlefield card — battlefieldCardId is a catalog ID, look up directly
+  const controllerId = game.battlefieldControllerId;
+  const controllerIsMe = controllerId === playerId;
+  const bfCatalogId = myPlayer?.battlefieldCardId ?? oppPlayer?.battlefieldCardId ?? null;
+  const bfCard = bfCatalogId ? catalogById.get(bfCatalogId) : null;
+
   const phaseLabel =
-    game.phase === 'action' ? `R${game.roundNumber} · ${isMyTurn ? 'your turn' : 'their turn'}`
+    game.phase === 'action' ? `R${game.roundNumber}`
     : game.phase === 'upkeep' ? 'Upkeep'
     : game.phase === 'setup' ? 'Setup'
     : 'Ended';
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-neutral-800 px-3 py-2">
-      {/* Player side */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* ── Player (left) ── */}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-sm font-semibold text-neutral-100">{me?.displayName ?? 'You'}</span>
         <span className="text-[11px] text-neutral-400">
-          💰 {myPlayer?.resources ?? 0} · 🂠 {myPlayer?.deck.length ?? 0}
+          💰 {myPlayer?.resources ?? 0}
+          <span className="mx-1 text-neutral-700">·</span>
+          🂠 {myPlayer?.deck.length ?? 0}
+          {(myPlayer?.discard.length ?? 0) > 0 && (
+            <span className="ml-1 text-neutral-600">({myPlayer!.discard.length} disc)</span>
+          )}
         </span>
       </div>
 
-      {/* Center: phase + ⚡ */}
-      <div className="flex shrink-0 flex-col items-center gap-1">
-        <span className="text-[10px] uppercase tracking-wider text-neutral-500">{phaseLabel}</span>
+      {/* ── Battlefield card + phase + ⚡ (center) ── */}
+      <div className="flex shrink-0 flex-col items-center gap-0.5">
+        <div className="flex items-center gap-1">
+          {/* Controller indicator — dot tilts toward the controlling side */}
+          <span className={`text-[8px] ${controllerIsMe ? 'text-emerald-400' : 'text-neutral-500'}`}>
+            {controllerIsMe ? '◀' : ''}
+          </span>
+          <span className="max-w-[80px] truncate text-center text-[10px] font-medium text-neutral-300">
+            {bfCard?.name ?? '—'}
+          </span>
+          <span className={`text-[8px] ${!controllerIsMe && controllerId ? 'text-emerald-400' : 'text-neutral-500'}`}>
+            {!controllerIsMe && controllerId ? '▶' : ''}
+          </span>
+        </div>
+        <span className="text-[9px] uppercase tracking-wider text-neutral-600">{phaseLabel}</span>
         {isMyTurn && inActionPhase && (
           <button
             type="button"
@@ -1534,11 +1559,15 @@ function AvatarBar({
         )}
       </div>
 
-      {/* Opponent side */}
-      <div className="flex min-w-0 flex-1 flex-col items-end">
+      {/* ── Opponent (right) ── */}
+      <div className="flex min-w-0 flex-1 flex-col items-end gap-0.5">
         <span className="truncate text-sm font-semibold text-neutral-100">{opponent?.displayName ?? '…'}</span>
         <span className="text-[11px] text-neutral-400">
-          🂠 {oppPlayer?.hand.length ?? 0} · 🂠 {oppPlayer?.deck.length ?? 0}
+          💰 {oppPlayer?.resources ?? 0}
+          <span className="mx-1 text-neutral-700">·</span>
+          🂠 {oppPlayer?.hand.length ?? 0} hand
+          <span className="mx-1 text-neutral-700">·</span>
+          🂠 {oppPlayer?.deck.length ?? 0}
         </span>
       </div>
     </div>
