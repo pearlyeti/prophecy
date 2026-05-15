@@ -1861,20 +1861,28 @@ function InlineHandStrip({
   getDragHandlers: (info: DragCardInfo) => DragHandlers;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const activeFlow = useApp((s) => s.activeFlow);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
   const me = game.players[playerId];
   const hand = me?.hand ?? [];
   const legal = isMyTurn ? getLegalActions(game, playerId) : null;
+  const pickingCardForReroll = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-card';
 
   const handleTap = (id: string) => {
-    if (expandedId === id) {
-      setExpandedId(null);
-    } else {
-      setExpandedId(id);
+    if (pickingCardForReroll) {
+      // Select this card to discard, advance to pick-dice step
+      setActiveFlow({ kind: 'reroll', step: 'pick-dice', discardCardId: id, selectedDieIds: [] });
+      return;
     }
+    if (expandedId === id) setExpandedId(null);
+    else setExpandedId(id);
   };
 
   return (
-    <div className="shrink-0 border-t border-neutral-800 bg-neutral-950">
+    <div className={`shrink-0 border-t bg-neutral-950 ${pickingCardForReroll ? 'border-amber-700' : 'border-neutral-800'}`}>
+      {pickingCardForReroll && (
+        <div className="px-3 pt-1.5 text-[10px] font-medium text-amber-400">Choose a card to discard:</div>
+      )}
       {hand.length === 0 ? (
         <div className="px-3 py-2 text-[11px] text-neutral-600">Hand empty</div>
       ) : (
@@ -1882,7 +1890,7 @@ function InlineHandStrip({
           {hand.map((id) => {
             const cost = game.cardCosts[id] ?? 0;
             const affordable = (me?.resources ?? 0) >= cost;
-            const eligible = isMyTurn && affordable && (legal?.canPlayCard ?? false);
+            const eligible = !pickingCardForReroll && isMyTurn && affordable && (legal?.canPlayCard ?? false);
             const catalogId = game.cardCatalogIds[id];
             const card = catalogId ? catalogById.get(catalogId) : undefined;
             const isExpanded = expandedId === id;
@@ -1897,7 +1905,7 @@ function InlineHandStrip({
                 onClick={() => handleTap(id)}
                 {...(dragHandlers ?? {})}
                 className={`shrink-0 flex flex-col overflow-hidden rounded-lg border bg-neutral-900 text-left transition-all duration-150 ${
-                  eligible ? 'border-emerald-600' : 'border-neutral-700'
+                  pickingCardForReroll ? 'border-amber-600' : eligible ? 'border-emerald-600' : 'border-neutral-700'
                 }`}
                 style={{ width: isExpanded ? 180 : 80, minHeight: 44 }}
                 aria-pressed={isExpanded}
@@ -1962,18 +1970,21 @@ function ActionBar({
   if (game.phase === 'ended') return null;
   if (!inActionPhase) return <div className="shrink-0 h-[60px] border-t border-neutral-800" />;
 
-  // Derive commit button label from active flow
+  const myPlayer = game.players[playerId];
+  const canStartReroll = isMyTurn && !activeFlow &&
+    (myPlayer?.hand.length ?? 0) > 0 &&
+    (myPlayer?.diceInPool.length ?? 0) > 0;
+
   const commitLabel = (() => {
     if (!activeFlow) return 'Pass';
     if (activeFlow.kind === 'activate') return 'Roll Dice';
     if (activeFlow.kind === 'claim') return 'Claim';
+    if (activeFlow.kind === 'reroll') {
+      if (activeFlow.step === 'pick-card') return 'Cancel';
+      return activeFlow.selectedDieIds.length > 0 ? 'Reroll' : 'Skip reroll';
+    }
     if (activeFlow.kind === 'resolve') {
       const sym = activeFlow.symbol;
-      const total = activeFlow.selectedDieIds.reduce((sum, id) => {
-        // value is computed from game state — use 0 as fallback; actual values shown by dice tiles
-        return sum;
-      }, 0);
-      void total;
       if (sym === 'melee' || sym === 'ranged') return 'Deal damage';
       if (sym === 'indirect') return 'Deal indirect damage';
       if (sym === 'shield') return 'Gain shields';
@@ -1987,10 +1998,7 @@ function ActionBar({
   })();
 
   const handleCommit = () => {
-    if (!activeFlow) {
-      setConfirmPass(true);
-      return;
-    }
+    if (!activeFlow) { setConfirmPass(true); return; }
     if (activeFlow.kind === 'activate') {
       send({ type: 'activate', playerId, cardId: activeFlow.charId });
       setActiveFlow(null);
@@ -2001,9 +2009,21 @@ function ActionBar({
       setActiveFlow(null);
       return;
     }
+    if (activeFlow.kind === 'reroll') {
+      if (activeFlow.step === 'pick-card') { setActiveFlow(null); return; } // Cancel
+      // Dispatch reroll (0 dice = valid "cycle a card" action)
+      send({
+        type: 'reroll-dice',
+        playerId,
+        discardCardId: activeFlow.discardCardId!,
+        dieInstanceIds: activeFlow.selectedDieIds,
+      });
+      setActiveFlow(null);
+      return;
+    }
     if (activeFlow.kind === 'resolve') {
       const needsTarget = activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield';
-      if (needsTarget && !activeFlow.targetCharacterId) return; // commit disabled until target chosen
+      if (needsTarget && !activeFlow.targetCharacterId) return;
       send({
         type: 'resolve-dice',
         playerId,
@@ -2016,12 +2036,19 @@ function ActionBar({
     setActiveFlow(null);
   };
 
-  const handleUndo = () => setActiveFlow(null);
+  const handleUndo = () => {
+    if (activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice') {
+      // Walk back to card-picker step
+      setActiveFlow({ kind: 'reroll', step: 'pick-card', discardCardId: null, selectedDieIds: [] });
+    } else {
+      setActiveFlow(null);
+    }
+  };
 
   return (
     <>
       <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-3 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
-        {/* Undo — visible when a flow is active */}
+        {/* Left slot: Undo when flow active, or "Discard to reroll" when idle */}
         {activeFlow ? (
           <button
             type="button"
@@ -2029,6 +2056,14 @@ function ActionBar({
             className="min-h-[44px] rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-400 hover:border-neutral-500 active:bg-neutral-800"
           >
             Undo
+          </button>
+        ) : canStartReroll ? (
+          <button
+            type="button"
+            onClick={() => setActiveFlow({ kind: 'reroll', step: 'pick-card', discardCardId: null, selectedDieIds: [] })}
+            className="min-h-[44px] rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-400 hover:border-neutral-500 active:bg-neutral-800"
+          >
+            Discard to reroll
           </button>
         ) : (
           <div className="flex-1" />
@@ -2042,14 +2077,17 @@ function ActionBar({
             type="button"
             onClick={handleCommit}
             disabled={
-              activeFlow?.kind === 'resolve' &&
-              (activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield') &&
-              !activeFlow.targetCharacterId
+              (activeFlow?.kind === 'resolve' &&
+                (activeFlow.symbol === 'melee' || activeFlow.symbol === 'ranged' || activeFlow.symbol === 'shield') &&
+                !activeFlow.targetCharacterId) ||
+              (activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice' && !activeFlow.discardCardId)
             }
             className={`min-h-[44px] rounded-xl border px-6 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              activeFlow
+              activeFlow && activeFlow.kind !== 'reroll'
                 ? 'border-emerald-700 bg-emerald-900 text-emerald-50 hover:bg-emerald-800'
-                : 'border-neutral-700 bg-neutral-900 text-neutral-100 hover:border-neutral-500'
+                : activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice'
+                  ? 'border-amber-700 bg-amber-900 text-amber-50 hover:bg-amber-800'
+                  : 'border-neutral-700 bg-neutral-900 text-neutral-100 hover:border-neutral-500'
             } active:opacity-80`}
           >
             {commitLabel}
@@ -2213,11 +2251,21 @@ function DiceStack({
   // Reroll path still uses selectionMode
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
 
-  const inRerollMode = selectionMode?.kind === 'reroll';
+  const inRerollPickDice = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice';
+  const inRerollMode = selectionMode?.kind === 'reroll'; // legacy path, kept for compat
   const inResolveFlow = activeFlow?.kind === 'resolve';
 
   const handleTap = (d: DieInPool) => {
-    // ── Reroll path (WEB-17) ──────────────────────────────────────────────
+    // ── Reroll pick-dice (activeFlow) ─────────────────────────────────────
+    if (inRerollPickDice && activeFlow?.kind === 'reroll') {
+      const isSelected = activeFlow.selectedDieIds.includes(d.instanceId);
+      const next = isSelected
+        ? activeFlow.selectedDieIds.filter((id) => id !== d.instanceId)
+        : [...activeFlow.selectedDieIds, d.instanceId];
+      setActiveFlow({ ...activeFlow, selectedDieIds: next });
+      return;
+    }
+    // ── Reroll path (legacy selectionMode) ───────────────────────────────
     if (inRerollMode) { toggleSelectedDie(d.instanceId); return; }
 
     // ── Resolve path ──────────────────────────────────────────────────────
@@ -2255,7 +2303,12 @@ function DiceStack({
         let tileClass = 'border-neutral-700 bg-neutral-900 text-neutral-300';
         let disabled = false;
 
-        if (inResolveFlow && activeFlow?.kind === 'resolve') {
+        if (inRerollPickDice && activeFlow?.kind === 'reroll') {
+          const isSelected = activeFlow.selectedDieIds.includes(d.instanceId);
+          tileClass = isSelected
+            ? 'border-amber-500 bg-amber-950 text-amber-100 ring-2 ring-amber-500'
+            : 'border-amber-600/50 bg-neutral-900 text-neutral-300 ring-1 ring-amber-600/30';
+        } else if (inResolveFlow && activeFlow?.kind === 'resolve') {
           const flow = activeFlow;
           const isSelected = flow.selectedDieIds.includes(d.instanceId);
           const canAdd = !isSelected && canSelectDie(d, flow.symbol as DieSymbol);
@@ -2276,7 +2329,7 @@ function DiceStack({
           tileClass = 'border-emerald-500 bg-neutral-900 text-neutral-300 ring-1 ring-emerald-500/50';
         }
 
-        const interactive = diceInteractive || inRerollMode || inResolveFlow;
+        const interactive = diceInteractive || inRerollMode || inResolveFlow || inRerollPickDice;
         const tile = (
           <div
             className={`flex ${tileSize} flex-col items-center justify-center rounded border ${tileText} uppercase ${tileClass}`}

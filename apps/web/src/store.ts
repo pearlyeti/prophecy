@@ -27,11 +27,16 @@ export type ActiveFlow =
   | { readonly kind: 'claim' }
   | {
       readonly kind: 'resolve';
-      /** Locked die symbol — all selected dice must match this. */
       readonly symbol: string;
       readonly selectedDieIds: readonly string[];
-      /** Target character for melee/ranged damage or shields. null = not yet chosen. */
       readonly targetCharacterId: string | null;
+    }
+  | {
+      readonly kind: 'reroll';
+      /** 'pick-card': player choosing which card to discard. 'pick-dice': choosing dice to reroll. */
+      readonly step: 'pick-card' | 'pick-dice';
+      readonly discardCardId: string | null;
+      readonly selectedDieIds: readonly string[];
     };
 
 export type SelectionMode =
