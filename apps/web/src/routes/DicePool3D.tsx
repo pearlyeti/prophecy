@@ -5,7 +5,7 @@
 // Architecture: one Canvas per player zone (not per die) — a single
 // WebGL context per zone keeps the context count low (browsers cap at ~16).
 
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -18,8 +18,21 @@ import { useApp, type SelectionMode } from '../store.js';
 const DIE_SIZE = 0.8;           // world units
 const DIE_RADIUS = 0.12;        // chamfer radius — matches physical dice
 const DIE_SPACING = 1.05;       // center-to-center spacing
-const CANVAS_HEIGHT_PX = 56;    // px — die (40px equivalent) + breathing room
-const BASE_ZOOM = 46;           // orthographic pixels-per-world-unit at rest
+const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch more vertical space
+
+// Camera position: mostly overhead (-Y toward dice) with a slight lean toward
+// the bottom-left of the screen (-X = left, +Z = toward viewer/bottom).
+// ~29° from straight-down gives "overhead but clearly 3D."
+const CAM_POS: [number, number, number] = [-0.7, 2.2, 1.0];
+const CAM_FOV = 40;
+
+// Points the camera at the dice origin after mount.
+// r3f positions the camera but doesn't auto-aim it for perspective cameras.
+function CameraLookAt() {
+  const { camera } = useThree();
+  useEffect(() => { camera.lookAt(0, 0, 0); }, [camera]);
+  return null;
+}
 
 const CARD_COLORS: Record<string, { bg: string; text: string }> = {
   red:    { bg: '#ef4444', text: '#ffffff' },
@@ -134,9 +147,9 @@ function Die3D({
   );
   useEffect(() => () => { texture.dispose(); }, [texture]);
 
-  // Display tilt — looks like a die resting on a table viewed from above-right.
-  // Frozen during tumble so the animation starts from a neutral pose.
-  const rotation: [number, number, number] = isTumbling ? [0, 0, 0] : [0.26, 0.17, 0];
+  // No baked rotation — the camera angle provides all the depth perspective.
+  // During tumble the die spins freely; at rest it sits flat, face-up.
+  const rotation: [number, number, number] = [0, 0, 0];
 
   // Emissive tint communicates selection / eligibility without changing geometry.
   const emissive =
@@ -253,9 +266,6 @@ export default function DicePool3D({
 
   const { bg: baseColor, text: textColor } = CARD_COLORS[cardColor ?? ''] ?? FALLBACK_COLOR;
 
-  // Adaptive orthographic zoom: shrink to fit when many dice are in the pool.
-  const zoom = Math.min(BASE_ZOOM, 88 / Math.max(1, dice.length * DIE_SPACING));
-
   // Horizontal centering: spread dice around origin.
   const xStart = -((dice.length - 1) * DIE_SPACING) / 2;
 
@@ -267,15 +277,15 @@ export default function DicePool3D({
   return (
     <div style={{ width: '100%', height: CANVAS_HEIGHT_PX }}>
       <Canvas
-        orthographic
-        camera={{ zoom, position: [0, 0, 10], near: 0.1, far: 100 }}
+        camera={{ position: CAM_POS, fov: CAM_FOV, near: 0.1, far: 50 }}
         style={{ width: '100%', height: '100%' }}
         gl={{ alpha: true, antialias: true }}
         dpr={Math.min(window.devicePixelRatio, 2)}
       >
-        {/* Lighting: ambient fill + directional from above-right for chamfer depth */}
-        <ambientLight intensity={0.55} />
-        <directionalLight position={[2, 4, 3]} intensity={0.85} castShadow={false} />
+        <CameraLookAt />
+        {/* Lighting: ambient fill + directional from upper-left-front to match camera angle */}
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[-2, 5, 2]} intensity={0.9} castShadow={false} />
 
         {dice.map((d, i) => {
           const isTumbling = tumblingCharId != null && d.ownerInstanceId === tumblingCharId;
