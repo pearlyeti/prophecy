@@ -97,13 +97,18 @@ export function Game() {
       data-droptarget="play"
       className={`flex h-dvh flex-col overflow-hidden ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
     >
-      {/* ── Setup / ended banners ─────────────────────────────────── */}
-      {ended && <EndedBanner game={game} playerId={playerId} />}
+      {/* ── Setup modal ──────────────────────────────────────────── */}
       {!ended && game.phase === 'setup' && (
-        <div className="shrink-0 overflow-y-auto" style={{ maxHeight: '42%' }}>
-          <SetupPanel game={game} playerId={playerId} send={send} />
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative z-10 w-full max-w-md overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl" style={{ maxHeight: '80dvh' }}>
+            <SetupPanel game={game} playerId={playerId} send={send} />
+          </div>
         </div>
       )}
+
+      {/* ── Ended banner ─────────────────────────────────────────── */}
+      {ended && <EndedBanner game={game} playerId={playerId} />}
 
       {/* ── Actions overlay ──────────────────────────────────────── */}
       {actionPanelOpen && !ended && game.phase === 'action' && !selectionMode && (
