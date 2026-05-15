@@ -24,6 +24,222 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 ### Up next — task cards
 
+---
+> **Mobile-first redesign — WEB-11 through WEB-19.**
+> These cards collectively replace the current side-by-side BattleZone with a full mobile-first layout and a complete turn interaction system. Pick them up in order; each depends on the previous. WEB-4, WEB-5, and WEB-6 are superseded by this series and should be skipped.
+---
+
+#### WEB-11 — Mobile-first layout shell
+**Why now.** The current layout is side-by-side (player left / opponent right), designed for desktop. The new design is top-to-bottom, built for 360pt phone screens first. This card lays the structural skeleton all subsequent cards build on.
+
+**Scope.**
+- Replace the `<section>` in `BattleZone` with a new top-to-bottom flex-col shell. Seven named regions stacked vertically, each a clearly labelled sub-component placeholder (real content lands in later cards):
+  1. `AvatarBar` — player avatar + resources + deck count (left) | battlefield card (center, tilts toward controller) | opponent avatar + hand count + deck count (right). Use the existing `opponentName`, resource count, and deck count already on game state. Battlefield card renders the card name and a subtle tilt indicator. ⚡ action button lives here for now, right of battlefield card.
+  2. `OpponentZone` — placeholder `<div>` labelled "Opponent cards".
+  3. `PlayerZone` — placeholder `<div>` labelled "Your cards".
+  4. `HandStrip` — compact always-visible strip. Each card in hand shows: small art swatch (color gradient by type), card name truncated, cost badge. Tapping a card toggles an inline expansion showing the full ability text below the strip row. No overlay — it expands in place and pushes content below it down. Eligible-to-play cards (cost ≤ resources, your turn, action phase) get a green border.
+  5. `ActionBar` — two-button bar pinned to the bottom. Left: Undo button (disabled/hidden when no reversible action is pending). Right: Commit button (label = "Pass" by default). "Pass" shows a confirmation dialog ("Pass your turn?") before dispatching. No other logic yet — those come in WEB-14/15.
+- Remove the existing `max-w-sm` / `max-w-2xl` width caps; let the layout use full viewport width.
+- Remove the existing `HandStrip` fixed-position footer and the `showHandStrip` spacer div — the new HandStrip is part of the natural flow.
+- Remove the `SelectionActionBar` for now (it comes back in WEB-14 as the ActionBar).
+- Keep `BattleZone` as the component name; just gut and replace its internals.
+- The existing `DiceStack`, `CharacterCard`, `CharStatsRow`, `distributeToRows` helpers remain in the file — they'll be used by WEB-12. Don't delete them.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (full file — BattleZone, HandStrip, SelectionActionBar, Game layout)
+- `packages/game-engine/src/state/types.ts` (GameState, PlayerState — resource count, hand, deck, battlefield)
+- `packages/protocol/src/catalog.ts` (Card shape — for battlefield card name lookup)
+
+**Out of scope.** Real character/dice rendering (WEB-12). Highlight system (WEB-14). Activation/resolution flows (WEB-15–18). Avatar images.
+
+**Done when.** Typecheck clean. Manual smoke: on a 360px-wide viewport, all seven regions are visible and stacked top-to-bottom without overflow; hand strip shows real card names and costs; tapping a hand card expands it in place to show ability text; Pass button shows a confirmation dialog; Undo is disabled.
+
+---
+
+#### WEB-12 — Dynamic battlefield columns
+**Why now.** Characters and their dice need to display in the OpponentZone and PlayerZone introduced by WEB-11. The column width adapts to each character's dice count so 44pt dice tiles always fit.
+
+**Scope.**
+- **Column width formula.** Each character (and support) gets a column. Column width = `max(3, diceCount) × 44 + gaps`, capped at the viewport width divided by 1 (minimum — a character always gets at least one column). In practice 3 dice = ~140pt column; characters with 0–1 dice (most supports) get a 1-die minimum column (~44pt + padding).
+- **Row packing.** Pack characters left-to-right into a row until adding the next character's column would exceed the available width. Start a new row. Distribute remaining characters across rows with more in front rows (existing `distributeToRows` logic, but now column-width-aware rather than count-capped).
+- **Per-row layout.** Each row is a horizontal flex container. Each character cell is a `flex-col` with `width` set to the computed column width (not flex-1). Within a cell:
+  - *Player cell* (PlayerZone): dice band on top (44pt tiles, `flex-row flex-wrap`), card below, HP/shield row below that.
+  - *Opponent cell* (OpponentZone): HP/shield row on top, card below, dice band on bottom.
+- **Dice tiles.** 44×44pt touch targets. Each tile shows the symbol label and value. Opponent dice are read-only (no tap handler). Use existing die tile markup but enforce 44pt min-width and min-height.
+- **Support cards.** Follow character cards in the same row-packing system. Supports typically have 0–1 dice; give them a 1-die-wide column (no special treatment needed — the formula handles it).
+- **Front row placement.** For PlayerZone: front row (most characters) is the topmost row in the zone (closest to opponent). For OpponentZone: front row is the bottommost row (closest to player). Use `justify-end` on the OpponentZone flex-col so rows stack from the bottom up.
+- Wire `myRows` / `oppRows` computed from the new packing logic into `PlayerZone` and `OpponentZone`.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (BattleZone, CharacterCard, DiceStack, CharStatsRow, distributeToRows — all already in file)
+- `packages/game-engine/src/state/types.ts` (CharacterState, PlayerState.characterOrder, diceInPool)
+
+**Out of scope.** Support card state (ENGINE-S1). Green highlights (WEB-14). Interactive dice tap (WEB-15). Card ability badges (WEB-19).
+
+**Depends on.** WEB-11.
+
+**Done when.** Typecheck clean. Manual smoke: start a game with 2–3 characters per side; columns are wide enough that dice tiles are ≥44pt; player dice appear above their card, opponent dice appear below; support cards (if any in seed data) appear after character cards; front rows sit closest to the center of the board.
+
+---
+
+#### WEB-13 — Avatar bar: resources, deck count, battlefield card
+**Why now.** The AvatarBar placeholder from WEB-11 needs real data. Players need to see their resources, deck size, and who controls the battlefield at a glance.
+
+**Scope.**
+- **Player side (left).** Display name (truncated), resource count (coin icon + number), deck count (card stack icon + number), discard count (small). Use `myPlayer.resources`, `myPlayer.deck.length`, `myPlayer.discard.length` from game state.
+- **Opponent side (right).** Display name, hand count (hidden card backs icon + number), deck count, resource count. Use `oppPlayer.hand.length`, `oppPlayer.deck.length`, `oppPlayer.resources`.
+- **Battlefield card (center).** Look up the battlefield card name from the catalog (already fetched — use `game.cardCatalogIds` + `catalogById`). Show the name and a small indicator of who controls it (dot or arrow tilted toward the controlling player's side). No art — just text and indicator for now.
+- **⚡ action button.** Keep it in the AvatarBar for now, to the right of the battlefield card. Opens the existing `ActionPanel` overlay (unchanged). This button is removed in a later card once all actions are surfaced directly on the board.
+- Remove the existing header `<header>` from `Game.tsx` (it currently shows names and the ⚡ button) — all that info is now in AvatarBar.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (Game component header, AvatarBar placeholder from WEB-11, ActionPanel)
+- `packages/game-engine/src/state/types.ts` (PlayerState — resources, deck, hand, discard)
+
+**Out of scope.** Avatar images. Battlefield claim ability text. Opponent resource hiding (resources are open information per rules).
+
+**Depends on.** WEB-11.
+
+**Done when.** Typecheck clean. Manual smoke: AvatarBar shows correct resource counts, deck sizes, and hand count for both players; battlefield card name is visible; ⚡ button opens the action panel; old header is gone.
+
+---
+
+#### WEB-14 — Green highlight system + turn state machine
+**Why now.** The board needs to communicate what's actionable. Everything eligible gets a green highlight; selecting one clears the others. The Commit button label and Undo state derive from this machine.
+
+**Scope.**
+- **Eligible action detection** (runs only on your turn, action phase, no active flow). Call `getLegalActions(game, playerId)` and map results to highlight targets:
+  - `canActivate(cid)` → green ring on that character card.
+  - `canResolve` (any dice in pool) → green ring on each resolvable die tile (non-blank, non-special, non-modifier-only).
+  - `canPlayCard(iid)` → green border on that hand card (already handled by WEB-11 affordability check — unify here).
+  - `canClaimBattlefield` → green ring on the battlefield card in AvatarBar.
+  - Card action abilities (WEB-19, skip for now).
+- **Single active flow.** Add a `activeFlow` field to app state (Zustand): `null | { kind: 'activate' | 'resolve' | 'play' | 'claim' | 'reroll', ... }`. When a player taps a green object, set `activeFlow` — all other green highlights immediately disappear (only the active flow's objects remain highlighted).
+- **Commit button label** derived from `activeFlow`:
+  - `null` → "Pass"
+  - `'activate'` → "Roll Dice"
+  - `'resolve'` → "Deal X damage" / "Gain X shields" / "Gain X resources" / "Disrupt X resources" / "Discard X cards" / "Focus X dice" (symbol-dependent, X = combined value of selected dice)
+  - `'claim'` → "Claim"
+  - `'reroll'` → "Reroll" (after dice selected) or "Discard card" (after card selected, before dice)
+- **Undo.** When `activeFlow` is not null, show the Undo button. Clicking it resets `activeFlow` to null, restores any visual state (un-tilts a character if it was tilted client-side), and returns all highlights to the idle eligible set.
+- **Pass confirmation.** Only shown when Commit is tapped and `activeFlow === null`. Existing confirm dialog from WEB-11 — keep as-is.
+- Wire the new `activeFlow` state into `BattleZone`, `HandStrip`, and `ActionBar`.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (BattleZone, HandStrip, ActionBar from WEB-11/12)
+- `apps/web/src/state/app.ts` (Zustand store — add `activeFlow`)
+- `packages/game-engine/src/legal-actions.ts` (getLegalActions shape)
+
+**Out of scope.** Actual dispatch of actions (WEB-15–18). Opponent-turn highlights. Card ability badges (WEB-19).
+
+**Depends on.** WEB-12.
+
+**Done when.** Typecheck clean. Manual smoke: on your turn, eligible characters glow green, eligible dice glow green, eligible hand cards have green borders, battlefield glows green if claimable; tapping one clears all others; Commit label updates; Undo appears; Undo resets the board to idle highlights.
+
+---
+
+#### WEB-15 — Activation flow + Roll Dice dispatch
+**Why now.** The most common action in the game is activating a character and rolling its dice. This is the first complete action loop.
+
+**Scope.**
+- **Tap ready character (green).** Sets `activeFlow = { kind: 'activate', charId }`. The character card visually tilts (CSS `rotate(6deg)` — same exhausted transform, client-side only until committed). All other green highlights clear.
+- **Tap it again.** If the tapped character is already the `activeFlow.charId`, reset `activeFlow` to null (same as Undo). Character un-tilts.
+- **Undo.** Identical to tapping again — resets flow, un-tilts.
+- **Commit ("Roll Dice").** Dispatch the `activate` action with `charId`. On success the server updates game state: the character exhausts server-side and dice enter the pool. The client-side tilt is replaced by the server-authoritative exhausted state. `activeFlow` resets to null. No confirmation dialog needed.
+- **After activation: dice in pool.** Newly rolled dice appear in the character's dice band. They are immediately highlighted green (part of the idle eligible set — `canResolve` is now true). Player can start a resolve flow on their next tap or take another action if they have extra turns.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (CharacterCard, BattleZone, activeFlow wiring from WEB-14)
+- `apps/web/src/state/app.ts` (activeFlow, send dispatch)
+- `packages/game-engine/src/actions/activate.ts` (action shape)
+
+**Out of scope.** Dice resolution (WEB-16). Support card activation (WEB-19). Animated dice roll.
+
+**Depends on.** WEB-14.
+
+**Done when.** Typecheck clean. Manual smoke: tap a ready character → it tilts, Commit = "Roll Dice"; tap again → un-tilts; tap Commit → dice appear in pool, character shows exhausted, flow resets.
+
+---
+
+#### WEB-16 — Dice resolution flows (damage, shields, resources, disrupt, discard)
+**Why now.** Resolving dice is the core decision loop. This card covers all symbol types except focus and special.
+
+**Scope.**
+- **Tap a die (non-modifier, green).** Sets `activeFlow = { kind: 'resolve', selectedDieIds: [id], lockedSymbol }`. Other dice with the same symbol (non-modifier) remain green. Modifier dice of the same symbol become green (eligible to add). All other dice lose their green highlight.
+- **Tap a modifier die (green after a non-modifier is selected).** Adds it to `selectedDieIds`. A modifier die cannot be the first selection.
+- **Tap a selected die.** Removes it from `selectedDieIds`. If removing the last non-modifier die, also deselect all modifiers and check if any modifier-only selection remains — if so, clear it (modifiers can't stand alone).
+- **Tap a die outside current symbol.** No-op (die is not highlighted, so tap is inert).
+- **Target selection:**
+  - *Melee / Ranged damage* — after at least one die selected, opponent's character cards highlight red. Must tap a target before Commit activates. Each die can target a different character (tap a die, tap a target, tap next die, tap next target — or tap all dice first, all damage goes to one target).
+  - *Indirect damage* — no player-side targeting. Commit = "Deal X indirect damage". After commit, opponent sees a targeting prompt to distribute damage across their characters.
+  - *Shields* — own character cards highlight blue. Tap to target. Commit = "Gain X shields".
+  - *Resource / Disrupt / Discard* — no target needed. Commit activates immediately once dice selected.
+- **Commit labels** (from WEB-14): "Deal X melee/ranged damage", "Deal X indirect damage", "Gain X shields", "Gain X resources", "Disrupt X resources", "Discard X cards". X = combined value of selected dice (sum of values, accounting for modifier addition).
+- **Dispatch.** On Commit, send `resolve-dice` action with `dieInstanceIds` and `targetCharacterId` (if applicable). On success, dice leave the pool, effects apply, `activeFlow` resets.
+- **Indirect damage opponent UX.** When an indirect damage resolution lands (engine emits the event), if the current player is the opponent and their characters need damage distributed: set a local state flag that shows a distribution overlay (tap characters to assign damage, total must equal the value). Simple integer input per character. Confirm closes the overlay. This is client-side only — the engine already handles the distribution; the UX just provides the `targetCharacterId` + amounts.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (DiceStack, BattleZone, activeFlow wiring)
+- `apps/web/src/state/app.ts` (activeFlow shape — extend with targetMap)
+- `packages/game-engine/src/actions/resolve-dice.ts` (action shape, symbol enum)
+- `packages/game-engine/src/legal-actions.ts` (canSelectDie, canResolve)
+
+**Out of scope.** Focus (WEB-17). Special (deferred). Animated damage numbers.
+
+**Depends on.** WEB-15.
+
+**Done when.** Typecheck clean. Manual smoke: tap a melee die → symbol locks, matching dice stay green, modifier of same symbol lights up; tap opponent character → red target; Commit = "Deal X melee damage"; resolves correctly. Repeat for shields (blue target), resource (no target), discard, disrupt. Indirect damage prompts opponent to distribute.
+
+---
+
+#### WEB-17 — Focus flow + claim battlefield + discard-to-reroll
+**Why now.** These three action flows complete the core turn options. Each has a multi-step UX that needs its own slot.
+
+**Scope.**
+- **Focus flow.** Tap focus die(s) → Commit = "Focus X dice". On commit, enter focus mode: X dice in the pool become selectable (tap to cycle through their faces). Each die shows a face-picker (all 6 faces of that die, tap to choose). Once a player has changed at least one face, Commit changes to "End focus". Clicking End focus dispatches `resolve-dice` with the focus dice and the chosen face assignments. Note: focus chaining — if a newly chosen face is also focus, those dice become selectable too. Keep a "remaining focus budget" counter visible.
+- **Claim battlefield flow.** Tap battlefield card in AvatarBar when it's green → `activeFlow = { kind: 'claim' }`. Battlefield card gets a green pulsing ring. Commit = "Claim". On commit, dispatch `claim-battlefield`. No confirmation dialog (it's not destructive to the claiming player). After claim, that player auto-passes; engine handles the auto-pass cascade.
+- **Discard-to-reroll flow.** The left slot of ActionBar (where Undo lives when active) also shows a "Discard to reroll" button when `activeFlow === null` and it's your turn and you have cards in hand and dice in pool. Clicking it expands the HandStrip into a card-chooser mode (all cards highlighted, pick one to discard). Once a card is chosen, Commit = "Discard card". Committing moves to step 2: all dice in pool highlight green. Select any number. Commit = "Reroll". Dispatches `reroll-dice` with the chosen card and dice. Undo at any step walks back one step.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (ActionBar, HandStrip, AvatarBar, activeFlow wiring)
+- `apps/web/src/state/app.ts` (activeFlow — extend with reroll sub-steps, focus state)
+- `packages/game-engine/src/actions/claim.ts` (claim action shape)
+- `packages/game-engine/src/actions/reroll-dice.ts` (reroll action shape)
+- `packages/game-engine/src/actions/resolve-dice.ts` (focus resolution path)
+
+**Out of scope.** Special die resolution (deferred). Focus chaining edge cases beyond the basic loop (flag if discovered, don't solve in this card).
+
+**Depends on.** WEB-16.
+
+**Done when.** Typecheck clean. Manual smoke: focus dice selectable → face picker shows → chaining works for simple case → end focus dispatches correctly. Claim battlefield highlights card → commit claims it and player auto-passes. Discard-to-reroll walks through all three steps correctly with Undo at each step.
+
+---
+
+#### WEB-18 — Card ability badges on in-play cards
+**Why now.** Characters and supports with `Action` abilities need a visible badge on their card in the battlefield. This is the last piece of the core turn interaction surface.
+
+**Scope.**
+- **Badge.** For each in-play character or support whose catalog entry has at least one ability with `kind: 'action'` or `kind: 'powerAction'`, render a circular badge (40×40pt, matching the existing upgrade badge size) on the bottom edge of their card. Use the card's `badgeArtUrl` from the catalog if set; otherwise use a colored circle (card's type color).
+- **Placement.** Same visual layer as upgrade badges but on the opposite corner (bottom-left vs bottom-right), or below the upgrade badge row if needed to avoid overlap.
+- **Green highlight.** When it's your turn and action phase and the ability is usable (not a power action already used, card is ready for actions requiring exhaust), the badge gets a green ring.
+- **Tap.** Tapping a green badge sets `activeFlow = { kind: 'cardAction', cardId, abilityIndex }` and clears all other highlights. Commit = "Use ability" (generic for now — refine once card action UX is designed further). Dispatch `use-card-action` on commit.
+- **Power action tracking.** The engine already tracks used power actions. Read from game state to grey out used power action badges (no green highlight, not tappable).
+- Update `AbilityBuilder.tsx` if any new badge-related field is introduced to the catalog schema.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (CharacterCard, BattleZone, activeFlow)
+- `packages/protocol/src/catalog.ts` (Card, Ability — action/powerAction kinds, badgeArtUrl)
+- `apps/web/src/routes/admin/AbilityBuilder.tsx` (sync if schema changes)
+- `packages/game-engine/src/legal-actions.ts` (use-card-action legality)
+
+**Out of scope.** Rendering the full card action effect chain in the UI (depends on which ops those abilities use). Support card activation badge (supports activate via the main card tap, not the badge — badge is for explicit Action abilities only).
+
+**Depends on.** WEB-17.
+
+**Done when.** Typecheck clean. Manual smoke: a character with an Action ability shows a circle badge; badge highlights green on your turn; tapping it enters the flow; Commit dispatches use-card-action; power action badge greys out after use and stays grey until next round.
+
+---
+
 #### ENGINE-6b — Event-owned dice + cross-card die roll mechanic
 **Why now.** Some events should roll a die into the pool — either the event's own die (events can carry `dieFaces`, a mechanic not possible in the physical game) or a specific card's die by catalog reference (e.g. "Howl at the Moon" rolls a Werewolf die even if Werewolf isn't in the active player's deck). Neither case is handled by the existing pool machinery.
 
@@ -68,6 +284,10 @@ Cards are coded by area: `ENGINE-N` (game-engine), `WEB-N` (apps/web), `SERVER-N
 
 **Done when.** Typecheck clean. Manual smoke: in a live 2-device match, kill one device's network for 30 sec, restore, game continues. Kill it for >60 sec, the remaining player wins.
 
+---
+
+---
+> **WEB-4, WEB-5, and WEB-6 are superseded by the mobile-first redesign (WEB-11–18).** Skip these unless the redesign is reverted.
 ---
 
 #### WEB-4 — Hand panel: real card display, expanded view, play-card integration
@@ -420,6 +640,8 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. Schema stub
 ---
 
 ### Done
+- **2026-05-14 — WEB-12 — Dynamic battlefield columns.** Character cards and dice render in OpponentZone and PlayerZone. ResizeObserver computes max-per-row from container width (2 per row on iPhone). Dice, CharStatsRow, and CharacterCard all wired. Typecheck clean. (`002104c`)
+- **2026-05-14 — WEB-11 — Mobile-first layout shell.** New 5-region top-to-bottom BattleZone: AvatarBar (names, resources, deck counts, ⚡), OpponentZone + PlayerZone placeholders, InlineHandStrip (always-visible compact strip, tap-to-expand ability text, eligible card green border), ActionBar (Pass with confirm dialog). Old fixed-position HandStrip and SelectionActionBar removed. Typecheck clean. (`4a88eb7`)
 - **2026-05-14 — WEB-10 — Battle zone: four-column board layout with CCG card ratio**. `ownerInstanceId?: string` added to `DieInPool` (engine types + activate.ts + reroll-dice.ts). New `BattleZone` component replaces `PlayerSummaries` + `DicePoolStrip` in `Game.tsx`: four-column grid `[player cards][player dice][opp dice][opp cards]` using two 2-column grids per side (9fr:7fr and 7fr:9fr). `CharacterCard` renders CCG-ratio (63/88) tiles with art gradient, health badge, and name scrim; exhausted characters rotate 90° via `transform`. Upgrade badges are 40×40 circular buttons outside the card button (no nested-button violation). `DiceStack` shows vertical die tiles per character, aligned top-edge with the card; tapping a die on your turn enters resolve mode and selects it. `CardDetailOverlay` and `UpgradeDetailOverlay` show full card details. 152 engine tests green; typecheck clean. (`6970602`)
 - **2026-05-14 — WEB-8 — Drag-to-play Pass 1** (`78c03ce`). `useDragToPlay` hook handles touch and mouse globally on document — avoids iOS's "events fire on originating element" limitation. Drag starts after 8px movement or 120ms hold. Affordable cards in hand strip gain `onTouchStart`/`onMouseDown` handlers; others stay tap-only. Floating `DragArtifact` portal follows the finger imperatively via ref (no per-frame setState). Game board (`<main data-droptarget="play">`) glows emerald when card is dragged over it. Release over board plays the card; release elsewhere cancels. Taps still open the expanded overlay. Typecheck clean.
 - **2026-05-14 — WEB-4 — Hand strip, expanded view, play-card integration** (`10d2fc2`). `cardCatalogIds` added to `GameState` (instance-id → catalog-card-id); `newGameFromDecks` populates it for characters + deck cards and now correctly wires `cardCosts` from the catalog. Persistent `HandStrip` at bottom shows compact card tiles with type color band, cost badge, and affordability highlight. Tapping a tile or the Play card / Discard to reroll buttons opens `HandOverlay` — bottom-sheet with scrollable card row and focused-card detail panel (name, type, faction, cost, ability text, die face chips). Long-press / right-click focuses a card for reading. `ActionPanel`'s old inline play-card and reroll target grids removed. 152 engine tests green; workspace typecheck clean.
