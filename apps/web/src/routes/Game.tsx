@@ -1560,6 +1560,7 @@ type ZoneSide = 'player' | 'opponent';
 
 function BattlefieldRow({
   rowIds,
+  totalChars,
   playerState,
   diceByOwner,
   game,
@@ -1571,6 +1572,7 @@ function BattlefieldRow({
   onUpgradeTap,
 }: {
   rowIds: string[];
+  totalChars: number;
   playerState: NonNullable<ReturnType<typeof Object.values<ReturnType<typeof Object.values>>>>[number];
   diceByOwner: Map<string, DieInPool[]>;
   game: GameState;
@@ -1581,6 +1583,8 @@ function BattlefieldRow({
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
+  // 1–2 characters: fill available width. 3+: fixed 92px so 3 fit comfortably.
+  const largeCards = totalChars <= 2;
   return (
     <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
       {rowIds.map((cid) => {
@@ -1589,7 +1593,11 @@ function BattlefieldRow({
         const dice = diceByOwner.get(cid) ?? [];
         const hp = char.health - char.damage;
         return (
-          <div key={cid} className="flex shrink-0 flex-col gap-3" style={{ width: CHAR_COL_WIDTH }}>
+          <div
+            key={cid}
+            className={`flex flex-col gap-3 ${largeCards ? 'min-w-0 flex-1' : 'shrink-0'}`}
+            style={largeCards ? undefined : { width: CHAR_COL_WIDTH }}
+          >
             {side === 'player' && (
               <DiceStack
                 dice={dice}
@@ -1674,6 +1682,7 @@ function OpponentZone({
         <BattlefieldRow
           key={i}
           rowIds={rowIds}
+          totalChars={oppPlayer.characterOrder.length}
           playerState={oppPlayer as any}
           diceByOwner={diceByOwner}
           game={game}
@@ -1722,6 +1731,7 @@ function PlayerZone({
         <BattlefieldRow
           key={i}
           rowIds={rowIds}
+          totalChars={myPlayer.characterOrder.length}
           playerState={myPlayer as any}
           diceByOwner={diceByOwner}
           game={game}
