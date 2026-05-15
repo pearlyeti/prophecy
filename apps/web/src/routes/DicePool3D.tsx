@@ -253,9 +253,14 @@ export default function DicePool3D({
       const isSelected = flow.selectedDieIds.includes(d.instanceId);
       if (isSelected) {
         const next = flow.selectedDieIds.filter((id) => id !== d.instanceId);
-        setActiveFlow(next.length === 0 ? null : { ...flow, selectedDieIds: next });
+        if (next.length === 0 && flow.pendingTargets.length === 0) {
+          setActiveFlow(null);
+        } else {
+          setActiveFlow({ ...flow, selectedDieIds: next });
+        }
       } else {
-        if (canSelectDie3D(d, flow.symbol as DieSymbol)) {
+        const spentIds = new Set(flow.pendingTargets.flatMap(t => [...t.dieInstanceIds]));
+        if (!spentIds.has(d.instanceId) && canSelectDie3D(d, flow.symbol as DieSymbol)) {
           setActiveFlow({ ...flow, selectedDieIds: [...flow.selectedDieIds, d.instanceId] });
         }
       }
@@ -322,7 +327,7 @@ export default function DicePool3D({
         setActiveFlow({ kind: 'face-pick', focuserDieIds: [d.instanceId], budget: d.face.value, history: [], pickingForDieId: null });
         return;
       }
-      setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], targetCharacterId: null });
+      setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], pendingTargets: [] });
     }
   };
 
@@ -360,10 +365,13 @@ export default function DicePool3D({
                      : 'dimmed';
           } else if (inResolveFlow && activeFlow?.kind === 'resolve') {
             const flow = activeFlow;
+            const spentIds = new Set(flow.pendingTargets.flatMap(t => [...t.dieInstanceIds]));
             const isSelected = flow.selectedDieIds.includes(d.instanceId);
-            const canAdd = !isSelected && canSelectDie3D(d, flow.symbol as DieSymbol);
+            const isSpent = spentIds.has(d.instanceId);
+            const canAdd = !isSelected && !isSpent && canSelectDie3D(d, flow.symbol as DieSymbol);
             dieState = isSelected ? 'selected-resolve'
-                     : canAdd    ? 'eligible'
+                     : isSpent    ? 'dimmed'
+                     : canAdd     ? 'eligible'
                      : 'dimmed';
           } else if (inRerollMode) {
             const isSelected = selectionMode!.selectedDieIds.includes(d.instanceId);

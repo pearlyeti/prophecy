@@ -51,7 +51,8 @@ export type ActiveFlow =
       readonly kind: 'resolve';
       readonly symbol: string;
       readonly selectedDieIds: readonly string[];
-      readonly targetCharacterId: string | null;
+      /** Groups already committed — each group targets one character. */
+      readonly pendingTargets: readonly { readonly dieInstanceIds: readonly string[]; readonly targetCharacterId: string }[];
     }
   | {
       readonly kind: 'reroll';
