@@ -638,6 +638,7 @@ function buildLogEntries(
 
   while (i < events.length) {
     const e = events[i];
+    if (!e) { i++; continue; }
     const key = `${i}:${e.type}`;
 
     switch (e.type) {
