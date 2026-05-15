@@ -1,45 +1,47 @@
 // Full-screen physics dice roll overlay — the "Results Cam".
 //
-// Built entirely in Three.js (r3f + drei) — same stack as the board dice.
-// Uses a useFrame-based physics sim (gravity, floor bounce, angular damping)
-// so no extra package is needed. Die faces use the same canvas textures as
-// the board dice, showing the correct Prophecy symbol + value from the
-// server-authoritative character.activated event.
-//
-// Architecture: "sports camera cut".
-//   1. Player commits Roll Dice → activate dispatches to server simultaneously.
-//   2. This overlay fires immediately, dice fall with real-feeling physics.
-//   3. character.activated arrives (usually <100 ms) with the rolled faces.
-//   4. Textures update; when dice settle the face overlay appears.
-//   5. Player taps to dismiss → board already shows correct dice.
+// Each die has 6 different face textures (the actual Prophecy faces for that
+// character's die). Physics rolls freely showing all 6 faces. When the die
+// settles, it slerps to the correct Euler rotation so the server-determined
+// face lands on top — matching what the board shows after the cut.
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
-import type { DieFace } from '@prophecy/game-engine';
+import type { CardDie, DieFace } from '@prophecy/game-engine';
 import { useApp } from '../store.js';
 import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture, symLabel } from '../lib/dieFaceTexture.js';
 
-// ── Physics constants ─────────────────────────────────────────────────────────
-// All damping is time-based (per second) so behaviour is frame-rate independent.
-const GRAVITY         = -22;   // m/s²  — strong pull so dice hit floor fast
-const RESTITUTION     = 0.52;  // bounce fraction on floor/wall impact
-const FLOOR_FRICTION  = 0.60;  // lateral speed retained on floor bounce
-const WALL_RESTITUTION = 0.45; // wall bounce fraction
-const ANG_DAMP_S      = 0.18;  // fraction of angular speed retained per second
-const LIN_DAMP_S      = 0.82;  // fraction of linear speed retained per second (air)
-const DIE_HALF        = 0.42;  // half-width of die body
-const FLOOR_Y         = -1.8;  // world-space Y of floor surface
-const WALL_X          =  4.2;  // ±X walls
-const WALL_Z          =  3.5;  // ±Z walls
-const SETTLE_VEL      = 0.06;  // combined speed threshold for "settled"
-const SETTLE_SECS     = 0.5;   // must stay below threshold for this long
-const FORCE_SETTLE_MS = 3000;  // hard cap — results in ≤3 s no matter what
+// ── Physics constants (all damping is per-second, frame-rate independent) ─────
+const GRAVITY          = -22;
+const RESTITUTION      = 0.50;
+const FLOOR_FRICTION   = 0.58;
+const WALL_RESTITUTION = 0.42;
+const ANG_DAMP_S       = 0.15;   // fraction of angular speed retained per second
+const LIN_DAMP_S       = 0.80;   // fraction of linear speed retained per second
+const DIE_HALF         = 0.42;
+const FLOOR_Y          = -1.8;
+const WALL_X           = 4.2;
+const WALL_Z           = 3.5;
+const SETTLE_VEL       = 0.06;
+const SETTLE_SECS      = 0.5;
+const FORCE_SETTLE_MS  = 3000;
+
+// ── Euler rotation that puts each Box material face on top (+Y world-space) ───
+// Three.js BoxGeometry material order: +X=0, -X=1, +Y=2, -Y=3, +Z=4, -Z=5
+// We map Prophecy face index k → material index k, so face k is on material k.
+const FACE_UP_EULER: [number, number, number][] = [
+  [ 0,             0, -Math.PI / 2],  // mat 0 (+X) → top
+  [ 0,             0,  Math.PI / 2],  // mat 1 (-X) → top
+  [ 0,             0,  0          ],  // mat 2 (+Y) → top (identity)
+  [ Math.PI,       0,  0          ],  // mat 3 (-Y) → top
+  [-Math.PI / 2,   0,  0          ],  // mat 4 (+Z) → top
+  [ Math.PI / 2,   0,  0          ],  // mat 5 (-Z) → top
+];
 
 // ── Camera ────────────────────────────────────────────────────────────────────
-// Slightly cinematic: above and in front, looking down at the floor.
 const CAM_POS: [number, number, number] = [0, 5, 4];
 
 function CameraLookAt() {
@@ -48,157 +50,130 @@ function CameraLookAt() {
   return null;
 }
 
-// ── Die physics state ─────────────────────────────────────────────────────────
-interface DiePhysState {
-  pos:    [number, number, number];
-  vel:    [number, number, number];
-  rot:    [number, number, number];
-  angVel: [number, number, number];
-  settledFrames: number;
-  settled: boolean;
-}
-
-function randomAngVel(scale: number): [number, number, number] {
-  return [
-    (Math.random() - 0.5) * scale,
-    (Math.random() - 0.5) * scale,
-    (Math.random() - 0.5) * scale,
-  ];
-}
-
 // ── Single rolling die ────────────────────────────────────────────────────────
 function RollingDie({
-  index,
-  total,
-  face,
-  cardColor,
-  onSettled,
-  forceSettle,
+  index, total, die, cardColor, rolledFaceIndex, forceSettle, onSettled,
 }: {
   index: number;
   total: number;
-  face: DieFace | null;
+  die: CardDie;
   cardColor: string | null;
-  onSettled: () => void;
+  rolledFaceIndex: number | null;
   forceSettle: boolean;
+  onSettled: () => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const settled = useRef(false);
-  const settledTime = useRef(0);
-
-  // Throw dice from the upper-left at an angle toward the floor center.
-  // Stagger slightly so 2-die rolls don't overlap.
-  const stagger = (index - (total - 1) / 2) * 0.8;
-  const state = useRef<DiePhysState>({
-    pos: [-3.5 + stagger * 0.4, 4.5 + index * 0.5, -2 + stagger * 0.3],
-    vel: [
-      5.5 + (Math.random() - 0.5) * 1.5 + stagger * 0.5,  // rightward
-      -4  + (Math.random() - 0.5) * 1,                     // downward
-       3  + (Math.random() - 0.5) * 1,                     // toward camera
-    ],
-    rot: [Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI],
-    angVel: randomAngVel(26),
-    settledFrames: 0,
-    settled: false,
-  });
+  const physActive   = useRef(true);
+  const settling     = useRef(false);
+  const doneRef      = useRef(false);
+  const settledTime  = useRef(0);
+  const targetQ      = useRef(new THREE.Quaternion());
+  const targetSet    = useRef(false);
 
   const { bg, text } = CARD_COLORS[cardColor ?? ''] ?? FALLBACK_COLOR;
 
-  const texture = useMemo(() => {
-    if (!face) return makeFaceTexture('blank', 0, false, bg, text);
-    return makeFaceTexture(face.symbol, face.value, face.modifier, bg, text);
-  }, [face, bg, text]);
+  // Six textures — one per die face. Prophecy face k → material slot k.
+  const textures = useMemo(
+    () => die.faces.map((f) => makeFaceTexture(f.symbol, f.value, f.modifier, bg, text)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bg, text, ...die.faces.map((f) => `${f.symbol}${f.value}${f.modifier}`)],
+  );
+  useEffect(() => () => textures.forEach((t) => t.dispose()), [textures]);
 
-  useEffect(() => () => { texture.dispose(); }, [texture]);
-
-  // Update material texture when face info arrives.
+  // Compute target quaternion as soon as we know which face was rolled.
   useEffect(() => {
-    const mat = meshRef.current?.material;
-    if (mat && mat instanceof THREE.MeshStandardMaterial) {
-      mat.map = texture;
-      mat.needsUpdate = true;
-    }
-  }, [texture]);
+    if (rolledFaceIndex == null) return;
+    const euler = FACE_UP_EULER[rolledFaceIndex] ?? FACE_UP_EULER[2]!;
+    targetQ.current.setFromEuler(new THREE.Euler(...euler));
+    targetSet.current = true;
+    // If physics already stopped waiting for the face, start settling now.
+    if (!physActive.current && !doneRef.current) settling.current = true;
+  }, [rolledFaceIndex]);
+
+  // Throw direction: from upper-left, aimed toward floor center.
+  const stagger = (index - (total - 1) / 2) * 0.8;
+  const phys = useRef({
+    pos: [-3.5 + stagger * 0.4, 4.5 + index * 0.5, -2 + stagger * 0.3] as [number, number, number],
+    vel: [
+       5.5 + (Math.random() - 0.5) * 1.5 + stagger * 0.5,
+      -4.0 + (Math.random() - 0.5) * 1.0,
+       3.0 + (Math.random() - 0.5) * 1.0,
+    ] as [number, number, number],
+    rot:    [Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI] as [number, number, number],
+    angVel: [(Math.random() - 0.5) * 26, (Math.random() - 0.5) * 26, (Math.random() - 0.5) * 26] as [number, number, number],
+  });
+
+  // Force-settle: stop physics, jump straight to settling slerp.
+  useEffect(() => {
+    if (!forceSettle || doneRef.current) return;
+    physActive.current = false;
+    if (targetSet.current) settling.current = true;
+    else doneRef.current = true; // no face data — just stay wherever
+  }, [forceSettle]);
 
   useFrame((_, dt) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || doneRef.current) return;
+    const safe = Math.min(dt, 0.05);
+    const s = phys.current;
 
-    // Force-settle snaps the die to floor level and stops it.
-    if (forceSettle && !settled.current) {
-      settled.current = true;
-      state.current.pos[1] = FLOOR_Y + DIE_HALF;
-      meshRef.current.position.set(...state.current.pos);
-      onSettled();
-      return;
-    }
-    if (settled.current) return;
+    // ── Phase 1: physics ─────────────────────────────────────────────────
+    if (physActive.current) {
+      s.vel[1] += GRAVITY * safe;
+      const linR = Math.pow(LIN_DAMP_S, safe);
+      s.vel[0] *= linR; s.vel[2] *= linR;
 
-    const s = state.current;
-    const safeDt = Math.min(dt, 0.05); // cap dt so a tab-wake spike doesn't explode physics
+      s.pos[0] += s.vel[0] * safe;
+      s.pos[1] += s.vel[1] * safe;
+      s.pos[2] += s.vel[2] * safe;
 
-    // Gravity + air damping (dt-based — frame-rate independent)
-    s.vel[1] += GRAVITY * safeDt;
-    const linRetain = Math.pow(LIN_DAMP_S, safeDt);
-    s.vel[0] *= linRetain;
-    s.vel[2] *= linRetain;
+      // Floor
+      if (s.pos[1] < FLOOR_Y + DIE_HALF) {
+        s.pos[1] = FLOOR_Y + DIE_HALF;
+        s.vel[1] = Math.abs(s.vel[1]) * RESTITUTION;
+        s.vel[0] *= FLOOR_FRICTION; s.vel[2] *= FLOOR_FRICTION;
+        s.angVel[0] += (Math.random() - 0.5) * 3;
+        s.angVel[2] += (Math.random() - 0.5) * 3;
+      }
+      // Walls
+      if (s.pos[0] < -WALL_X + DIE_HALF) { s.pos[0] = -WALL_X + DIE_HALF; s.vel[0] =  Math.abs(s.vel[0]) * WALL_RESTITUTION; }
+      if (s.pos[0] >  WALL_X - DIE_HALF) { s.pos[0] =  WALL_X - DIE_HALF; s.vel[0] = -Math.abs(s.vel[0]) * WALL_RESTITUTION; }
+      if (s.pos[2] < -WALL_Z + DIE_HALF) { s.pos[2] = -WALL_Z + DIE_HALF; s.vel[2] =  Math.abs(s.vel[2]) * WALL_RESTITUTION; }
+      if (s.pos[2] >  WALL_Z - DIE_HALF) { s.pos[2] =  WALL_Z - DIE_HALF; s.vel[2] = -Math.abs(s.vel[2]) * WALL_RESTITUTION; }
 
-    // Integrate position
-    s.pos[0] += s.vel[0] * safeDt;
-    s.pos[1] += s.vel[1] * safeDt;
-    s.pos[2] += s.vel[2] * safeDt;
+      const angR = Math.pow(ANG_DAMP_S, safe);
+      s.angVel[0] *= angR; s.angVel[1] *= angR; s.angVel[2] *= angR;
 
-    // Floor
-    if (s.pos[1] < FLOOR_Y + DIE_HALF) {
-      s.pos[1] = FLOOR_Y + DIE_HALF;
-      s.vel[1] = Math.abs(s.vel[1]) * RESTITUTION;
-      s.vel[0] *= FLOOR_FRICTION;
-      s.vel[2] *= FLOOR_FRICTION;
-      s.angVel[0] += (Math.random() - 0.5) * 3;
-      s.angVel[2] += (Math.random() - 0.5) * 3;
-    }
+      s.rot[0] += s.angVel[0] * safe;
+      s.rot[1] += s.angVel[1] * safe;
+      s.rot[2] += s.angVel[2] * safe;
 
-    // Side walls — bounce dice back into view
-    if (s.pos[0] < -WALL_X + DIE_HALF) {
-      s.pos[0] = -WALL_X + DIE_HALF;
-      s.vel[0] = Math.abs(s.vel[0]) * WALL_RESTITUTION;
-    }
-    if (s.pos[0] > WALL_X - DIE_HALF) {
-      s.pos[0] = WALL_X - DIE_HALF;
-      s.vel[0] = -Math.abs(s.vel[0]) * WALL_RESTITUTION;
-    }
-    if (s.pos[2] < -WALL_Z + DIE_HALF) {
-      s.pos[2] = -WALL_Z + DIE_HALF;
-      s.vel[2] = Math.abs(s.vel[2]) * WALL_RESTITUTION;
-    }
-    if (s.pos[2] > WALL_Z - DIE_HALF) {
-      s.pos[2] = WALL_Z - DIE_HALF;
-      s.vel[2] = -Math.abs(s.vel[2]) * WALL_RESTITUTION;
+      meshRef.current.position.set(...s.pos);
+      meshRef.current.rotation.set(...s.rot);
+
+      // Settle check
+      const speed = Math.hypot(...s.vel) + Math.hypot(...s.angVel);
+      if (speed < SETTLE_VEL) {
+        settledTime.current += safe;
+        if (settledTime.current >= SETTLE_SECS) {
+          physActive.current = false;
+          if (targetSet.current) settling.current = true;
+          else doneRef.current = true; // face not yet known; stay put
+        }
+      } else {
+        settledTime.current = 0;
+      }
     }
 
-    // Angular damping (dt-based)
-    const angRetain = Math.pow(ANG_DAMP_S, safeDt);
-    s.angVel[0] *= angRetain;
-    s.angVel[1] *= angRetain;
-    s.angVel[2] *= angRetain;
-
-    // Integrate rotation
-    s.rot[0] += s.angVel[0] * safeDt;
-    s.rot[1] += s.angVel[1] * safeDt;
-    s.rot[2] += s.angVel[2] * safeDt;
-
-    meshRef.current.position.set(...s.pos);
-    meshRef.current.rotation.set(...s.rot);
-
-    // Settle detection: combined speed below threshold for SETTLE_SECS
-    const speed = Math.hypot(...s.vel) + Math.hypot(...s.angVel);
-    if (speed < SETTLE_VEL) {
-      settledTime.current += safeDt;
-      if (settledTime.current >= SETTLE_SECS) {
-        settled.current = true;
+    // ── Phase 2: slerp to correct face orientation ───────────────────────
+    if (settling.current) {
+      meshRef.current.position.set(...s.pos); // keep position fixed
+      meshRef.current.quaternion.slerp(targetQ.current, Math.min(1, safe * 7));
+      if (meshRef.current.quaternion.angleTo(targetQ.current) < 0.01) {
+        meshRef.current.quaternion.copy(targetQ.current);
+        settling.current = false;
+        doneRef.current  = true;
         onSettled();
       }
-    } else {
-      settledTime.current = 0;
     }
   });
 
@@ -208,9 +183,17 @@ function RollingDie({
       args={[0.84, 0.84, 0.84]}
       radius={0.12}
       smoothness={3}
-      position={state.current.pos}
+      position={phys.current.pos}
     >
-      <meshStandardMaterial map={texture} roughness={0.45} metalness={0.05} />
+      {textures.map((tex, i) => (
+        <meshStandardMaterial
+          key={i}
+          attach={`material-${i}`}
+          map={tex}
+          roughness={0.45}
+          metalness={0.05}
+        />
+      ))}
     </RoundedBox>
   );
 }
@@ -218,7 +201,7 @@ function RollingDie({
 // ── Floor ─────────────────────────────────────────────────────────────────────
 function Floor() {
   return (
-    <mesh position={[0, FLOOR_Y, 0]} receiveShadow={false}>
+    <mesh position={[0, FLOOR_Y, 0]}>
       <boxGeometry args={[24, 0.15, 24]} />
       <meshStandardMaterial color="#0a0a0a" roughness={0.9} />
     </mesh>
@@ -230,35 +213,39 @@ interface Props {
   diceCount: number;
   cardColor?: string | null;
   charId: string;
+  dice: readonly CardDie[];
   onDismiss: () => void;
 }
 
-export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: Props) {
-  const [settled, setSettled] = useState(false);
+export default function ResultsCam({ diceCount, cardColor, charId, dice, onDismiss }: Props) {
+  const [settled, setSettled]     = useState(false);
   const [forceSettle, setForceSettle] = useState(false);
-  const [dismissing, setDismissing] = useState(false);
+  const [dismissing, setDismissing]   = useState(false);
   const settledCount = useRef(0);
 
-  // Hard 3-second cap — whatever state the dice are in, show results.
+  // Hard 3-second cap.
   useEffect(() => {
-    const t = setTimeout(() => {
-      setForceSettle(true);
-      setSettled(true);
-    }, FORCE_SETTLE_MS);
+    const t = setTimeout(() => { setForceSettle(true); setSettled(true); }, FORCE_SETTLE_MS);
     return () => clearTimeout(t);
   }, []);
 
-  // Watch for the character.activated event carrying the real rolled faces.
+  // Read character.activated event for rolled face indices.
   const recentEvents = useApp((s) => s.recentEvents);
-  const rolledFaces = useMemo<DieFace[]>(() => {
+  const rolledDice = useMemo(() => {
     for (let i = recentEvents.length - 1; i >= 0; i--) {
       const e = recentEvents[i]!;
       if (e.type === 'character.activated' && e.payload.characterId === charId) {
-        return e.payload.rolledDice.map((d) => d.face);
+        return e.payload.rolledDice; // [{ instanceId, faceIndex, face }]
       }
     }
-    return [];
+    return null;
   }, [recentEvents, charId]);
+
+  // Map instanceId → faceIndex for each die.
+  const faceIndexByInstanceId = useMemo(() => {
+    if (!rolledDice) return new Map<string, number>();
+    return new Map(rolledDice.map((d) => [d.instanceId, d.faceIndex]));
+  }, [rolledDice]);
 
   const handleDieSettled = () => {
     settledCount.current += 1;
@@ -272,8 +259,16 @@ export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: 
   };
 
   const touchStartY = useRef<number | null>(null);
-
   const { bg: themeColor } = CARD_COLORS[cardColor ?? ''] ?? FALLBACK_COLOR;
+
+  // Collect the rolled faces in order for the results overlay.
+  const rolledFaces: DieFace[] = useMemo(
+    () => dice.map((d) => {
+      const fi = faceIndexByInstanceId.get(d.instanceId);
+      return fi != null ? d.faces[fi]! : null!;
+    }).filter(Boolean),
+    [dice, faceIndexByInstanceId],
+  );
 
   return (
     <div
@@ -291,7 +286,6 @@ export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: 
         touchStartY.current = null;
       }}
     >
-      {/* 3D roll cam — fills the whole screen */}
       <Canvas
         className="absolute inset-0"
         camera={{ position: CAM_POS, fov: 45, near: 0.1, far: 60 }}
@@ -301,25 +295,24 @@ export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: 
       >
         <CameraLookAt />
         <ambientLight intensity={0.4} />
-        <directionalLight position={[3, 8, 4]} intensity={1.1} castShadow={false} />
+        <directionalLight position={[3, 8, 4]} intensity={1.1} />
         <directionalLight position={[-3, 4, -2]} intensity={0.3} />
-
         <Floor />
-
-        {Array.from({ length: diceCount }).map((_, i) => (
+        {dice.slice(0, diceCount).map((d, i) => (
           <RollingDie
-            key={i}
+            key={d.instanceId}
             index={i}
             total={diceCount}
-            face={rolledFaces[i] ?? null}
+            die={d}
             cardColor={cardColor ?? null}
-            onSettled={handleDieSettled}
+            rolledFaceIndex={faceIndexByInstanceId.get(d.instanceId) ?? null}
             forceSettle={forceSettle}
+            onSettled={handleDieSettled}
           />
         ))}
       </Canvas>
 
-      {/* Results overlay — fades in once all dice settle */}
+      {/* Results — appear once all dice have settled to their correct face */}
       {settled && rolledFaces.length > 0 && (
         <div className="relative z-10 mb-12 flex w-full justify-center gap-4 px-8">
           {rolledFaces.map((face, i) => (
@@ -339,7 +332,6 @@ export default function ResultsCam({ diceCount, cardColor, charId, onDismiss }: 
         </div>
       )}
 
-      {/* Dismiss hint */}
       <div
         className="relative z-10 mb-8 w-full text-center transition-opacity duration-700"
         style={{ opacity: settled ? 1 : 0, pointerEvents: 'none' }}

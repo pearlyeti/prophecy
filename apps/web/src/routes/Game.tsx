@@ -1,4 +1,4 @@
-import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
+import { getLegalActions, type CardDie, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
 import type { Action, Card, EngineEvent, GameState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -30,7 +30,13 @@ export function Game() {
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
-  const [resultsCam, setResultsCam] = useState<{ diceCount: number; cardColor: string | null; charId: string } | null>(null);
+  const [resultsCam, setResultsCam] = useState<{
+    diceCount: number;
+    cardColor: string | null;
+    charId: string;
+    /** All 6 faces for each die — used to texture each face of the 3D die. */
+    dice: readonly CardDie[];
+  } | null>(null);
   const [handFocusId, setHandFocusId] = useState<string | null>(null);
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
 
@@ -158,7 +164,13 @@ export function Game() {
         onShowResultsCam={(n, id) => {
           const catalogId = game.cardCatalogIds[id];
           const card = catalogId ? catalogById.get(catalogId) : undefined;
-          setResultsCam({ diceCount: n, cardColor: card?.color ?? null, charId: id });
+          const char = game.players[playerId]?.characters[id];
+          setResultsCam({
+            diceCount: n,
+            cardColor: card?.color ?? null,
+            charId: id,
+            dice: char?.dice ?? [],
+          });
         }}
         className="min-h-0 flex-1"
       />
@@ -192,6 +204,7 @@ export function Game() {
             diceCount={resultsCam.diceCount}
             cardColor={resultsCam.cardColor}
             charId={resultsCam.charId}
+            dice={resultsCam.dice}
             onDismiss={() => setResultsCam(null)}
           />
         </Suspense>
