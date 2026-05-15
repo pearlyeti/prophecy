@@ -242,6 +242,11 @@ export default function DicePool3D({
 
     if (diceInteractive && activeFlow === null && !d.face.modifier) {
       if (!eligibleSymbols?.includes(d.face.symbol)) return;
+      // Focus dice skip the resolve step — go straight to face-pick.
+      if (d.face.symbol === 'focus') {
+        setActiveFlow({ kind: 'face-pick', focuserDieIds: [d.instanceId], budget: d.face.value, history: [], pickingForDieId: null });
+        return;
+      }
       setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], targetCharacterId: null });
     }
   };

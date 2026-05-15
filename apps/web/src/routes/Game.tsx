@@ -2509,6 +2509,10 @@ function DiceStack({
     // ── Idle: start a resolve flow ─────────────────────────────────────────
     if (diceInteractive && activeFlow === null && !d.face.modifier) {
       if (!eligibleSymbols?.includes(d.face.symbol)) return;
+      if (d.face.symbol === 'focus') {
+        setActiveFlow({ kind: 'face-pick', focuserDieIds: [d.instanceId], budget: d.face.value, history: [], pickingForDieId: null });
+        return;
+      }
       setActiveFlow({ kind: 'resolve', symbol: d.face.symbol, selectedDieIds: [d.instanceId], targetCharacterId: null });
     }
   };
