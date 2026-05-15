@@ -44,6 +44,38 @@ export class LobbyError extends Error {
 const rooms = new Map<string, Room>();
 const codeIndex = new Map<string, string>(); // code → roomId
 
+// ── Reconnect timers ────────────────────────────────────────────────
+// Keyed by `${roomId}:${playerId}`. When the timer fires the caller's
+// callback runs (typically: forfeit the game).
+
+const RECONNECT_TIMEOUT_MS = 60_000;
+const reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+export function startReconnectTimer(
+  roomId: string,
+  playerId: string,
+  onExpire: () => void,
+): void {
+  const key = `${roomId}:${playerId}`;
+  clearReconnectTimer(roomId, playerId);
+  reconnectTimers.set(
+    key,
+    setTimeout(() => {
+      reconnectTimers.delete(key);
+      onExpire();
+    }, RECONNECT_TIMEOUT_MS),
+  );
+}
+
+export function clearReconnectTimer(roomId: string, playerId: string): void {
+  const key = `${roomId}:${playerId}`;
+  const timer = reconnectTimers.get(key);
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    reconnectTimers.delete(key);
+  }
+}
+
 export function createRoom(playerId: string, displayName: string): Room {
   const id = randomUUID();
   const code = generateInviteCode();

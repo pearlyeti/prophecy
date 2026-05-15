@@ -30,12 +30,14 @@ const EXT_MIME: Record<string, string> = {
 
 import {
   applyRoomAction,
+  clearReconnectTimer,
   createRoom,
   getRoomById,
   joinRoom,
   LobbyError,
   lobbyStateOf,
   rejoinRoom,
+  startReconnectTimer,
   startRoom,
   sweepIdleRooms,
   trackConnection,
@@ -286,6 +288,7 @@ io.on('connection', (socket) => {
     console.log(`[game-server] lobby.rejoin room=${req.roomId} from ${req.playerId}`);
     try {
       const room = rejoinRoom(req.roomId, req.playerId);
+      clearReconnectTimer(req.roomId, req.playerId);
       enterSocketRoom(socket, room, req.playerId);
       state.playerId = req.playerId;
       state.roomId = room.id;
@@ -405,7 +408,29 @@ io.on('connection', (socket) => {
     if (state.roomId && state.playerId) {
       trackConnection(state.roomId, state.playerId, -1);
       const room = getRoomById(state.roomId);
-      if (room) io.to(room.id).emit('lobby.state', lobbyStateOf(room));
+      if (room) {
+        io.to(room.id).emit('lobby.state', lobbyStateOf(room));
+
+        // Give the player 60 s to reconnect before forfeiting the game.
+        if (room.phase === 'in-game') {
+          const { roomId, playerId } = { roomId: state.roomId, playerId: state.playerId };
+          startReconnectTimer(roomId, playerId, () => {
+            const r = getRoomById(roomId);
+            if (!r || r.phase !== 'in-game') return;
+            const member = r.members.get(playerId);
+            if (!member || member.connections > 0) return; // player already rejoined
+            console.log(`[game-server] reconnect timeout for ${playerId} in room ${roomId} — forfeiting`);
+            try {
+              const { room: ended, result } = applyRoomAction(roomId, playerId, { type: 'concede', playerId });
+              io.to(ended.id).emit('game.events', { roomId: ended.id, events: result.events });
+              io.to(ended.id).emit('game.state', { roomId: ended.id, state: result.state });
+              io.to(ended.id).emit('lobby.state', lobbyStateOf(ended));
+            } catch (e) {
+              console.error('[game-server] reconnect timeout forfeit failed:', e);
+            }
+          });
+        }
+      }
     }
     console.log(`[game-server] disconnected: ${socket.id} (${reason})`);
   });
