@@ -239,8 +239,7 @@ Rough ideas and deferred work. Not yet specced, not yet claimable. When an item 
 - "After setup" trigger pass.
 - Plots / battlefield abilities (Claim).
 
-#### Supports & stability _(blocked on WEB-10 and engine scoping)_
-- **ENGINE-S1** — `SupportState` in `PlayerState` (`stability`/`maxStability`). Stability reduced by Disrupt/Discard only. On 0: support discarded, dice removed from pool. Supports can be activated. `DieInPool.ownerInstanceId` covers support instance ids. Update `getLegalActions`, `applyResolveDice`, `applyActivate`, `newGameFromDecks`.
+#### Supports & stability _(WEB-S1 blocked on ENGINE-S1)_
 - **WEB-S1** — Render support cards in `BattleZone` below characters. Stability badge instead of health badge. Activate flow same as characters. Upgrade badges on supports. Detail overlay with Stability, ability text, subtypes.
 
 #### Services

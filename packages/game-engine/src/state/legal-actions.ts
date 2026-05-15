@@ -31,6 +31,11 @@ export interface LegalActions {
   /** Character instance ids that can be activated. */
   readonly activatableCharacterIds: readonly string[];
   /**
+   * Support instance ids that can be activated (non-exhausted, has at
+   * least one die). Supports without a die cannot be activated per rules.
+   */
+  readonly activatableSupportIds: readonly string[];
+  /**
    * Die symbols currently resolvable from the player's pool. A symbol
    * shows up here only if there's at least one non-modifier face of
    * that symbol in the pool (rules: modifiers can't resolve alone).
@@ -86,6 +91,7 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
       canChooseFirstPlayer: isWinner && state.setup.step === 'choose-first-player',
       canPlaceShield:
         isRecipient && state.setup.step === 'place-shields' && state.setup.shieldsRemaining > 0,
+      activatableSupportIds: [],
     };
   }
 
@@ -102,6 +108,14 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     ? player.characterOrder.filter((id) => {
         const c = player.characters[id];
         return c !== undefined && !c.exhausted;
+      })
+    : [];
+
+  // Activatable supports: non-exhausted, has at least one die.
+  const activatableSupports = isMyTurn
+    ? player.supportOrder.filter((id) => {
+        const s = player.supports[id];
+        return s !== undefined && !s.exhausted && s.dice.length > 0;
       })
     : [];
 
@@ -122,6 +136,7 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     canConcede: true,
     canReroll: isMyTurn && player.hand.length > 0 && player.diceInPool.length > 0,
     activatableCharacterIds: activatable,
+    activatableSupportIds: activatableSupports,
     resolvableSymbols: [...resolvable],
     canPlayCard:
       isMyTurn &&
@@ -138,6 +153,7 @@ const EMPTY: LegalActions = {
   canConcede: false,
   canReroll: false,
   activatableCharacterIds: [],
+  activatableSupportIds: [],
   resolvableSymbols: [],
   canPlayCard: false,
   canChooseFirstPlayer: false,

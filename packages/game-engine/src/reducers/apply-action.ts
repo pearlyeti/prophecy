@@ -49,7 +49,11 @@ export function applyAction(state: GameState, action: Action, options?: ApplyOpt
       return applyActivate(state, action.playerId, action.cardId);
     case 'resolve-dice': {
       // Normalize legacy flat shape → targets array.
-      type TargetGroup = { readonly dieInstanceIds: readonly string[]; readonly targetCharacterId?: string };
+      type TargetGroup = {
+        readonly dieInstanceIds: readonly string[];
+        readonly targetCharacterId?: string;
+        readonly targetSupportId?: string;
+      };
       const targets: readonly TargetGroup[] =
         action.targets ??
         (action.dieInstanceIds

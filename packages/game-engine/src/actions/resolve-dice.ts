@@ -2,7 +2,15 @@ import { applyEffects } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
-import { addShields, adjustResources, dealDamage, ownerOf } from '../state/combat.js';
+import {
+  addShields,
+  addSupportShields,
+  adjustResources,
+  dealDamage,
+  ownerOf,
+  reduceSupportStability,
+  supportOwnerOf,
+} from '../state/combat.js';
 import { endTurn } from '../state/turn.js';
 import type { DieInPool, GameState, PlayerState } from '../state/types.js';
 import { IllegalActionError } from './illegal.js';
@@ -22,7 +30,11 @@ import { guardCanAct, runUpkeepAndStartRound, type ApplyResult } from './pass.js
 export function applyResolveDice(
   state: GameState,
   playerId: string,
-  targets: readonly { readonly dieInstanceIds: readonly string[]; readonly targetCharacterId?: string }[],
+  targets: readonly {
+    readonly dieInstanceIds: readonly string[];
+    readonly targetCharacterId?: string;
+    readonly targetSupportId?: string;
+  }[],
   focusFlips?: readonly { readonly targetDieInstanceId: string; readonly faceIndex: number }[],
 ): ApplyResult {
   guardCanAct(state, playerId);
@@ -63,12 +75,7 @@ export function applyResolveDice(
   if (symbol === 'blank') {
     throw new IllegalActionError('blank dice cannot be resolved');
   }
-  if (
-    symbol === 'special' ||
-    symbol === 'indirect' ||
-    symbol === 'discard' ||
-    symbol === 'draw'
-  ) {
+  if (symbol === 'special' || symbol === 'indirect' || symbol === 'draw') {
     throw new IllegalActionError(`resolving "${symbol}" is not yet implemented`);
   }
   if (symbol === 'modifier') {
@@ -199,20 +206,28 @@ export function applyResolveDice(
 
     case 'shield': {
       for (const group of targets) {
-        if (!group.targetCharacterId) {
-          throw new IllegalActionError('shield placement requires a target character');
-        }
-        const ownerId = ownerOf(working, group.targetCharacterId);
-        if (ownerId !== playerId) {
-          throw new IllegalActionError('shields can only be placed on your own characters');
-        }
-
         const groupValue = group.dieInstanceIds.reduce((s, id) => {
           const d = allDice.find((die) => die.instanceId === id);
           return s + (d?.face.value ?? 0);
         }, 0);
 
-        working = addShields(working, playerId, group.targetCharacterId, groupValue, events);
+        if (group.targetSupportId) {
+          // Shield placed on own support.
+          const ownerId = supportOwnerOf(working, group.targetSupportId);
+          if (ownerId !== playerId) {
+            throw new IllegalActionError('shields can only be placed on your own supports');
+          }
+          working = addSupportShields(working, playerId, group.targetSupportId, groupValue, events);
+        } else {
+          if (!group.targetCharacterId) {
+            throw new IllegalActionError('shield placement requires a target character or support');
+          }
+          const ownerId = ownerOf(working, group.targetCharacterId);
+          if (ownerId !== playerId) {
+            throw new IllegalActionError('shields can only be placed on your own characters');
+          }
+          working = addShields(working, playerId, group.targetCharacterId, groupValue, events);
+        }
       }
       break;
     }
@@ -224,12 +239,37 @@ export function applyResolveDice(
     }
 
     case 'disrupt': {
-      const oppId = state.playerOrder.find((p) => p !== playerId);
-      if (!oppId) throw new Error('disrupt: no opponent in playerOrder');
-      const oppRes = state.players[oppId]?.resources ?? 0;
-      const lost = Math.min(oppRes, totalValue);
-      working = adjustResources(working, oppId, -lost);
-      events.push({ type: 'resources.lost', payload: { playerId: oppId, amount: lost } });
+      const firstTarget = targets[0];
+      if (firstTarget?.targetSupportId) {
+        // Disrupt targeting a support reduces its stability.
+        const ownerId = supportOwnerOf(working, firstTarget.targetSupportId);
+        if (!ownerId || ownerId === playerId) {
+          throw new IllegalActionError('disrupt support must target an opponent support');
+        }
+        working = reduceSupportStability(working, ownerId, firstTarget.targetSupportId, totalValue, events);
+      } else {
+        const oppId = state.playerOrder.find((p) => p !== playerId);
+        if (!oppId) throw new Error('disrupt: no opponent in playerOrder');
+        const oppRes = state.players[oppId]?.resources ?? 0;
+        const lost = Math.min(oppRes, totalValue);
+        working = adjustResources(working, oppId, -lost);
+        events.push({ type: 'resources.lost', payload: { playerId: oppId, amount: lost } });
+      }
+      break;
+    }
+
+    case 'discard': {
+      const firstTarget = targets[0];
+      if (firstTarget?.targetSupportId) {
+        // Discard targeting a support reduces its stability.
+        const ownerId = supportOwnerOf(working, firstTarget.targetSupportId);
+        if (!ownerId || ownerId === playerId) {
+          throw new IllegalActionError('discard support must target an opponent support');
+        }
+        working = reduceSupportStability(working, ownerId, firstTarget.targetSupportId, totalValue, events);
+      } else {
+        throw new IllegalActionError('resolving "discard" against opponent hand is not yet implemented');
+      }
       break;
     }
   }

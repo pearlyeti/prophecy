@@ -6,7 +6,7 @@ import { createRng } from '../rng/seeded-rng.js';
 import { endTurn } from '../state/turn.js';
 import { guardCanAct, runUpkeepAndStartRound } from './pass.js';
 import type { ApplyResult } from './pass.js';
-import type { CharacterState, DieFace, DieInPool, GameState, PlayerState } from '../state/types.js';
+import type { CharacterState, DieFace, DieInPool, GameState, PlayerState, SupportState } from '../state/types.js';
 import { IllegalActionError } from './illegal.js';
 
 /**
@@ -27,9 +27,15 @@ export function applyActivate(
   const player = state.players[playerId];
   if (!player) throw new Error(`player ${playerId} missing from state`);
 
+  // Supports and characters share the same activate action — look up which one.
+  const support = player.supports[characterId];
+  if (support !== undefined) {
+    return applyActivateSupport(state, playerId, characterId, support);
+  }
+
   const character = player.characters[characterId];
   if (!character) {
-    throw new IllegalActionError(`character ${characterId} does not belong to ${playerId}`);
+    throw new IllegalActionError(`card ${characterId} does not belong to ${playerId} as a character or support`);
   }
   if (character.exhausted) {
     throw new IllegalActionError(`character ${characterId} is exhausted`);
@@ -105,6 +111,80 @@ export function applyActivate(
   stateAfterActivate = commitTriggers(stateAfterActivate, afterCandidates);
 
   // ── Drain queue (skip if pending ordering is waiting) ────────────
+  if (!stateAfterActivate.pendingTriggers) {
+    const drained = drainQueue(stateAfterActivate);
+    stateAfterActivate = drained.state;
+    allEvents.push(...drained.events);
+  }
+
+  if (stateAfterActivate.winnerId !== null) {
+    return { state: stateAfterActivate, events: allEvents };
+  }
+
+  const rotated = endTurn(stateAfterActivate, playerId, allEvents);
+  if (rotated.allPlayersPassed) {
+    return runUpkeepAndStartRound(rotated.state, rotated.events);
+  }
+  return { state: rotated.state, events: rotated.events };
+}
+
+function applyActivateSupport(
+  state: GameState,
+  playerId: string,
+  supportId: string,
+  support: SupportState,
+): ApplyResult {
+  if (support.exhausted) {
+    throw new IllegalActionError(`support ${supportId} is exhausted`);
+  }
+  if (support.dice.length === 0) {
+    throw new IllegalActionError(`support ${supportId} has no die and cannot be activated`);
+  }
+
+  const allEvents: EngineEvent[] = [];
+  const rng = createRng(state.seed).fork(`activate:${state.turnIndex}:${supportId}`);
+
+  const currentPlayer = state.players[playerId]!;
+  const currentSupport = currentPlayer.supports[supportId]!;
+
+  const alreadyInPool = new Set(
+    currentPlayer.diceInPool
+      .filter((d) => currentSupport.dice.some((cd) => cd.instanceId === d.instanceId))
+      .map((d) => d.instanceId),
+  );
+
+  const newDice: DieInPool[] = [];
+  const rolledFaces: { instanceId: string; faceIndex: number; face: DieFace }[] = [];
+  for (const die of currentSupport.dice) {
+    if (alreadyInPool.has(die.instanceId)) continue;
+    const faceIndex = rng.rollDie(6);
+    const face = die.faces[faceIndex]!;
+    newDice.push({ instanceId: die.instanceId, cardId: die.cardId, faceIndex, face, ownerInstanceId: supportId });
+    rolledFaces.push({ instanceId: die.instanceId, faceIndex, face });
+  }
+
+  const updatedSupport: SupportState = { ...currentSupport, exhausted: true };
+  const updatedPlayer: PlayerState = {
+    ...currentPlayer,
+    supports: { ...currentPlayer.supports, [supportId]: updatedSupport },
+    diceInPool: [...currentPlayer.diceInPool, ...newDice],
+  };
+
+  const activateEvent: EngineEvent = {
+    type: 'support.activated',
+    payload: { playerId, supportId, rolledDice: rolledFaces },
+  };
+  allEvents.push(activateEvent);
+
+  let stateAfterActivate: GameState = {
+    ...state,
+    players: { ...state.players, [playerId]: updatedPlayer },
+    consecutivePasses: 0,
+  };
+
+  const afterCandidates = collectAfterTriggers(stateAfterActivate, [activateEvent]);
+  stateAfterActivate = commitTriggers(stateAfterActivate, afterCandidates);
+
   if (!stateAfterActivate.pendingTriggers) {
     const drained = drainQueue(stateAfterActivate);
     stateAfterActivate = drained.state;

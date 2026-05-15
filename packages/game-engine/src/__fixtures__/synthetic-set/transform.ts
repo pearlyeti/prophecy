@@ -214,6 +214,7 @@ function main(): void {
       rarity,
       cost,
       health: type === 'character' ? parseHealth(src.health) : null,
+      stability: null,
       pointValue: type === 'character' ? pointValue : null,
       elitePointValue: type === 'character' ? elitePointValue : null,
       plotPointValue: type === 'plot' ? (pointValue ?? 0) : null,

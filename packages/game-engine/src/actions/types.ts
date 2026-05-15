@@ -14,10 +14,17 @@ export type Action =
        * Takes precedence over the legacy flat fields when present.
        *
        * Melee/ranged/shield: each group's dice value is applied to that group's
-       * targetCharacterId. Resource/disrupt/discard: single entry, no targetCharacterId.
-       * Focus: single entry, no targetCharacterId; use focusFlips for face choices.
+       * targetCharacterId. For Shield/Disrupt/Discard targeting a support, use
+       * targetSupportId instead. Resource/disrupt/discard without a support target:
+       * single entry, no targetCharacterId. Focus: single entry, no targetCharacterId;
+       * use focusFlips for face choices.
        */
-      targets?: readonly { readonly dieInstanceIds: readonly string[]; readonly targetCharacterId?: string }[];
+      targets?: readonly {
+        readonly dieInstanceIds: readonly string[];
+        readonly targetCharacterId?: string;
+        /** Support instance id — when set, this group applies to a support (stability reduction or shield). */
+        readonly targetSupportId?: string;
+      }[];
       /** @deprecated Use targets instead. Kept for backward compatibility. */
       dieInstanceIds?: readonly string[];
       /** @deprecated Use targets[n].targetCharacterId instead. Kept for backward compatibility. */
