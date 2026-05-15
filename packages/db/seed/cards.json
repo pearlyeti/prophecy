@@ -40,7 +40,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "BFD_003",
@@ -69,7 +72,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "CHAR_003",
@@ -152,7 +158,10 @@
       "cardFrameZoom": 1,
       "badgeFrameX": 75.25496511003762,
       "badgeFrameY": 39.43907675791731,
-      "badgeFrameZoom": 2.7
+      "badgeFrameZoom": 2.7,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "CHAR_011",
@@ -220,7 +229,10 @@
       "cardFrameZoom": 1,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "CHAR_016",
@@ -239,7 +251,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "keywords": [],
-      "displayText": "Action \u2013 Exhaust: Gain 1 resource.\nPower Action: Draw 1 card.",
+      "displayText": "",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -280,41 +292,34 @@
       ],
       "abilities": [
         {
-          "kind": "action",
-          "costs": [
-            {
-              "kind": "exhaust"
-            }
-          ],
-          "effects": [
-            {
-              "op": "gainResources",
-              "amount": 1
-            }
-          ]
-        },
-        {
           "kind": "powerAction",
           "costs": [],
           "effects": [
             {
-              "op": "drawCards",
-              "player": "self",
-              "amount": 1
+              "op": "addShields",
+              "amount": 1,
+              "target": {
+                "kind": "ownCharacter"
+              },
+              "optional": false
             }
-          ]
+          ],
+          "optional": false
         }
       ],
       "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_016.webp",
       "artFrameX": 44.834087481146334,
       "artFrameY": 26.99849170437417,
-      "artFrameZoom": 1.7,
+      "artFrameZoom": 1,
       "cardFrameX": null,
       "cardFrameY": null,
       "cardFrameZoom": null,
-      "badgeFrameX": null,
-      "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameX": 56.0416666666667,
+      "badgeFrameY": 72.70833333333329,
+      "badgeFrameZoom": 4,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "CHAR_017",
@@ -382,7 +387,10 @@
       "cardFrameZoom": 1,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_001",
@@ -427,7 +435,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_002",
@@ -470,7 +481,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_004",
@@ -513,7 +527,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_005",
@@ -555,7 +572,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_007",
@@ -597,7 +617,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_018",
@@ -637,7 +660,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_019",
@@ -677,7 +703,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_020",
@@ -720,7 +749,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_022",
@@ -765,7 +797,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_026",
@@ -807,7 +842,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_028",
@@ -850,7 +888,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_029",
@@ -890,7 +931,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_032",
@@ -932,7 +976,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_033",
@@ -977,7 +1024,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_038",
@@ -1022,7 +1072,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_039",
@@ -1065,7 +1118,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_044",
@@ -1107,7 +1163,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "EVT_055",
@@ -1152,7 +1211,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_001",
@@ -1220,7 +1282,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_002",
@@ -1288,7 +1353,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_007",
@@ -1356,7 +1424,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_009",
@@ -1424,7 +1495,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_011",
@@ -1492,7 +1566,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_013",
@@ -1560,7 +1637,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_014",
@@ -1628,7 +1708,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_017",
@@ -1696,7 +1779,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_022",
@@ -1764,7 +1850,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_024",
@@ -1832,7 +1921,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_026",
@@ -1900,7 +1992,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_030",
@@ -1968,7 +2063,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     },
     {
       "id": "UPG_039",
@@ -1999,7 +2097,10 @@
       "cardFrameZoom": null,
       "badgeFrameX": null,
       "badgeFrameY": null,
-      "badgeFrameZoom": null
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     }
   ]
 }
