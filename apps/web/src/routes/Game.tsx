@@ -1577,7 +1577,7 @@ function BattlefieldRow({
   catalogById: Map<string, Card>;
   side: ZoneSide;
   diceInteractive: boolean;
-  selectionMode: ReturnType<typeof useApp> extends { selectionMode: infer S } ? S : never;
+  selectionMode: SelectionMode | null;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -1634,6 +1634,7 @@ function useMaxPerRow(containerRef: React.RefObject<HTMLDivElement | null>): num
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => {
+      if (!entry) return;
       const w = entry.contentRect.width;
       setMaxPerRow(Math.min(MAX_CHARS_PER_ROW, Math.max(1, Math.floor(w / colWithGap))));
     });
@@ -1883,7 +1884,9 @@ function ActionBar({
 
       {confirmPass && (
         <ConfirmOverlay
-          message="Pass your turn?"
+          title="Confirm Action"
+          body="Are you sure you want to pass?"
+          tone="warning"
           confirmLabel="Pass"
           onConfirm={handlePass}
           onCancel={() => setConfirmPass(false)}
