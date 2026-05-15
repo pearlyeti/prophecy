@@ -10,7 +10,6 @@
 import type { EngineEvent } from '../events.js';
 import { drawCards } from '../state/draw.js';
 import { createRng } from '../rng/seeded-rng.js';
-import type { CardFixture } from '../__fixtures__/synthetic-set/schema.js';
 import {
   addShields,
   adjustResources,
@@ -20,7 +19,7 @@ import {
   ownerOf,
   removeShields,
 } from '../state/combat.js';
-import type { GameState, DieInPool } from '../state/types.js';
+import type { DieFace, GameState, DieInPool } from '../state/types.js';
 import type {
   AddShieldsEffect,
   DealDamageEffect,
@@ -30,8 +29,18 @@ import type {
   HealDamageEffect,
   LoseResourcesEffect,
   RemoveShieldsEffect,
+  RollCardDieEffect,
   TargetSpec,
 } from './types.js';
+
+/**
+ * Minimal catalog entry shape needed for die-roll ops.
+ * Both CardFixture (test fixtures) and Card (production corpus) satisfy this.
+ */
+export interface CatalogDieEntry {
+  readonly id: string;
+  readonly dieFaces: readonly DieFace[] | null;
+}
 
 // ────────────────────────────────────────────────────────────────────
 // Public API
@@ -54,10 +63,14 @@ export interface DispatchContext {
   /**
    * The card instance that carries the ability being dispatched. Used to
    * resolve 'thisCharacter' and 'attachedCharacter' target specs without
-   * requiring an extra entry in characterTargets.
+   * requiring an extra entry in characterTargets. For events, this is the
+   * event card's instance ID (used by rollEventDie to find the catalog entry
+   * via state.cardCatalogIds).
    */
   readonly sourceCharacterId?: string;
-  readonly catalog?: readonly CardFixture[];
+  /** Minimal catalog for die-roll ops. Tests pass an inline array; the
+   * game-server passes the loaded corpus. Required for rollEventDie / rollCardDie. */
+  readonly catalog?: readonly CatalogDieEntry[];
 }
 
 export interface EffectResult {
@@ -90,9 +103,9 @@ export function applyEffect(
     case 'healDamage':
       return applyHealDamage(state, ctx, effect, targetOffset);
     case 'rollEventDie':
-      return applyRollEventDie(state, ctx, effect as any);
+      return applyRollEventDie(state, ctx);
     case 'rollCardDie':
-      return applyRollCardDie(state, ctx, effect as any);
+      return applyRollCardDie(state, ctx, effect);
     default:
       throw new NotImplementedError(effect.op);
   }
@@ -239,64 +252,69 @@ function applyHealDamage(
   return { state: current, events, targetsConsumed: targets.consumed };
 }
 
-function applyRollEventDie(
-  state: GameState,
-  ctx: DispatchContext,
-  effect: { op: 'rollEventDie' },
-): EffectResult {
-  if (!ctx.sourceCharacterId) throw new Error('rollEventDie requires sourceCharacterId');
+function applyRollEventDie(state: GameState, ctx: DispatchContext): EffectResult {
+  if (!ctx.sourceCharacterId) {
+    throw new Error('rollEventDie requires sourceCharacterId in context (the event card instance ID)');
+  }
   if (!ctx.catalog) throw new Error('rollEventDie requires catalog in context');
 
-  const card = ctx.catalog.find((c) => c.id === ctx.sourceCharacterId);
-  if (!card) throw new Error(`card ${ctx.sourceCharacterId} not in catalog`);
-  if (!card.dieFaces) throw new Error(`card ${ctx.sourceCharacterId} has no dieFaces`);
+  // sourceCharacterId is the event card's instance ID; look up the catalog ID via state.
+  const catalogId = state.cardCatalogIds[ctx.sourceCharacterId];
+  if (!catalogId) {
+    throw new Error(`rollEventDie: no catalog mapping for card instance ${ctx.sourceCharacterId}`);
+  }
+  const card = ctx.catalog.find((c) => c.id === catalogId);
+  if (!card) throw new Error(`rollEventDie: card ${catalogId} not found in catalog`);
+  if (!card.dieFaces || card.dieFaces.length === 0) {
+    throw new Error(`rollEventDie: card ${catalogId} has no dieFaces`);
+  }
 
   const rng = createRng(state.seed).fork(`event-die:${state.turnIndex}:${ctx.sourceCharacterId}`);
-  const faceIndex = rng.rollDie(6);
+  const faceIndex = rng.rollDie(card.dieFaces.length);
   const face = card.dieFaces[faceIndex]!;
 
   const newDie: DieInPool = {
     instanceId: `${ctx.sourceCharacterId}.transient`,
-    cardId: card.id,
+    cardId: catalogId,
     faceIndex,
     face,
     transient: true,
   };
 
   const player = state.players[ctx.playerId]!;
-  const nextPlayer = { ...player, diceInPool: [...player.diceInPool, newDie] };
-  const nextState = { ...state, players: { ...state.players, [ctx.playerId]: nextPlayer } };
-
+  const nextState = {
+    ...state,
+    players: { ...state.players, [ctx.playerId]: { ...player, diceInPool: [...player.diceInPool, newDie] } },
+  };
   return { state: nextState, events: [], targetsConsumed: 0 };
 }
 
-function applyRollCardDie(
-  state: GameState,
-  ctx: DispatchContext,
-  effect: { op: 'rollCardDie'; cardId: string },
-): EffectResult {
+function applyRollCardDie(state: GameState, ctx: DispatchContext, effect: RollCardDieEffect): EffectResult {
   if (!ctx.catalog) throw new Error('rollCardDie requires catalog in context');
 
   const card = ctx.catalog.find((c) => c.id === effect.cardId);
-  if (!card) throw new Error(`card ${effect.cardId} not in catalog`);
-  if (!card.dieFaces) throw new Error(`card ${effect.cardId} has no dieFaces`);
+  if (!card) throw new Error(`rollCardDie: card "${effect.cardId}" not found in catalog`);
+  if (!card.dieFaces || card.dieFaces.length === 0) {
+    throw new Error(`rollCardDie: card "${effect.cardId}" has no dieFaces`);
+  }
 
   const rng = createRng(state.seed).fork(`card-die:${state.turnIndex}:${effect.cardId}`);
-  const faceIndex = rng.rollDie(6);
+  const faceIndex = rng.rollDie(card.dieFaces.length);
   const face = card.dieFaces[faceIndex]!;
 
   const newDie: DieInPool = {
     instanceId: `${effect.cardId}.transient`,
-    cardId: card.id,
+    cardId: effect.cardId,
     faceIndex,
     face,
     transient: true,
   };
 
   const player = state.players[ctx.playerId]!;
-  const nextPlayer = { ...player, diceInPool: [...player.diceInPool, newDie] };
-  const nextState = { ...state, players: { ...state.players, [ctx.playerId]: nextPlayer } };
-
+  const nextState = {
+    ...state,
+    players: { ...state.players, [ctx.playerId]: { ...player, diceInPool: [...player.diceInPool, newDie] } },
+  };
   return { state: nextState, events: [], targetsConsumed: 0 };
 }
 
