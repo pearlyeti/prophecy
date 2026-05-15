@@ -13,7 +13,6 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@3d-dice/dice-box": "^1.1.4",
     "@pixi/particle-emitter": "^5.0.8",
     "@prophecy/game-engine": "workspace:*",
     "@prophecy/protocol": "workspace:*",
