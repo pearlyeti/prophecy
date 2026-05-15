@@ -1378,16 +1378,17 @@ function buildDiceByOwner(
  * Split charIds into rows of at most maxPerRow, distributing extras into
  * front rows. rows[0] is always the front row (closest to the opponent).
  */
+// Greedy front-fill: pack front rows to maxPerRow first, remainder goes to back rows.
+// e.g. 4 chars, max 3 → [3, 1]; 5 → [3, 2]; 7 → [3, 3, 1]
 function distributeToRows(charIds: readonly string[], maxPerRow = 4): string[][] {
   if (charIds.length === 0) return [[]];
   if (charIds.length <= maxPerRow) return [[...charIds]];
-  const numRows = Math.ceil(charIds.length / maxPerRow);
-  const base = Math.floor(charIds.length / numRows);
-  const extra = charIds.length % numRows;
   const rows: string[][] = [];
   let idx = 0;
-  for (let i = 0; i < numRows; i++) {
-    const size = base + (i < extra ? 1 : 0);
+  while (idx < charIds.length) {
+    const remaining = charIds.length - idx;
+    const rowsLeft = Math.ceil(remaining / maxPerRow);
+    const size = rowsLeft > 1 ? maxPerRow : remaining;
     rows.push([...charIds].slice(idx, idx + size));
     idx += size;
   }
