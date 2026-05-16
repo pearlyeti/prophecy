@@ -3,7 +3,7 @@ import { applyAction, newGameInActionPhase } from '@prophecy/game-engine';
 import { eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { GameWriter } from '../persistence.js';
+import { GameWriter, markAbandonedSessions } from '../persistence.js';
 
 const DB_URL =
   process.env.DATABASE_URL ?? 'postgres://prophecy:prophecy@localhost:5432/prophecy';
@@ -14,17 +14,16 @@ const PLAYER_A = 'player-a';
 const PLAYER_B = 'player-b';
 
 describe('GameWriter end-to-end', () => {
-  let sessionId: string;
+  const sessionIds: string[] = [];
 
   afterAll(async () => {
-    // Clean up test rows
-    if (sessionId) {
-      await db.delete(schema.gameSessions).where(eq(schema.gameSessions.id, sessionId));
+    for (const id of sessionIds) {
+      await db.delete(schema.gameSessions).where(eq(schema.gameSessions.id, id));
     }
   });
 
-  it('persists game_sessions and game_events rows after a concede', async () => {
-    const seed = 'persistence-test-seed';
+  it('writes session row on open, event rows incrementally, and completes on close', async () => {
+    const seed = 'persistence-test-incremental';
     const game = newGameInActionPhase({
       seed,
       playerIds: [PLAYER_A, PLAYER_B],
@@ -36,37 +35,69 @@ describe('GameWriter end-to-end', () => {
     });
 
     const writer = new GameWriter(db, [PLAYER_A, PLAYER_B], seed);
-    sessionId = writer.sessionId;
+    sessionIds.push(writer.sessionId);
+
+    await writer.open();
+
+    // Session should be 'active' immediately after open
+    const [active] = await db
+      .select({ status: schema.gameSessions.status })
+      .from(schema.gameSessions)
+      .where(eq(schema.gameSessions.id, writer.sessionId));
+    expect(active?.status).toBe('active');
 
     const activePlayer = game.activePlayerId!;
     const result = applyAction(game, { type: 'concede', playerId: activePlayer });
 
+    // append is fire-and-forget; close awaits the full queue
     writer.append(result.events);
-    await writer.flush(result.state.winnerId);
+    await writer.close(result.state.winnerId);
 
-    // Assert game_sessions row
+    // Assert game_sessions row is now completed
     const [session] = await db
       .select()
       .from(schema.gameSessions)
-      .where(eq(schema.gameSessions.id, sessionId));
+      .where(eq(schema.gameSessions.id, writer.sessionId));
 
-    expect(session).toBeDefined();
-    expect(session!.playerIds).toEqual(expect.arrayContaining([PLAYER_A, PLAYER_B]));
-    expect(session!.winnerId).not.toBeNull();
-    expect(session!.seed).toBe(seed);
-    expect(session!.durationMs).toBeGreaterThanOrEqual(0);
+    expect(session?.status).toBe('completed');
+    expect(session?.playerIds).toEqual(expect.arrayContaining([PLAYER_A, PLAYER_B]));
+    expect(session?.winnerId).not.toBeNull();
+    expect(session?.seed).toBe(seed);
+    expect(session?.durationMs).toBeGreaterThanOrEqual(0);
 
-    // Assert game_events rows
+    // Assert all events landed with correct sequence numbers
     const events = await db
       .select()
       .from(schema.gameEvents)
-      .where(eq(schema.gameEvents.sessionId, sessionId));
+      .where(eq(schema.gameEvents.sessionId, writer.sessionId));
 
     expect(events.length).toBe(result.events.length);
     expect(events.length).toBeGreaterThan(0);
+    const seqs = events.map((e) => e.sequenceNumber).sort((a, b) => a - b);
+    expect(seqs[seqs.length - 1]).toBe(result.events.length - 1);
+    const lastEvent = events.find((e) => e.sequenceNumber === seqs[seqs.length - 1]);
+    expect(lastEvent?.eventType).toBe('game.ended');
+  });
 
-    // Events are in sequence order
-    const sorted = [...events].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-    expect(sorted[sorted.length - 1]!.eventType).toBe('game.ended');
+  it('markAbandonedSessions updates active sessions on boot', async () => {
+    // Insert a fake active session
+    const fakeId = '00000000-0000-0000-0000-000000000001';
+    sessionIds.push(fakeId);
+    await db.insert(schema.gameSessions).values({
+      id: fakeId,
+      status: 'active',
+      playerIds: ['x', 'y'],
+      seed: 'boot-test',
+      startedAt: new Date(),
+    });
+
+    await markAbandonedSessions(db);
+
+    const [row] = await db
+      .select({ status: schema.gameSessions.status })
+      .from(schema.gameSessions)
+      .where(eq(schema.gameSessions.id, fakeId));
+
+    expect(row?.status).toBe('abandoned');
   });
 });

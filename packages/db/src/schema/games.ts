@@ -1,7 +1,14 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+
+export const gameSessionStatusEnum = pgEnum('game_session_status', [
+  'active',
+  'completed',
+  'abandoned',
+]);
 
 export const gameSessions = pgTable('game_sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
+  status: gameSessionStatusEnum('status').notNull().default('active'),
   playerIds: text('player_ids').array().notNull(),
   winnerId: text('winner_id'),
   durationMs: integer('duration_ms'),

@@ -15,6 +15,13 @@
       "when": 1778890823126,
       "tag": "0001_opposite_iron_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778891341401,
+      "tag": "0002_deep_bishop",
+      "breakpoints": true
     }
   ]
 }
