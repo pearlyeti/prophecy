@@ -32,6 +32,7 @@ import {
   applyRoomAction,
   clearReconnectTimer,
   createRoom,
+  getActiveRoomCount,
   getRoomById,
   joinRoom,
   LobbyError,
@@ -286,6 +287,7 @@ io.on('connection', (socket) => {
   console.log(`[game-server] connected: ${socket.id}`);
 
   socket.on('lobby.create', (req, ack) => {
+    if (draining) { ack({ code: 'internal', message: 'server is restarting, please reconnect' }); return; }
     console.log(`[game-server] lobby.create from ${req.playerId} (${req.displayName})`);
     try {
       const room = createRoom(req.playerId, req.displayName);
@@ -360,6 +362,7 @@ io.on('connection', (socket) => {
       if (room.phase === 'ended') {
         io.to(room.id).emit('lobby.state', lobbyStateOf(room));
         void closeWriter(room.id, result.state.winnerId);
+        checkDrainComplete();
       }
     } catch (e) {
       ack(toError(e));
@@ -367,6 +370,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('lobby.findMatch', (req, ack) => {
+    if (draining) { ack({ code: 'internal', message: 'server is restarting, please reconnect' }); return; }
     console.log(`[game-server] lobby.findMatch from ${req.playerId} (${req.displayName})`);
     try {
       // Remove any stale entry for this player (e.g. double-click).
@@ -460,6 +464,7 @@ io.on('connection', (socket) => {
               io.to(ended.id).emit('game.state', { roomId: ended.id, state: result.state });
               io.to(ended.id).emit('lobby.state', lobbyStateOf(ended));
               void closeWriter(ended.id, result.state.winnerId);
+              checkDrainComplete();
             } catch (e) {
               console.error('[game-server] reconnect timeout forfeit failed:', e);
             }
@@ -494,6 +499,47 @@ function toError(e: unknown): ErrorPayload {
 }
 
 const port = Number(process.env.PORT ?? process.env.GAME_SERVER_PORT ?? 3001);
+const DRAIN_TIMEOUT_MS = Number(process.env.DRAIN_TIMEOUT_MS ?? 5 * 60 * 1_000);
+
+// ── Graceful shutdown ────────────────────────────────────────────────
+// On SIGTERM (Railway deploy, manual restart): stop accepting new
+// connections, broadcast a draining notice, then wait for active games
+// to finish naturally before exiting. The reconnect window (SERVER-1)
+// handles players whose connection drops during the drain.
+
+let draining = false;
+
+function checkDrainComplete(): void {
+  if (!draining) return;
+  if (getActiveRoomCount() === 0) {
+    console.log('[game-server] all rooms ended — exiting cleanly');
+    process.exit(0);
+  }
+}
+
+process.on('SIGTERM', () => {
+  if (draining) return;
+  draining = true;
+  console.log(`[game-server] SIGTERM — draining (timeout ${DRAIN_TIMEOUT_MS}ms)`);
+
+  // Stop accepting new TCP connections (existing sockets stay alive).
+  httpServer.close();
+
+  // Clear the matchmaking queue; nobody should wait on a draining server.
+  matchmakingQueue.clear();
+
+  // Tell connected clients so they can show a "back soon" banner.
+  io.emit('server.draining', { drainTimeoutMs: DRAIN_TIMEOUT_MS });
+
+  // Exit immediately if no active games are in flight.
+  checkDrainComplete();
+
+  // Hard exit after the drain window regardless.
+  setTimeout(() => {
+    console.log('[game-server] drain timeout — force exit');
+    process.exit(0);
+  }, DRAIN_TIMEOUT_MS).unref();
+});
 
 await initialize();
 await initializeAttributes();

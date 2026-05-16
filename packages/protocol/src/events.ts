@@ -131,6 +131,8 @@ export interface ServerToClientEvents {
   'error': (payload: ErrorPayload) => void;
   /** Unicast to both matched players when the pair is found and the game has started. */
   'lobby.matchFound': (payload: MatchFoundPayload) => void;
+  /** Broadcast when the server receives SIGTERM. Active games continue; new connections are refused. */
+  'server.draining': (payload: { drainTimeoutMs: number }) => void;
 }
 
 export function isError<T>(resp: T | ErrorPayload): resp is ErrorPayload {

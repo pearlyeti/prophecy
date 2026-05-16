@@ -198,6 +198,14 @@ export function getRoomById(roomId: string): Room | undefined {
   return rooms.get(roomId);
 }
 
+export function getActiveRoomCount(): number {
+  let count = 0;
+  for (const room of rooms.values()) {
+    if (room.phase === 'in-game') count++;
+  }
+  return count;
+}
+
 export function trackConnection(roomId: string, playerId: string, delta: 1 | -1): void {
   const room = rooms.get(roomId);
   if (!room) return;
