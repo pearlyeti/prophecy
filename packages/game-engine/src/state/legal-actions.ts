@@ -63,6 +63,18 @@ export interface LegalActions {
   /** Setup-phase availability. */
   readonly canChooseFirstPlayer: boolean;
   readonly canPlaceShield: boolean;
+  /**
+   * Non-empty while a Guardian intercept is pending for this player.
+   * Contains the instance IDs of opponent dice showing melee/ranged/indirect
+   * that the player may remove. Empty when no intercept is pending.
+   * While non-empty, all other actions are blocked.
+   */
+  readonly guardianInterceptableDieIds: readonly string[];
+  /**
+   * True when a Guardian intercept is pending for this player, allowing
+   * them to send guardian.intercept with dieInstanceId = null to skip.
+   */
+  readonly canSkipGuardian: boolean;
 }
 
 /** Returns true if all costs of an action/powerAction ability can currently be paid. */
@@ -89,6 +101,8 @@ const RESOLVABLE_SYMBOLS_V1: readonly DieSymbol[] = [
   'focus',
 ];
 
+const GUARDIAN_DAMAGE_SYMBOLS = new Set(['melee', 'ranged', 'indirect']);
+
 export function getLegalActions(state: GameState, playerId: string): LegalActions {
   // No legal actions after the game has ended.
   if (state.winnerId !== null || state.phase === 'ended') {
@@ -97,6 +111,27 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
 
   const player = state.players[playerId];
   if (!player) return EMPTY;
+
+  // ---- Pending Guardian intercept ----
+  // While a Guardian intercept is waiting, only 'guardian.intercept' is
+  // legal for the activating player. All other actions are blocked.
+  if (state.pendingGuardian) {
+    if (state.pendingGuardian.activatingPlayerId === playerId) {
+      const oppId = state.playerOrder.find((id) => id !== playerId);
+      const oppPool = oppId ? (state.players[oppId]?.diceInPool ?? []) : [];
+      const interceptableIds = oppPool
+        .filter((d) => GUARDIAN_DAMAGE_SYMBOLS.has(d.face.symbol))
+        .map((d) => d.instanceId);
+      return {
+        ...EMPTY,
+        canConcede: true,
+        guardianInterceptableDieIds: interceptableIds,
+        canSkipGuardian: true,
+      };
+    }
+    // Opponent waits during the intercept decision.
+    return { ...EMPTY, canConcede: true };
+  }
 
   // ---- Pending trigger ordering ----
   // While simultaneous triggers are waiting for ordering, only the
@@ -194,6 +229,8 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     powerActionableCardIds: powerActionable,
     canChooseFirstPlayer: false,
     canPlaceShield: false,
+    guardianInterceptableDieIds: [],
+    canSkipGuardian: false,
   };
 }
 
@@ -211,4 +248,6 @@ const EMPTY: LegalActions = {
   powerActionableCardIds: [],
   canChooseFirstPlayer: false,
   canPlaceShield: false,
+  guardianInterceptableDieIds: [],
+  canSkipGuardian: false,
 };

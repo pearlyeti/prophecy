@@ -53,6 +53,16 @@ export type Action =
       /** Pre-resolved character instance IDs consumed by targeting effects in order. */
       targetCharacterIds?: readonly string[];
     }
+  | {
+      /**
+       * Resolve the pending Guardian intercept decision. `dieInstanceId` is
+       * the opponent die to remove (dealing its value as damage to the
+       * Guardian character), or null to skip and proceed with activation.
+       */
+      type: 'guardian.intercept';
+      playerId: string;
+      dieInstanceId: string | null;
+    }
   | { type: 'claim-battlefield'; playerId: string }
   | { type: 'concede'; playerId: string }
   | {
