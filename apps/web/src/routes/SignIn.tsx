@@ -2,7 +2,7 @@ import { authClient } from '../lib/auth-client.js';
 
 export function SignIn() {
   const signIn = (provider: 'google' | 'discord') =>
-    authClient.signIn.social({ provider, callbackURL: '/' });
+    authClient.signIn.social({ provider, callbackURL: window.location.origin + '/' });
 
   return (
     <main className="min-h-dvh flex flex-col items-center justify-center gap-10 px-6 py-12 text-center">
