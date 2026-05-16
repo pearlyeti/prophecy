@@ -1,0 +1,71 @@
+{
+  "id": "CHAR_017",
+  "name": "Loki, Trickster God",
+  "type": "character",
+  "subtypes": [
+    "God"
+  ],
+  "faction": "light",
+  "color": "blue",
+  "rarity": "legendary",
+  "cost": null,
+  "health": 12,
+  "pointValue": 15,
+  "elitePointValue": 20,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "",
+  "dieFaces": [
+    {
+      "symbol": "melee",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "melee",
+      "value": 3,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "focus",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "shield",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "blank",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    }
+  ],
+  "abilities": [],
+  "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_017.webp",
+  "artFrameX": 64.2633228840125,
+  "artFrameY": 10.344827586206895,
+  "artFrameZoom": 2.9,
+  "cardFrameX": 55.307855626326976,
+  "cardFrameY": 22.39915074309979,
+  "cardFrameZoom": 1,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

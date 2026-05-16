@@ -1,0 +1,45 @@
+{
+  "id": "BFD_002",
+  "name": "The Sundered Bastion",
+  "type": "battlefield",
+  "subtypes": [],
+  "faction": "neutral",
+  "color": null,
+  "rarity": "uncommon",
+  "cost": null,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": true,
+  "keywords": [],
+  "displayText": "Claim: Opponent loses 1 resource.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "claim",
+      "effects": [
+        {
+          "op": "loseResources",
+          "amount": 1,
+          "target": "opponent",
+          "optional": false
+        }
+      ],
+      "optional": false
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

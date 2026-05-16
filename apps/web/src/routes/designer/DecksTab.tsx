@@ -25,10 +25,12 @@ function newDeck(): Deck {
 export function DecksTab({
   decks,
   cards,
+  committedDecks,
   onReload,
 }: {
   decks: readonly Deck[];
   cards: readonly Card[];
+  committedDecks?: readonly Deck[];
   onReload: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -416,8 +418,14 @@ export function DecksTab({
               )}
               <button
                 type="button"
-                onClick={() => select(selectedId)}
+                onClick={() => {
+                  if (!selectedId) return;
+                  const source = committedDecks ?? decks;
+                  const original = source.find((d) => d.id === selectedId);
+                  if (original) { setDraft(structuredClone(original)); setSavedAt(null); }
+                }}
                 disabled={saving || selectedId === null}
+                title={committedDecks ? 'Revert to last commit' : 'Revert to last save'}
                 className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm hover:border-neutral-500 disabled:opacity-50"
               >
                 Revert

@@ -1,0 +1,79 @@
+{
+  "id": "EVT_056",
+  "name": "Wild Strike",
+  "type": "event",
+  "subtypes": [],
+  "faction": "neutral",
+  "color": "red",
+  "rarity": "common",
+  "cost": 0,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Roll this card's die and add it to your pool.",
+  "dieFaces": [
+    {
+      "symbol": "melee",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "melee",
+      "value": 3,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "ranged",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "disrupt",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "blank",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    }
+  ],
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "rollEventDie",
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

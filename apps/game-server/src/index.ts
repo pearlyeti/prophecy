@@ -16,6 +16,17 @@ import { Server } from 'socket.io';
 import { artDir, getCards, getDecks, initialize, writeCards, writeDecks } from './corpus.js';
 import { getAttributes, initializeAttributes, writeAttributes } from './attributeCorpus.js';
 import { isStorageConfigured, uploadFile } from './storage.js';
+import {
+  commitCatalog,
+  fetchCardAtSha,
+  fetchCardHistory,
+  fetchCommitReport,
+  getCommittedSnapshot,
+  GitHubConflictError,
+  getPendingChanges,
+  initializeGitHubSync,
+  isGitHubSyncEnabled,
+} from './githubSync.js';
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -79,8 +90,8 @@ const httpServer = createServer(async (req, res) => {
   const origin = (req.headers.origin as string | undefined) ?? '*';
   if (req.url?.startsWith('/designer') || req.url?.startsWith('/card-art/')) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Vary', 'Origin');
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -114,6 +125,7 @@ const httpServer = createServer(async (req, res) => {
   // ── Card art upload (binary PUT body, Content-Type = image/*) ────────
   const artUploadMatch = req.url?.match(/^\/designer\/card-art\/([^/]+)$/);
   if (artUploadMatch && req.method === 'PUT') {
+    if (!checkDesignerAuth(req, res)) return;
     const cardId = decodeURIComponent(artUploadMatch[1]!);
     if (!/^[A-Za-z0-9_-]{1,60}$/.test(cardId)) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -169,6 +181,7 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
   if (req.url === '/designer/cards' && req.method === 'PUT') {
+    if (!checkDesignerAuth(req, res)) return;
     try {
       const body = await readJsonBody(req);
       const parsed = cardCatalogSchema.parse(body);
@@ -187,6 +200,7 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
   if (req.url === '/designer/decks' && req.method === 'PUT') {
+    if (!checkDesignerAuth(req, res)) return;
     try {
       const body = await readJsonBody(req);
       const parsed = deckCatalogSchema.parse(body);
@@ -205,6 +219,7 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
   if (req.url === '/designer/attributes' && req.method === 'PUT') {
+    if (!checkDesignerAuth(req, res)) return;
     try {
       const body = await readJsonBody(req);
       const { attributeCatalogSchema } = await import('@prophecy/protocol');
@@ -219,6 +234,125 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (req.url === '/designer/committed' && req.method === 'GET') {
+    const snap = getCommittedSnapshot();
+    if (!snap) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ enabled: false }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ enabled: true, cards: snap.cards, decks: snap.decks, attributes: snap.attributes }));
+    return;
+  }
+
+  if (req.url === '/designer/pending' && req.method === 'GET') {
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ enabled: false }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ enabled: true, ...getPendingChanges() }));
+    return;
+  }
+
+  if (req.url === '/designer/commit' && req.method === 'POST') {
+    if (!checkDesignerAuth(req, res)) return;
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(501, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'GitHub sync not configured (set GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH)' }));
+      return;
+    }
+    try {
+      const body = await readJsonBody(req);
+      const { message, selection } = body as {
+        message?: string;
+        selection?: { cardIds?: string[]; deckIds?: string[]; includeAttributes?: boolean };
+      };
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'message is required' }));
+        return;
+      }
+      if (message.length > 500) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'message must be 500 characters or fewer' }));
+        return;
+      }
+      const result = await commitCatalog(message.trim(), selection);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, ...result }));
+    } catch (e) {
+      if (e instanceof GitHubConflictError) {
+        res.writeHead(409, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
+      } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
+      }
+    }
+    return;
+  }
+
+  const historyMatch = req.url?.match(/^\/designer\/cards\/([A-Za-z0-9_-]+)\/history$/) ?? null;
+  if (historyMatch && req.method === 'GET') {
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(501, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'GitHub sync not configured' }));
+      return;
+    }
+    try {
+      const cardId = historyMatch[1]!;
+      const history = await fetchCardHistory(cardId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(history));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (e as Error).message }));
+    }
+    return;
+  }
+
+  const atShaMatch = req.url?.match(/^\/designer\/cards\/([A-Za-z0-9_-]+)\/at\/([a-f0-9]{4,40})$/) ?? null;
+  if (atShaMatch && req.method === 'GET') {
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(501, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'GitHub sync not configured' }));
+      return;
+    }
+    try {
+      const cardId = atShaMatch[1]!;
+      const sha = atShaMatch[2]!;
+      const card = await fetchCardAtSha(cardId, sha);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(card));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (e as Error).message }));
+    }
+    return;
+  }
+
+  const commitReportMatch = req.url?.match(/^\/designer\/commits\/([a-f0-9]{4,40})$/) ?? null;
+  if (commitReportMatch && req.method === 'GET') {
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(501, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'GitHub sync not configured' }));
+      return;
+    }
+    try {
+      const sha = commitReportMatch[1]!;
+      const report = await fetchCommitReport(sha);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(report));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (e as Error).message }));
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
@@ -228,6 +362,17 @@ async function readJsonBody(req: import('node:http').IncomingMessage): Promise<u
   for await (const chunk of req) chunks.push(chunk as Buffer);
   const text = Buffer.concat(chunks).toString('utf8');
   return text ? JSON.parse(text) : {};
+}
+
+// Guards mutating designer routes. Open in dev (no DESIGNER_SECRET set).
+// AUTH-1 will replace this with proper session auth when it lands.
+function checkDesignerAuth(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse): boolean {
+  const secret = process.env.DESIGNER_SECRET;
+  if (!secret) return true;
+  if (req.headers.authorization === `Bearer ${secret}`) return true;
+  res.writeHead(401, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ ok: false, error: 'unauthorized' }));
+  return false;
 }
 
 interface SocketData {
@@ -578,6 +723,7 @@ process.on('SIGTERM', () => {
 
 await initialize();
 await initializeAttributes();
+await initializeGitHubSync();
 await markAbandonedSessions(getDb()).catch((e) =>
   console.error('[game-server] abandoned-session scan failed:', e),
 );

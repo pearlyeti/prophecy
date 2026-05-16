@@ -1,0 +1,48 @@
+{
+  "id": "EVT_038",
+  "name": "Marksman's Eye",
+  "type": "event",
+  "subtypes": [],
+  "faction": "light",
+  "color": "blue",
+  "rarity": "common",
+  "cost": 0,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Deal 1 ranged damage to a character.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "dealDamage",
+          "amount": 1,
+          "damageType": "ranged",
+          "target": {
+            "kind": "opponentCharacter"
+          },
+          "unblockable": false,
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

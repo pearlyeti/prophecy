@@ -457,10 +457,24 @@ pnpm --filter @prophecy/game-engine test
 
 The canonical original-IP catalog lives in committed JSON at:
 
-- `packages/db/seed/cards.json` — every card the game knows about (events, characters, upgrades, supports, plots, battlefields).
+- `packages/db/seed/cards/{id}.json` — one file per card (e.g. `CHAR_001.json`). Splitting by card keeps git diffs surgical and lets multiple authors edit different cards without conflicts.
 - `packages/db/seed/decks.json` — saved decks (starter / preview / curated).
+- `packages/db/seed/attributes.json` — attribute catalog (colors, factions, rarities, etc.).
 
-Both files are loaded at game-server startup (`apps/game-server/src/corpus.ts`) and validated against the Zod schemas in `@prophecy/protocol` (`cardSchema`, `deckSchema`). A typo in either file fails fast at boot. The same files are managed through the admin UX (see below) and will be the `pnpm db:seed` source once API-1 lands.
+All three are loaded at game-server startup (`apps/game-server/src/corpus.ts`) and validated against the Zod schemas in `@prophecy/protocol`. A typo in any file fails fast at boot. The designer UX (`/designer`) manages them and can commit changes directly to the repo — see [Designer server deployment](#designer-server-deployment) below. The same files will be the `pnpm db:seed` source once the DB seed pipeline lands.
+
+### Designer server deployment
+
+The designer (`apps/web/src/routes/designer/`) can run on the deployed game-server so the whole team can edit cards without running a local dev environment. Two optional env vars unlock the team workflow:
+
+| Var | Purpose |
+|-----|---------|
+| `DESIGNER_SECRET` | Shared secret gating all `PUT`/`POST /designer/*` routes. Leave unset locally. AUTH-1 will replace this with session auth. Set matching `VITE_DESIGNER_SECRET` on the Vercel web app. |
+| `GITHUB_TOKEN` | Fine-grained PAT with Contents read+write on this repo. Enables the "Commit to GitHub" button. |
+| `GITHUB_REPO` | `owner/repo` (e.g. `pearlyeti/prophecy`). |
+| `GITHUB_BRANCH` | Target branch (default: `main`). |
+
+When `GITHUB_TOKEN` is configured, `GET /designer/pending` returns a diff of in-memory catalog vs. the last-committed state, and `POST /designer/commit` creates an atomic git commit with all pending card, deck, and attribute changes. Card art is binary and stays in S3/disk only.
 
 ### Admin UX
 

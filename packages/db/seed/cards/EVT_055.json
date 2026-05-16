@@ -1,0 +1,48 @@
+{
+  "id": "EVT_055",
+  "name": "Long Shot",
+  "type": "event",
+  "subtypes": [],
+  "faction": "neutral",
+  "color": "red",
+  "rarity": "common",
+  "cost": 1,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Deal 2 ranged damage to a character.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "dealDamage",
+          "amount": 2,
+          "damageType": "ranged",
+          "target": {
+            "kind": "opponentCharacter"
+          },
+          "unblockable": false,
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}
