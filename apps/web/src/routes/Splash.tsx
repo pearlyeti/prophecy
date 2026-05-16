@@ -1,6 +1,7 @@
 import { isError } from '@prophecy/protocol';
 import { useState } from 'react';
 
+// test/vercel-pr-preview — delete this branch after confirming Vercel preview works.
 import { authClient } from '../lib/auth-client.js';
 
 // Base path for direct auth API calls — mirrors auth-client.ts resolution.
