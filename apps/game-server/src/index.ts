@@ -369,6 +369,11 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('game.preview', (req) => {
+    // Fire-and-forget relay — no validation, just rebroadcast to room peers.
+    socket.to(req.roomId).emit('game.preview', req);
+  });
+
   socket.on('lobby.findMatch', (req, ack) => {
     if (draining) { ack({ code: 'internal', message: 'server is restarting, please reconnect' }); return; }
     console.log(`[game-server] lobby.findMatch from ${req.playerId} (${req.displayName})`);
