@@ -47,6 +47,20 @@ function faceWord(s: string): string {
   }
 }
 
+// Returns the font size that fits `text` within `maxWidth`, starting from `startSize`.
+function fittedSize(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  startSize: number,
+  weight: string,
+): number {
+  ctx.font = `${weight} ${startSize}px ui-sans-serif, sans-serif`;
+  const w = ctx.measureText(text).width;
+  if (w <= maxWidth) return startSize;
+  return Math.floor(startSize * (maxWidth / w));
+}
+
 export function makeFaceTexture(
   symbol: string,
   value: number,
@@ -60,9 +74,9 @@ export function makeFaceTexture(
   c.width = S; c.height = S;
   const ctx = c.getContext('2d')!;
 
+  // Background
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, S, S);
-
   const grad = ctx.createRadialGradient(S * 0.35, S * 0.3, 0, S * 0.5, S * 0.5, S * 0.7);
   grad.addColorStop(0, 'rgba(255,255,255,0.12)');
   grad.addColorStop(1, 'rgba(0,0,0,0.08)');
@@ -72,38 +86,53 @@ export function makeFaceTexture(
   ctx.fillStyle = textColor;
   ctx.textAlign = 'center';
 
+  // Max usable width — leaves ~9% padding on each side.
+  const maxW = Math.round(S * 0.82);
+
   if (symbol === 'blank') {
     // intentionally empty
+
   } else if (symbol === 'special') {
-    ctx.font = `bold ${Math.round(S * 0.25)}px ui-sans-serif, sans-serif`;
+    const size = fittedSize(ctx, 'Special', maxW, Math.round(S * 0.22), 'bold');
+    ctx.font = `bold ${size}px ui-sans-serif, sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.fillText('Special', S / 2, S / 2);
+
   } else {
     const valueStr = modifier ? `+${value}` : (value > 0 ? `${value}` : '');
     const label = faceWord(symbol);
-    const valueFont = Math.round(S * 0.33);
-    const labelFont = Math.round(S * 0.22);
-    const GAP = Math.round(S * 0.03);
+    const GAP = Math.round(S * 0.04);
 
-    if (valueStr) {
-      // Center the value+label block vertically: yValue is the em-midpoint of the number,
-      // yLabel is the em-midpoint of the word. Together they're centered on S/2.
-      const yValue = (S - GAP - labelFont) / 2;
-      const yLabel = S / 2 + GAP / 2 + valueFont / 2;
+    if (valueStr && label) {
+      // Fit each text to maxW independently, then center the pair vertically.
+      const vSize = fittedSize(ctx, valueStr, maxW, Math.round(S * 0.35), 'bold');
+      const lSize = fittedSize(ctx, label,    maxW, Math.round(S * 0.22), '');
 
-      ctx.font = `bold ${valueFont}px ui-sans-serif, sans-serif`;
+      // Derive y so the combined block is centered on S/2.
+      // With textBaseline='middle', visual height ≈ fontSize.
+      // yValue = (S - GAP - lSize) / 2  →  centers the pair on S/2.
+      // yLabel = S/2 + GAP/2 + vSize/2
+      const yValue = (S - GAP - lSize) / 2;
+      const yLabel = S / 2 + GAP / 2 + vSize / 2;
+
+      ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
       ctx.textBaseline = 'middle';
       ctx.fillText(valueStr, S / 2, yValue);
 
-      if (label) {
-        ctx.globalAlpha = 0.85;
-        ctx.font = `${labelFont}px ui-sans-serif, sans-serif`;
-        ctx.fillText(label, S / 2, yLabel);
-        ctx.globalAlpha = 1;
-      }
+      ctx.globalAlpha = 0.85;
+      ctx.font = `${lSize}px ui-sans-serif, sans-serif`;
+      ctx.fillText(label, S / 2, yLabel);
+      ctx.globalAlpha = 1;
+
+    } else if (valueStr) {
+      const vSize = fittedSize(ctx, valueStr, maxW, Math.round(S * 0.35), 'bold');
+      ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(valueStr, S / 2, S / 2);
+
     } else if (label) {
-      // No value (e.g. value=0, non-modifier) — just show the label centered.
-      ctx.font = `${labelFont}px ui-sans-serif, sans-serif`;
+      const lSize = fittedSize(ctx, label, maxW, Math.round(S * 0.22), '');
+      ctx.font = `${lSize}px ui-sans-serif, sans-serif`;
       ctx.textBaseline = 'middle';
       ctx.fillText(label, S / 2, S / 2);
     }
