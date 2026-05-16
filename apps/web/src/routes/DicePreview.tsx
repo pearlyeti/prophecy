@@ -42,8 +42,8 @@ function FaceCanvas({ spec, bg, text }: { spec: FaceSpec; bg: string; text: stri
     texture.dispose();
   }, [spec, bg, text]);
 
+  // rotate 90° CW to match how the UV axes map the canvas onto the die face
   return (
-    {/* rotate 90° CW to match how the UV axes map the canvas onto the die face */}
     <canvas
       ref={ref}
       style={{ width: 120, height: 120, borderRadius: 16, display: 'block', transform: 'rotate(90deg)' }}
