@@ -20,7 +20,7 @@ import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture } from '../lib/dieFaceText
 const DIE_SIZE = 0.8;           // world units
 const DIE_RADIUS = 0.16;        // chamfer radius
 const DIE_SPACING = 1.05;       // center-to-center spacing
-const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch more vertical space
+const CANVAS_HEIGHT_PX = 96;    // px — tall enough to show value+label at readable size
 
 // Camera stays centered on X so the die row doesn't shift in screen space.
 // Z=0.9 provides the overhead-with-depth look (bottom-of-screen tilt).
