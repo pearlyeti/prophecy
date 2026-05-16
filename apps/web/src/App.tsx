@@ -114,14 +114,16 @@ function SocketBridge() {
     const onReconnectAttempt = () => setStatus('reconnecting');
 
     // Socket.IO's ping timeout is 20s by default, so it can take that long to
-    // notice a dropped connection. The browser's `offline` event fires
-    // immediately, so listen for it directly to update the pill faster.
-    const onOffline = () => setStatus('disconnected');
+    // notice a dropped connection. Drive disconnect/reconnect directly from
+    // the browser's online/offline events so the pill responds immediately
+    // and Socket.IO doesn't waste time waiting on a dead transport.
+    const onOffline = () => {
+      setStatus('disconnected');
+      if (socket.connected) socket.disconnect();
+    };
     const onOnline = () => {
-      if (!socket.connected) {
-        setStatus('reconnecting');
-        socket.connect();
-      }
+      setStatus('reconnecting');
+      socket.connect();
     };
 
     const onLobby: Parameters<typeof socket.on<'lobby.state'>>[1] = (state) => {
