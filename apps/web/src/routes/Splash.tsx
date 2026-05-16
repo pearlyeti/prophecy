@@ -7,6 +7,75 @@ import { getSocket } from '../lib/socket.js';
 import { trpc } from '../lib/trpc.js';
 import { useApp } from '../store.js';
 
+function SetPasswordForm() {
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw !== confirm) { setError('Passwords do not match.'); return; }
+    setBusy(true);
+    setError(null);
+    const result = await authClient.$fetch('/set-password', {
+      method: 'POST',
+      body: { newPassword: pw },
+    });
+    setBusy(false);
+    if ((result as { error?: { message?: string } }).error) {
+      setError((result as { error?: { message?: string } }).error?.message ?? 'Something went wrong.');
+    } else {
+      setDone(true);
+      setOpen(false);
+    }
+  };
+
+  if (done) return <span className="ml-2 text-emerald-400">Password set.</span>;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="ml-2 underline underline-offset-2 hover:text-neutral-300"
+      >
+        Set a password
+      </button>
+      {open && (
+        <form onSubmit={submit} className="mt-3 flex flex-col gap-2 text-left">
+          <input
+            type="password"
+            required
+            placeholder="New password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-neutral-400"
+          />
+          <input
+            type="password"
+            required
+            placeholder="Confirm password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-neutral-400"
+          />
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-lg border border-neutral-600 bg-neutral-800 px-3 py-2 text-sm font-medium text-neutral-100 transition hover:border-neutral-400 disabled:opacity-50"
+          >
+            {busy ? '…' : 'Set password'}
+          </button>
+        </form>
+      )}
+    </>
+  );
+}
+
 // Splash: pick a name, then create / join a lobby or find a match.
 export function Splash() {
   const playerId = useApp((s) => s.playerId);
@@ -113,6 +182,7 @@ export function Splash() {
             >
               Sign out
             </button>
+            <SetPasswordForm />
           </p>
         )}
       </header>
