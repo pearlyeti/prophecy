@@ -36,8 +36,22 @@ app.use('/trpc/*', corsMiddleware);
 
 app.get('/health', (c) => c.json({ ok: true, service: 'api' }));
 
-// better-auth doesn't register setPassword as an HTTP route (it's server-side
-// only). Expose it here before the catch-all so Hono matches this first.
+// All /api/auth/* traffic goes through better-auth. set-password has no native
+// HTTP route in better-auth (server-side only), so we intercept it here and
+// call auth.api.setPassword directly; everything else delegates to auth.handler.
+// Using app.use() so the wildcard matches nested paths (sign-in/social, etc.).
+app.use('/api/auth/*', async (c, next) => {
+  if (c.req.method === 'POST' && c.req.path === '/api/auth/set-password') {
+    return next();
+  }
+  try {
+    return await auth.handler(c.req.raw);
+  } catch (err) {
+    console.error('[auth] unhandled error in auth.handler:', err);
+    return c.json({ error: 'internal server error' }, 500);
+  }
+});
+
 app.post('/api/auth/set-password', async (c) => {
   try {
     const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
@@ -52,15 +66,6 @@ app.post('/api/auth/set-password', async (c) => {
     const status = (e?.status ?? e?.statusCode ?? 400) as 400 | 401 | 403 | 500;
     const message = (e?.message ?? 'Something went wrong') as string;
     return c.json({ message }, status);
-  }
-});
-
-app.on(['GET', 'POST'], '/api/auth/**', async (c) => {
-  try {
-    return await auth.handler(c.req.raw);
-  } catch (err) {
-    console.error('[auth] unhandled error in auth.handler:', err);
-    return c.json({ error: 'internal server error' }, 500);
   }
 });
 
