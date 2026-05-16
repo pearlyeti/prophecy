@@ -16,7 +16,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "After this support activates, you may deal 1 damage to a character.",
+  "displayText": "After this support activates, you may deal 1 damage to an opponent's character.",
   "dieFaces": [
     {
       "symbol": "melee",
@@ -55,7 +55,23 @@
       "modifier": false
     }
   ],
-  "abilities": [],
+  "abilities": [
+    {
+      "kind": "triggered",
+      "triggerEvent": { "kind": "afterActivateSupport", "ownOnly": true },
+      "optional": true,
+      "effects": [
+        {
+          "op": "dealDamage",
+          "amount": 1,
+          "damageType": "melee",
+          "target": { "kind": "opponentCharacter" },
+          "unblockable": false,
+          "optional": false
+        }
+      ]
+    }
+  ],
   "artUrl": null,
   "artFrameX": null,
   "artFrameY": null,

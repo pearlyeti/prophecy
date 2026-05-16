@@ -64,22 +64,36 @@ let cachedDecks: Deck[] | null = null;
 /**
  * Call once at startup (before httpServer.listen). Tries to load the card
  * catalog from object storage; falls back to the per-card disk files.
+ *
+ * Stale-storage guard: if object storage has cards that are missing abilities
+ * present in the disk seed files (e.g. from a pre-abilities schema), we
+ * discard the stale storage data and reload from disk, then update storage.
  */
 export async function initialize(): Promise<void> {
   cachedDecks = loadDecks();
+  const diskCards = loadCardsFromDisk();
 
   const json = await readCatalogFromStorage();
   if (json) {
     const parsed = cardCatalogSchema.safeParse(JSON.parse(json));
     if (parsed.success) {
-      cachedCards = parsed.data.cards;
-      console.log('[corpus] cards loaded from object storage');
-      return;
+      const storageById = new Map(parsed.data.cards.map((c) => [c.id, c]));
+      const stale = diskCards.some((dc) => {
+        const sc = storageById.get(dc.id);
+        return dc.abilities.length > 0 && (!sc || sc.abilities.length === 0);
+      });
+      if (!stale) {
+        cachedCards = parsed.data.cards;
+        console.log('[corpus] cards loaded from object storage');
+        return;
+      }
+      console.warn('[corpus] object storage cards missing abilities — reloading from disk');
+    } else {
+      console.warn('[corpus] object storage catalog failed validation — falling back to disk');
     }
-    console.warn('[corpus] object storage catalog failed validation — falling back to disk');
   }
 
-  cachedCards = loadCardsFromDisk();
+  cachedCards = diskCards;
 
   // Seed storage so the next cold start doesn't need to read per-card files.
   const diskJson = JSON.stringify({ cards: cachedCards }, null, 2) + '\n';
