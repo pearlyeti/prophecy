@@ -15,6 +15,9 @@ const webOrigin = process.env.WEB_PUBLIC_URL?.replace(/\/+$/, '');
 export const auth = betterAuth({
   baseURL: BETTER_AUTH_URL,
   secret: BETTER_AUTH_SECRET,
+  emailAndPassword: {
+    enabled: true,
+  },
   database: drizzleAdapter(createDb(DB_URL), {
     provider: 'pg',
     schema: {
