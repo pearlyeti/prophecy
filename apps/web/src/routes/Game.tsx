@@ -1712,6 +1712,22 @@ function distributeToRows(charIds: readonly string[], maxPerRow = 4): string[][]
 // Battle zone — mobile-first layout shell (WEB-11)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Derive which board side a card requires for a character drop target. */
+function getCharTargetSide(card: Card | undefined): 'own' | 'opponent' | null {
+  if (!card) return null;
+  if (card.type === 'upgrade') return 'own';
+  if (card.type !== 'event') return null;
+  for (const ab of card.abilities) {
+    if (ab.kind !== 'immediate') continue;
+    for (const fx of ab.effects) {
+      const op = (fx as { op?: string }).op;
+      if (op === 'dealDamage' || op === 'removeShields') return 'opponent';
+      if (op === 'addShields' || op === 'healDamage') return 'own';
+    }
+  }
+  return null;
+}
+
 /** Top-to-bottom mobile-first game shell. */
 function BattleZone({
   game,
