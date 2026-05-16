@@ -407,7 +407,7 @@ cd prophecy
 pnpm install
 
 # Start infrastructure (Postgres, Redis, MinIO as R2 stand-in)
-docker compose up -d
+docker compose -f infra/docker-compose.yml up -d
 
 # Copy and fill in env vars
 cp .env.example .env
