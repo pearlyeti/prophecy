@@ -18,7 +18,7 @@ import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture } from '../lib/dieFaceText
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const DIE_SIZE = 0.8;           // world units
-const DIE_RADIUS = 0.12;        // chamfer radius — matches physical dice
+const DIE_RADIUS = 0.16;        // chamfer radius
 const DIE_SPACING = 1.05;       // center-to-center spacing
 const CANVAS_HEIGHT_PX = 64;    // px — overhead perspective needs a touch more vertical space
 
