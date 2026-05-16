@@ -1,4 +1,4 @@
-import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type CharacterState } from '@prophecy/game-engine';
+import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type CharacterState, type SupportState } from '@prophecy/game-engine';
 import type { Action, Card, EngineEvent, GameState, LobbyState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -1865,6 +1865,7 @@ const MIN_DICE_COLS = 3;
 const MAX_CHARS_PER_ROW = 3;
 // Card column width is fixed independently of die size.
 const CHAR_COL_WIDTH = 92;
+const SUPPORT_COL_WIDTH = 70; // ~75% of character column
 
 // ─── Shared battlefield row renderer ────────────────────────────────────────
 
@@ -2148,10 +2149,26 @@ function OpponentZone({
     () => distributeToRows(oppPlayer?.characterOrder ?? [], maxPerRow).reverse(),
     [oppPlayer, maxPerRow],
   );
-  const cardCount = Math.max(1, oppPlayer?.characterOrder.length ?? 1);
+  const cardCount = Math.max(1, (oppPlayer?.characterOrder.length ?? 0) + (oppPlayer?.supportOrder.length ?? 0));
 
   return (
     <div ref={containerRef} className="flex min-h-0 shrink basis-0 flex-col justify-end gap-2 overflow-hidden pb-1" style={{ flexGrow: cardCount }}>
+      {oppPlayer && (
+        <SupportStrip
+          supportOrder={oppPlayer.supportOrder}
+          playerState={oppPlayer as any}
+          game={game}
+          catalogById={catalogById}
+          side="opponent"
+          diceByOwner={diceByOwner}
+          selectionMode={selectionMode}
+          diceInteractive={false}
+          resolvableSymbols={[]}
+          activatableSupportIds={[]}
+          actionableIds={[]}
+          powerActionableIds={[]}
+        />
+      )}
       {oppPlayer && rows.map((rowIds, i) => (
         <BattlefieldRow
           key={i}
@@ -2206,8 +2223,6 @@ function PlayerZone({
     () => distributeToRows(myPlayer?.characterOrder ?? [], maxPerRow),
     [myPlayer, maxPerRow],
   );
-  const cardCount = Math.max(1, myPlayer?.characterOrder.length ?? 1);
-
   // Compute eligible actions — only when it's my turn, in action phase, no active flow
   const legalActions = useMemo(
     () => (isMyTurn && inActionPhase && activeFlow === null)
@@ -2216,9 +2231,11 @@ function PlayerZone({
     [game, playerId, isMyTurn, inActionPhase, activeFlow],
   );
   const activatableIds = legalActions?.activatableCharacterIds ?? [];
+  const activatableSupportIds = legalActions?.activatableSupportIds ?? [];
   const resolvableSymbols = legalActions?.resolvableSymbols ?? [];
   const actionableIds = legalActions?.actionableCardIds ?? [];
   const powerActionableIds = legalActions?.powerActionableCardIds ?? [];
+  const cardCount = Math.max(1, (myPlayer?.characterOrder.length ?? 0) + (myPlayer?.supportOrder.length ?? 0));
 
   return (
     <div ref={containerRef} className="flex min-h-0 shrink basis-0 flex-col justify-start gap-2 overflow-hidden pt-1" style={{ flexGrow: cardCount }}>
@@ -2243,6 +2260,22 @@ function PlayerZone({
           onUpgradeTap={onUpgradeTap}
         />
       ))}
+      {myPlayer && (
+        <SupportStrip
+          supportOrder={myPlayer.supportOrder}
+          playerState={myPlayer as any}
+          game={game}
+          catalogById={catalogById}
+          side="player"
+          diceByOwner={diceByOwner}
+          selectionMode={selectionMode}
+          diceInteractive={diceInteractive}
+          resolvableSymbols={resolvableSymbols}
+          activatableSupportIds={activatableSupportIds}
+          actionableIds={actionableIds}
+          powerActionableIds={powerActionableIds}
+        />
+      )}
     </div>
   );
 }
@@ -2776,6 +2809,199 @@ function CharacterCard({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function SupportCard({
+  support,
+  game,
+  catalogById,
+  eligible = false,
+  activating = false,
+  abilityBadges,
+  onAbilityBadgeTap,
+  onTap,
+}: {
+  support: SupportState;
+  game: GameState;
+  catalogById: Map<string, Card>;
+  eligible?: boolean;
+  activating?: boolean;
+  abilityBadges: Array<{ abilityIndex: number; kind: 'action' | 'powerAction'; eligible: boolean }>;
+  onAbilityBadgeTap?: (abilityIndex: number, abilityKind: 'action' | 'powerAction') => void;
+  onTap: () => void;
+}) {
+  const catalogId = game.cardCatalogIds[support.id];
+  const card = catalogId ? catalogById.get(catalogId) : undefined;
+
+  return (
+    <div className="relative overflow-visible" style={{ width: SUPPORT_COL_WIDTH, aspectRatio: '1' }}>
+      <button
+        type="button"
+        onClick={onTap}
+        className={`absolute inset-0 overflow-hidden rounded-xl border text-left transition-transform ${
+          eligible
+            ? 'border-emerald-500 ring-2 ring-emerald-500/60'
+            : support.exhausted
+              ? 'border-neutral-600 opacity-70'
+              : activating
+                ? 'border-emerald-600'
+                : 'border-neutral-700'
+        }`}
+        style={{
+          transform: (support.exhausted || activating) ? 'rotate(6deg)' : 'none',
+          transformOrigin: 'center center',
+        }}
+        aria-label={`${card?.name ?? 'Support'} — ${support.stability}/${support.maxStability} stability${support.exhausted ? ' (exhausted)' : ''}`}
+      >
+        <CardArtBg artUrl={card?.artUrl} type="support" frameX={card?.artFrameX} frameY={card?.artFrameY} frameZoom={card?.artFrameZoom} />
+        <div className="absolute left-1 top-1 flex flex-col gap-0.5">
+          {support.shields > 0 && (
+            <div className="flex items-center gap-0.5 rounded bg-blue-900/80 px-1 py-0.5 text-[9px] font-bold leading-none text-blue-200 backdrop-blur-sm">
+              <ShieldIcon />{support.shields}
+            </div>
+          )}
+          <div className="flex items-center gap-0.5 rounded bg-black/60 px-1 py-0.5 text-[9px] font-bold leading-none text-teal-300 backdrop-blur-sm">
+            {support.stability}/{support.maxStability}
+          </div>
+        </div>
+      </button>
+
+      {abilityBadges.length > 0 && (
+        <div className="pointer-events-none absolute bottom-0 left-1/2 z-20 flex -translate-x-1/2 translate-y-1/2 flex-row gap-1">
+          {abilityBadges.map((b) => {
+            const bx = card?.badgeFrameX ?? 50;
+            const by = card?.badgeFrameY ?? 50;
+            const bz = card?.badgeFrameZoom ?? 1;
+            return (
+              <button
+                key={b.abilityIndex}
+                type="button"
+                disabled={!b.eligible}
+                onClick={(e) => { e.stopPropagation(); if (b.eligible) onAbilityBadgeTap?.(b.abilityIndex, b.kind); }}
+                style={{ width: 22, height: 22 }}
+                className={`pointer-events-auto relative flex-shrink-0 overflow-hidden rounded-full border-2 transition-colors ${
+                  b.eligible ? 'border-emerald-500 ring-1 ring-emerald-500/60' : 'border-neutral-600 opacity-50'
+                }`}
+                aria-label={b.kind === 'powerAction' ? 'Power Action ability' : 'Action ability'}
+              >
+                {card?.artUrl ? (
+                  <img src={card.artUrl} alt="" aria-hidden style={{
+                    width: '100%', height: '100%', objectFit: 'cover',
+                    objectPosition: `${bx}% ${by}%`,
+                    transform: bz > 1 ? `scale(${bz})` : undefined,
+                    transformOrigin: `${bx}% ${by}%`,
+                    pointerEvents: 'none',
+                  }} />
+                ) : (
+                  <div className={`absolute inset-0 bg-gradient-to-br ${cardArtGradient('support')}`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SupportStrip({
+  supportOrder,
+  playerState,
+  game,
+  catalogById,
+  side,
+  diceByOwner,
+  selectionMode,
+  diceInteractive,
+  resolvableSymbols,
+  activatableSupportIds,
+  actionableIds,
+  powerActionableIds,
+}: {
+  supportOrder: readonly string[];
+  playerState: { supports: Record<string, SupportState> };
+  game: GameState;
+  catalogById: Map<string, Card>;
+  side: ZoneSide;
+  diceByOwner: Map<string, DieInPool[]>;
+  selectionMode: SelectionMode | null;
+  diceInteractive: boolean;
+  resolvableSymbols: readonly string[];
+  activatableSupportIds: readonly string[];
+  actionableIds: readonly string[];
+  powerActionableIds: readonly string[];
+}) {
+  const activeFlow = useApp((s) => s.activeFlow);
+  const setActiveFlow = useApp((s) => s.setActiveFlow);
+
+  if (supportOrder.length === 0) return null;
+
+  return (
+    <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
+      {supportOrder.map((sid) => {
+        const support = playerState.supports[sid];
+        if (!support) return null;
+
+        const dice = diceByOwner.get(sid) ?? [];
+        const hasDie = support.dice.length > 0;
+        const eligible = hasDie && activatableSupportIds.includes(sid) && activeFlow === null;
+        const isActivating = activeFlow?.kind === 'activate' && activeFlow.charId === sid;
+
+        const supportCatalogId = game.cardCatalogIds[sid];
+        const supportCard = supportCatalogId ? catalogById.get(supportCatalogId) : undefined;
+        const abilityBadges = !hasDie
+          ? (supportCard?.abilities ?? [])
+              .map((ab, i) => ({ abilityIndex: i, kind: ab.kind as 'action' | 'powerAction', eligible: false }))
+              .filter((b) => b.kind === 'action' || b.kind === 'powerAction')
+              .map((b) => ({
+                ...b,
+                eligible: b.kind === 'action' ? actionableIds.includes(sid) : powerActionableIds.includes(sid),
+              }))
+          : [];
+
+        const handleTap = () => {
+          if (isActivating) { setActiveFlow(null); return; }
+          if (eligible) { setActiveFlow({ kind: 'activate', charId: sid }); return; }
+        };
+
+        const handleAbilityBadgeTap = (abilityIndex: number, abilityKind: 'action' | 'powerAction') => {
+          setActiveFlow({ kind: 'cardAction', cardId: sid, abilityIndex, abilityKind });
+        };
+
+        return (
+          <div key={sid} className="flex shrink-0 flex-col gap-2" style={{ width: SUPPORT_COL_WIDTH }}>
+            {side === 'player' && dice.length > 0 && (
+              <DiceStack
+                dice={dice}
+                diceInteractive={diceInteractive}
+                selectionMode={selectionMode}
+                horizontal
+                eligibleSymbols={resolvableSymbols as readonly DieSymbol[]}
+              />
+            )}
+            <SupportCard
+              support={support}
+              game={game}
+              catalogById={catalogById}
+              eligible={eligible}
+              activating={isActivating}
+              abilityBadges={abilityBadges}
+              onAbilityBadgeTap={handleAbilityBadgeTap}
+              onTap={handleTap}
+            />
+            {side === 'opponent' && dice.length > 0 && (
+              <DiceStack
+                dice={dice}
+                diceInteractive={false}
+                selectionMode={selectionMode}
+                horizontal
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
