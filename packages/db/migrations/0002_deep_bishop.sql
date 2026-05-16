@@ -1,0 +1,2 @@
+CREATE TYPE "public"."game_session_status" AS ENUM('active', 'completed', 'abandoned');--> statement-breakpoint
+ALTER TABLE "game_sessions" ADD COLUMN "status" "game_session_status" DEFAULT 'active' NOT NULL;
