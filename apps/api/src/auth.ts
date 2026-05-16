@@ -12,6 +12,22 @@ const BETTER_AUTH_SECRET = process.env.AUTH_SECRET ?? 'dev-secret-replace-me';
 // Strip trailing slash so origin comparisons don't fail on a mismatch.
 const webOrigin = process.env.WEB_PUBLIC_URL?.replace(/\/+$/, '');
 
+// Surface missing production env vars at startup so Railway logs make the
+// problem obvious rather than manifesting as a cryptic 500 mid-request.
+if (process.env.NODE_ENV === 'production') {
+  const missing = [
+    'AUTH_SECRET',
+    'API_PUBLIC_URL',
+    'WEB_PUBLIC_URL',
+    'DATABASE_URL',
+  ].filter((k) => !process.env[k]);
+  if (missing.length) console.warn('[auth] missing required env vars:', missing.join(', '));
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET)
+    console.warn('[auth] Google OAuth disabled — GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set');
+  if (!webOrigin)
+    console.warn('[auth] WEB_PUBLIC_URL not set — CSRF will reject all production origins');
+}
+
 export const auth = betterAuth({
   baseURL: BETTER_AUTH_URL,
   secret: BETTER_AUTH_SECRET,

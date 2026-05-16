@@ -12,22 +12,26 @@ import { startWorkers } from './workers/index.js';
 const app = new Hono();
 
 app.use('*', logger());
-// Apply CORS only to tRPC routes. Better Auth handles its own CORS
-// (including preflight) for /api/auth/**; adding Hono CORS there
-// causes duplicate headers and pre-empts Better Auth's preflight logic.
-app.use(
-  '/trpc/*',
-  cors({
-    origin: process.env.WEB_PUBLIC_URL ?? ((origin) => origin ?? '*'),
-    credentials: true,
-  }),
-);
+
+// Shared CORS config. Better Auth does not respond to OPTIONS preflights on
+// its own, so Hono must handle them for /api/auth/** as well as /trpc/*.
+const corsMiddleware = cors({
+  origin: process.env.WEB_PUBLIC_URL ?? ((origin) => origin ?? '*'),
+  credentials: true,
+});
+app.use('/api/auth/*', corsMiddleware);
+app.use('/trpc/*', corsMiddleware);
 
 app.get('/health', (c) => c.json({ ok: true, service: 'api' }));
 
-// better-auth handles its own CORS for auth routes; Hono's global CORS
-// middleware runs first — that's fine, better-auth will override as needed.
-app.on(['GET', 'POST'], '/api/auth/**', (c) => auth.handler(c.req.raw));
+app.on(['GET', 'POST'], '/api/auth/**', async (c) => {
+  try {
+    return await auth.handler(c.req.raw);
+  } catch (err) {
+    console.error('[auth] unhandled error in auth.handler:', err);
+    return c.json({ error: 'internal server error' }, 500);
+  }
+});
 
 app.all('/trpc/*', (c) =>
   fetchRequestHandler({
