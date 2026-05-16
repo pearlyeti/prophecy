@@ -83,8 +83,10 @@ function SocketBridge() {
     const attemptRejoin = () => {
       const cached = loadCachedLobby();
       if (!cached) return;
-      // If we already have this lobby in the store, no need to rejoin.
-      if (useApp.getState().lobby?.roomId === cached.roomId) return;
+      // Always call lobby.rejoin on (re)connect — the server tracks
+      // socket→room mapping fresh per connection. Skipping when local
+      // state has the lobby leaves the new socket unbound on the server
+      // after a forced reconnect.
       if (rejoinInFlightFor.current === cached.roomId) return;
 
       rejoinInFlightFor.current = cached.roomId;
