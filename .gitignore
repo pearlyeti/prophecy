@@ -17,6 +17,7 @@ coverage
 .idea
 playwright-report
 test-results
+e2e/state-*.json
 .cache
 
 # Local reference-data dumps used to drive __fixtures__ generation.

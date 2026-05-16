@@ -1,0 +1,80 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: Playwright smoke test
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.pull_request.labels.*.name, 'skip-e2e')"
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: prophecy
+          POSTGRES_PASSWORD: prophecy
+          POSTGRES_DB: prophecy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://prophecy:prophecy@localhost:5432/prophecy
+      REDIS_URL: redis://localhost:6379
+      AUTH_SECRET: ci-e2e-secret-not-used-in-prod
+      API_PORT: 3000
+      API_PUBLIC_URL: http://localhost:3000
+      API_URL: http://localhost:3000
+      GAME_SERVER_PORT: 3001
+      NODE_ENV: development
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm build --filter="@prophecy/game-engine" --filter="@prophecy/protocol" --filter="@prophecy/db"
+
+      - name: Run migrations
+        run: pnpm db:migrate
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @prophecy/web exec playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: pnpm --filter @prophecy/web test:e2e
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
