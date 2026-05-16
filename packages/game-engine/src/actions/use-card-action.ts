@@ -22,6 +22,7 @@ export function applyUseCardAction(
   playerId: string,
   cardId: string,
   abilityIndex: number,
+  targetCharacterIds: readonly string[] = [],
 ): ApplyResult {
   guardCanAct(state, playerId);
 
@@ -104,7 +105,7 @@ export function applyUseCardAction(
   // ── Fire effects ─────────────────────────────────────────────────────
   const ctx: DispatchContext = {
     playerId,
-    characterTargets: [],
+    characterTargets: targetCharacterIds,
     sourceCharacterId: cardId,
   };
   const effectResult = applyEffects(working, ctx, ability.effects);

@@ -45,7 +45,14 @@ export type Action =
       /** Pre-resolved character instance IDs consumed by targeting effects in order. */
       characterTargets?: readonly string[];
     }
-  | { type: 'use-card-action'; playerId: string; cardId: string; abilityIndex: number }
+  | {
+      type: 'use-card-action';
+      playerId: string;
+      cardId: string;
+      abilityIndex: number;
+      /** Pre-resolved character instance IDs consumed by targeting effects in order. */
+      targetCharacterIds?: readonly string[];
+    }
   | { type: 'claim-battlefield'; playerId: string }
   | { type: 'concede'; playerId: string }
   | {

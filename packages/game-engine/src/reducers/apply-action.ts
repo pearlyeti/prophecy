@@ -71,7 +71,7 @@ export function applyAction(state: GameState, action: Action, options?: ApplyOpt
         action.dieInstanceIds,
       );
     case 'use-card-action':
-      return applyUseCardAction(state, action.playerId, action.cardId, action.abilityIndex);
+      return applyUseCardAction(state, action.playerId, action.cardId, action.abilityIndex, action.targetCharacterIds);
     case 'order-triggers':
       return applyOrderTriggersAction(state, action.playerId, action.order);
   }

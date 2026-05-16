@@ -6,7 +6,8 @@
 // This module never mutates state. It encodes the same guards each
 // action handler enforces, hoisted into a single struct.
 
-import type { DieSymbol, GameState } from './types.js';
+import type { ActionAbility, PowerActionAbility } from '../abilities/types.js';
+import type { DieSymbol, GameState, PlayerState } from './types.js';
 
 export interface LegalActions {
   /**
@@ -49,9 +50,33 @@ export interface LegalActions {
    * hand AND is the active player in the action phase."
    */
   readonly canPlayCard: boolean;
+  /**
+   * Character instance ids that have at least one usable Action ability
+   * (costs can be met, not counting power-action gate).
+   */
+  readonly actionableCardIds: readonly string[];
+  /**
+   * Character instance ids that have at least one usable Power Action ability
+   * (costs can be met and not yet used this round).
+   */
+  readonly powerActionableCardIds: readonly string[];
   /** Setup-phase availability. */
   readonly canChooseFirstPlayer: boolean;
   readonly canPlaceShield: boolean;
+}
+
+/** Returns true if all costs of an action/powerAction ability can currently be paid. */
+function costsCanBeMet(
+  ability: ActionAbility | PowerActionAbility,
+  player: PlayerState,
+  charId: string,
+): boolean {
+  if (!ability.costs) return true;
+  for (const cost of ability.costs) {
+    if (cost.kind === 'exhaust' && player.characters[charId]?.exhausted) return false;
+    if (cost.kind === 'spendResources' && player.resources < cost.amount) return false;
+  }
+  return true;
 }
 
 const RESOLVABLE_SYMBOLS_V1: readonly DieSymbol[] = [
@@ -111,6 +136,30 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
       })
     : [];
 
+  // Action/powerAction eligible characters.
+  const actionable: string[] = [];
+  const powerActionable: string[] = [];
+  if (isMyTurn) {
+    for (const charId of player.characterOrder) {
+      const abilities = state.cardAbilities[charId] ?? [];
+      for (const ability of abilities) {
+        if (ability.kind === 'action' && costsCanBeMet(ability, player, charId)) {
+          actionable.push(charId);
+          break;
+        }
+      }
+      const char = player.characters[charId];
+      if (char && !char.powerActionUsedThisRound) {
+        for (const ability of abilities) {
+          if (ability.kind === 'powerAction' && costsCanBeMet(ability, player, charId)) {
+            powerActionable.push(charId);
+            break;
+          }
+        }
+      }
+    }
+  }
+
   // Activatable supports: non-exhausted, has at least one die.
   const activatableSupports = isMyTurn
     ? player.supportOrder.filter((id) => {
@@ -141,6 +190,8 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     canPlayCard:
       isMyTurn &&
       player.hand.some((cid) => (state.cardCosts[cid] ?? 0) <= player.resources),
+    actionableCardIds: actionable,
+    powerActionableCardIds: powerActionable,
     canChooseFirstPlayer: false,
     canPlaceShield: false,
   };
@@ -156,6 +207,8 @@ const EMPTY: LegalActions = {
   activatableSupportIds: [],
   resolvableSymbols: [],
   canPlayCard: false,
+  actionableCardIds: [],
+  powerActionableCardIds: [],
   canChooseFirstPlayer: false,
   canPlaceShield: false,
 };
