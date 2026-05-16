@@ -113,6 +113,17 @@ function SocketBridge() {
     const onDisconnect = () => setStatus('disconnected');
     const onReconnectAttempt = () => setStatus('reconnecting');
 
+    // Socket.IO's ping timeout is 20s by default, so it can take that long to
+    // notice a dropped connection. The browser's `offline` event fires
+    // immediately, so listen for it directly to update the pill faster.
+    const onOffline = () => setStatus('disconnected');
+    const onOnline = () => {
+      if (!socket.connected) {
+        setStatus('reconnecting');
+        socket.connect();
+      }
+    };
+
     const onLobby: Parameters<typeof socket.on<'lobby.state'>>[1] = (state) => {
       setLobby(state);
       // Don't null `game` when phase === 'ended'. The server broadcasts
@@ -153,6 +164,8 @@ function SocketBridge() {
     socket.on('game.preview', onPreview);
     socket.on('error', onError);
     socket.on('lobby.matchFound', onMatchFound);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
 
     if (socket.connected) {
       onConnect();
@@ -177,6 +190,8 @@ function SocketBridge() {
       socket.off('game.preview', onPreview);
       socket.off('error', onError);
       socket.off('lobby.matchFound', onMatchFound);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
     };
   }, [playerId, setLobby, setGame, appendEvents, setStatus, setError, setOpponentPreview]);
 
