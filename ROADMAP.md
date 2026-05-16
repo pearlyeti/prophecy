@@ -268,6 +268,152 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### ENGINE-TF1 — Targeting filters (dice, characters, and cards)
+**Why now.** Targeting in the current ability AST is coarse: die effects accept only a single `symbol?: string` filter; character effects use broad target kinds (`opponentCharacter`, `eachOpponentCharacter`, etc.) with no further conditions. Real card abilities routinely say "remove one of your opponent's dice showing a melee or ranged symbol with value 3 or more", or "deal 2 damage to each opponent character with a subtype matching one of yours", or "add a shield to your non-unique character". Without composite filters, these abilities can't be expressed or validated.
+
+**Scope.**
+
+*New types.*
+
+`DieFilter` — composite predicate for matching dice in a pool:
+```typescript
+type DieFilter = {
+  symbol?: string | string[];       // face symbol is in this set
+  minValue?: number;                // face value ≥ N
+  maxValue?: number;                // face value ≤ N
+  modifier?: boolean;               // must (or must not) be a modifier face
+  ownerCardType?: string | string[]; // die's owning card has this type (character/support/upgrade)
+  ownerColor?: string | string[];   // die's owning card has this color
+  ownerSubtype?: string;            // die's owning card has this subtype
+};
+```
+
+`CardFilter` — composite predicate for matching characters, supports, or upgrades:
+```typescript
+type CardFilter = {
+  subtype?: string | string[];      // card has at least one of these subtypes
+  color?: string | string[];        // card color is in this set
+  unique?: boolean;                 // card isUnique flag
+  exhausted?: boolean;              // character/support is exhausted
+  hasUpgrade?: boolean;             // character has at least one upgrade attached
+  minHealth?: number;               // remaining health ≥ N (character only)
+  maxDamage?: number;               // current damage ≤ N (character only)
+};
+```
+
+*Changes to existing effect types.*
+- `RemoveDieEffect`, `TurnDieEffect`, `ModifyDieValueEffect`: replace `symbol?: string` with `filter?: DieFilter`. A plain `{ symbol: 'melee' }` filter is equivalent to the old `symbol: 'melee'`.
+- `DealDamageEffect`, `AddShieldsEffect`, `RemoveShieldsEffect`, `HealDamageEffect`: add `filter?: CardFilter` to all `TargetSpec` character variants (`ownCharacter`, `opponentCharacter`, `anyCharacter`, `eachOpponentCharacter`, `eachCharacter`). For pre-selected targets (own/opponent/any-character), the filter is validated at dispatch time — `IllegalActionError` if the submitted character doesn't meet the filter. For auto-targeted effects (each*), the filter silently skips non-matching characters.
+
+*State change.*
+Add `cardMeta: Readonly<Record<string, CardMeta>>` to `GameState` where `CardMeta = { type: string; color: string; subtypes: readonly string[]; isUnique: boolean }`. Populated by `newGame` from `NewGameInput` (same source as `cardCatalogIds`). Required so die filters can inspect owning-card metadata without needing the full catalog at dispatch time.
+
+*Dispatch changes.*
+- `applyRemoveDie`, `applyTurnDie`, `applyModifyDieValue`: replace the `symbol` equality check with a `matchesDieFilter(die, filter, state)` helper that evaluates all filter fields.
+- `resolveCharacterTargets`: after resolving the character ID, if the `TargetSpec` carries a `filter`, run `matchesCardFilter(characterState, cardMeta, filter)` and throw if it doesn't pass.
+- For `eachOpponentCharacter` / `eachCharacter`: collect only characters passing the filter.
+
+*`getLegalActions` — no change for now.* Filter validation is server-side only. The UI reads the ability definition from `cardAbilities` and computes valid targets client-side for highlighting; the engine rejects invalid submissions. This is the zero-trust pattern — presentation is advisory, enforcement is authoritative.
+
+*AbilityBuilder changes.*
+- Die-targeting effects (`removeDie`, `turnDie`, `modifyDieValue`): replace the single "Symbol filter" dropdown with a collapsible "Die filter" section covering all `DieFilter` fields.
+- Character-targeting effects (`dealDamage`, `addShields`, `removeShields`, `healDamage`): add a collapsible "Card filter" section next to the target picker covering all `CardFilter` fields.
+
+*Catalog / protocol changes.*
+- Add `dieFilterSchema` and `cardFilterSchema` Zod objects.
+- Update `removeDieEffect`, `turnDieEffect`, `modifyDieValueEffect` schemas to use `dieFilterSchema`.
+- Update character-targeting effect schemas to add `filter: cardFilterSchema.optional()` alongside `target`.
+
+**Context to load.**
+- `packages/game-engine/src/abilities/types.ts` — add `DieFilter`, `CardFilter`; update die-op types; update `TargetSpec`
+- `packages/game-engine/src/state/types.ts` — add `cardMeta` to `GameState`, add `CardMeta` type
+- `packages/game-engine/src/state/new-game.ts` — populate `cardMeta` from input
+- `packages/game-engine/src/abilities/dispatch.ts` — `matchesDieFilter`, `matchesCardFilter` helpers; update three die ops and `resolveCharacterTargets`
+- `packages/game-engine/src/__tests__/dice-manipulation.test.ts` — extend filter coverage
+- `packages/protocol/src/catalog.ts` — `dieFilterSchema`, `cardFilterSchema`, update effect schemas
+- `apps/web/src/routes/designer/AbilityBuilder.tsx` — filter form sections
+
+**Out of scope.**
+- Exposing valid target IDs through `getLegalActions` (deferred — requires knowing which ability is "active" mid-resolution; not modelled yet).
+- Filters on `TargetSpec` kinds `opponent`, `self`, `attachedCharacter`, `thisCharacter` (these are unambiguous; no filter needed).
+- Support/upgrade targeting filters (same `CardFilter` shape applies but `addShields`/`dealDamage` don't target supports yet; wire up when those effects gain support targets).
+- Value-reference filters (`minValue: { kind: 'dieValue' }` — dynamic comparisons); `minValue` and `maxValue` are literal integers for v1.
+
+**Depends on.** Nothing unmerged.
+
+**Done when.**
+- [ ] Typecheck clean across workspace.
+- [ ] All existing engine tests still pass (no regressions on dice-manipulation or dispatch tests).
+- [ ] New filter tests (≥ 8): die filter by symbol set, value range, modifier flag, ownerCardType, ownerColor; card filter by subtype, color, unique flag; each* auto-targeting with filter skips non-matching characters.
+- [ ] `matchesDieFilter` and `matchesCardFilter` are pure functions with their own unit tests.
+- [ ] AbilityBuilder renders filter fields for die ops and character-targeting effects.
+- [ ] Zod schemas validate filter fields in `catalog.ts`.
+
+---
+
+#### ENGINE-DS1 — Deck search / reveal effects
+**Why now.** A large class of card abilities require players to interact with their own (or their opponent's) deck mid-action: revealing cards until a condition is met, searching the whole deck for a card type, drawing a set aside and choosing which to keep. None of these can be expressed with existing ops. They all share a common mid-action pause pattern (player must see revealed cards and make picks before the effect resolves) that mirrors `pendingGuardian` / `pendingTriggers`.
+
+**Scope.**
+
+*State shape.*
+- Add `pendingSearch: PendingSearch | null` to `GameState`. Set to non-null while a search effect is waiting for the player's pick. While set, all other actions (including pass) are blocked for the waiting player.
+- `PendingSearch` fields: `waitingForPlayerId`, `revealedCardIds` (ordered as drawn), `source` (`'ownDeck' | 'opponentDeck'`), `choices` (ordered list of `SearchChoice`), `defaultDisposition`, and `effectContinuation` (opaque tag so the engine can resume the ability sequence after resolution).
+- `SearchChoice`: `{ count: number; filter?: { type?: CardType; color?: Color }; disposition: SearchDisposition }` where `SearchDisposition = 'toHand' | 'toTopOfDeck' | 'toBottomOfDeck' | 'shuffleIntoDeck' | 'discard'`.
+
+*New effect op: `searchDeck`.*
+- Fields: `source: 'ownDeck' | 'opponentDeck'`, `revealCount: number | 'all'`, `revealUntil?: { type?: CardType; color?: Color; count: number }` (stop early when N matching cards are found), `choices: SearchChoice[]`, `defaultDisposition: SearchDisposition`.
+- On dispatch: draw cards from source deck into `revealedCardIds` (up to `revealCount`, or until `revealUntil` condition met, or deck exhausted). Set `pendingSearch` and return — the action is suspended.
+- `revealCount: 'all'` covers "pick up your whole deck" patterns.
+- `revealUntil` covers "reveal until you find 3 upgrades" patterns (stops as soon as 3 type=upgrade cards are among the revealed set, even if `revealCount` is higher).
+
+*New action: `resolve-search`.*
+- Fields: `playerId`, `selections: Array<{ choiceIndex: number; cardIds: string[] }>`.
+- Validates: `pendingSearch` is set, `playerId` matches `waitingForPlayerId`, each `cardIds` array satisfies the corresponding `SearchChoice` count + filter, no card appears in two selections.
+- Applies each selection's disposition in order. Unchosen cards get `defaultDisposition`. For `toTopOfDeck`: returned in original reveal order. For `shuffleIntoDeck`: engine reseeds and shuffles (deterministic via `seed + 'search-shuffle:' + turnIndex`).
+- Clears `pendingSearch`, resumes the remaining effects in the ability sequence.
+
+*`getLegalActions` update.*
+- Add `canResolveSearch: boolean` — true when `pendingSearch.waitingForPlayerId === playerId`.
+- While `pendingSearch` is set: for the waiting player, only `resolve-search` is legal (+ concede). For the opponent, only concede.
+
+*Events.*
+- `deck.searched` — `{ playerId, source, revealedCount }` (not revealing card identities to the opponent).
+- `cards.revealed` — `{ playerId, cardIds }` (sent only to the revealing player via the game-server's private-event path; opponent sees only the count).
+- `search.resolved` — `{ playerId, selections: Array<{ disposition, count }> }` (counts only, no card IDs to opponent).
+
+**Context to load.**
+- `packages/game-engine/src/state/types.ts` — add `pendingSearch`
+- `packages/game-engine/src/state/new-game.ts` — initialise `pendingSearch: null`
+- `packages/game-engine/src/state/legal-actions.ts` — `canResolveSearch` + block logic
+- `packages/game-engine/src/abilities/types.ts` — `SearchDeckEffect`, promote from stub
+- `packages/game-engine/src/abilities/dispatch.ts` — `case 'searchDeck':`
+- `packages/game-engine/src/actions/types.ts` — `resolve-search` action
+- `packages/game-engine/src/actions/resolve-search.ts` — new file
+- `packages/game-engine/src/reducers/apply-action.ts` — wire new action
+- `packages/game-engine/src/events.ts` — three new events
+- `packages/protocol/src/catalog.ts` — Zod schema for `searchDeckEffect`
+- `apps/web/src/routes/designer/AbilityBuilder.tsx` — form UI for `searchDeck` op
+
+**Out of scope.**
+- `play` disposition (playing a card directly from the reveal; needs `playCard` op landed first — add as a follow-on ENGINE-DS2 once `playCard` ships).
+- Opponent-revealed-cards visibility on the client (game-server routing of private events is a SERVER card).
+- "Arrange returned cards in any order" (v1 always returns in original reveal order; a follow-on can add player-controlled ordering).
+- Deck-search during setup phase.
+
+**Depends on.** Nothing unmerged.
+
+**Done when.**
+- [ ] Typecheck clean across workspace.
+- [ ] All existing engine tests still pass.
+- [ ] New tests (≥ 10) covering: reveal-N from top, reveal-until condition, reveal whole deck, toHand disposition, toTopOfDeck, toBottomOfDeck, shuffleIntoDeck, discard, defaultDisposition for unchosen, deck-exhausted before revealUntil met.
+- [ ] `getLegalActions` blocks all non-search actions while `pendingSearch` is set.
+- [ ] `resolve-search` with out-of-range counts throws `IllegalActionError`.
+- [ ] After resolution, game state continues normally (turn advances, no dangling `pendingSearch`).
+- [ ] `searchDeck` op appears in `KNOWN_OPS`; AbilityBuilder has a proper form for it.
+
+---
+
 ## Backlog
 
 Rough ideas and deferred work. Not yet specced, not yet claimable. When an item is ready to work on, spec it out, move it to **Up next**, and create a GitHub Issue. See [CLAUDE.md — Promoting a backlog item](CLAUDE.md#promoting-a-backlog-item-to-a-task-card).
@@ -372,6 +518,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 ---
 
 ## Done
+- **2026-05-16 — ENGINE-TF1 — Targeting criteria (dice and cards).** `DieCriteria` and `CardCriteria` composite predicate types added to `abilities/types.ts`. Die ops (`removeDie`, `turnDie`, `modifyDieValue`) upgraded: `symbol`/`fromSymbol` fields replaced by `criteria?: DieCriteria`. Character-targeting effects (`dealDamage`, `addShields`, `removeShields`, `healDamage`) gain `criteria?: CardCriteria`. `matchesDieCriteria` and `matchesCardCriteria` exported from `dispatch.ts`. Pre-selected targets throw on criteria mismatch; auto-targets (each*) silently skip non-matching characters. `cardMeta` on `GameState` provides type/color/subtypes/isUnique for criteria resolution. Zod schemas added to `packages/protocol`; `DieCriteriaEditor` and `CardCriteriaEditor` forms added to `AbilityBuilder.tsx`. 21 new tests; 247 engine tests green; full workspace typecheck clean.
 - **2026-05-16 — ENGINE-D1 — Dice manipulation ops.** `removeDie`, `turnDie`, `modifyDieValue` implemented in `abilities/dispatch.ts`. Proper typed effects replace stubs in `abilities/types.ts`; Zod schemas added to `packages/protocol/src/catalog.ts`; all three added to `KNOWN_OPS`; `AbilityBuilder.tsx` updated with per-op form UI. Events: `die.removed`, `die.turned`, `die.value-modified`. 13 new tests; 226 engine tests green; full workspace typecheck clean. (`d785f6b`)
 - **2026-05-16 — ENGINE-C1 — Claim ability dispatcher.** `applyClaim` now fires all `claim`-kind abilities on the claimer's battlefield card via `applyEffects` before rotating the turn. `cardAbilities` keyed by `battlefieldCardId` — no new GameState fields required. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
 - **2026-05-16 — ENGINE-K3 — Special ability dispatcher.** `applyResolveDice` gains a `case 'special':` branch that looks up the die's owning card's `special` ability and fires it via `applyEffects`. Resolving a special die on a card with no special ability is a silent no-op. `'special'` added to `RESOLVABLE_SYMBOLS_V1`. Existing test updated to remove `special` from the "should throw" list. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)

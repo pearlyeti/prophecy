@@ -57,7 +57,7 @@ describe('removeDie effect', () => {
     );
 
     const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'opponentPool', symbol: 'melee', count: 1 },
+      { op: 'removeDie', from: 'opponentPool', criteria: { symbol: 'melee' }, count: 1 },
     ]);
 
     const pool = after.players[opp]!.diceInPool;
@@ -71,7 +71,7 @@ describe('removeDie effect', () => {
     const state = addDie(addDie(initial, active, meleeFace, 'die-a'), active, meleeFace, 'die-b');
 
     const { events } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'ownPool', symbol: 'melee', count: 2 },
+      { op: 'removeDie', from: 'ownPool', criteria: { symbol: 'melee' }, count: 2 },
     ]);
 
     const removed = events.filter((e) => e.type === 'die.removed');
@@ -84,7 +84,7 @@ describe('removeDie effect', () => {
     const state = addDie(initial, active, meleeFace, 'die-1');
 
     const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'ownPool', symbol: 'ranged', count: 1 },
+      { op: 'removeDie', from: 'ownPool', criteria: { symbol: 'ranged' }, count: 1 },
     ]);
 
     expect(after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')).toBeDefined();
@@ -118,7 +118,7 @@ describe('turnDie effect', () => {
     );
 
     const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'turnDie', from: 'opponentPool', toSymbol: 'blank', fromSymbol: 'melee', count: 1 },
+      { op: 'turnDie', from: 'opponentPool', toSymbol: 'blank', criteria: { symbol: 'melee' }, count: 1 },
     ]);
 
     const pool = after.players[opp]!.diceInPool;
@@ -147,7 +147,7 @@ describe('turnDie effect', () => {
     const state = addDie(initial, active, meleeFace, 'die-1');
 
     const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'turnDie', from: 'ownPool', toSymbol: 'blank', fromSymbol: 'ranged' },
+      { op: 'turnDie', from: 'ownPool', toSymbol: 'blank', criteria: { symbol: 'ranged' } },
     ]);
 
     expect(after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')!.face.symbol).toBe('melee');

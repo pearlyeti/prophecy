@@ -5,6 +5,7 @@ import { applyAction } from '../reducers/apply-action.js';
 import { createRng, type SeededRng } from '../rng/seeded-rng.js';
 import type {
   CardDie,
+  CardMeta,
   CharacterState,
   DieFace,
   GameState,
@@ -79,6 +80,12 @@ export interface NewGameInput {
    * exercise Guardian/Ambush/etc. keyword logic.
    */
   readonly cardKeywords?: Readonly<Record<string, readonly import('./types.js').Keyword[]>>;
+  /**
+   * Optional card metadata (type, color, subtypes, isUnique) per instance id.
+   * Used by targeting criteria checks in the ability dispatcher. Populated by
+   * newGameFromDecks; tests inject it directly for criteria-exercising scenarios.
+   */
+  readonly cardMeta?: Readonly<Record<string, CardMeta>>;
 }
 
 const DEFAULT_HAND_SIZE = 5;
@@ -127,6 +134,7 @@ export function newGame(input: NewGameInput): GameState {
     cardStability,
     cardDieFaces,
     cardKeywords,
+    cardMeta,
   } = input;
 
   for (const id of playerIds) {
@@ -227,6 +235,7 @@ export function newGame(input: NewGameInput): GameState {
     cardStability: cardStability ?? {},
     cardDieFaces: cardDieFaces ?? {},
     cardKeywords: cardKeywords ?? {},
+    cardMeta: cardMeta ?? {},
     pendingGuardian: null,
     queue: emptyQueue,
     pendingTriggers: null,
@@ -326,6 +335,7 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
   const cardTypes: Record<string, import('./types.js').CardType> = {};
   const cardStability: Record<string, number> = {};
   const cardDieFaces: Record<string, readonly import('./types.js').DieFace[]> = {};
+  const cardMeta: Record<string, CardMeta> = {};
 
   for (const a of assignments) {
     const team: CharacterInput[] = [];
@@ -340,6 +350,12 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
       }
       const instanceId = `${a.playerId}.char.${i}`;
       cardCatalogIds[instanceId] = dc.cardId;
+      cardMeta[instanceId] = {
+        type: card.type as import('./types.js').CardType,
+        color: card.color as import('./types.js').Color,
+        subtypes: card.subtypes as readonly string[],
+        isUnique: card.isUnique,
+      };
       team.push({
         id: instanceId,
         cardId: dc.cardId,
@@ -375,6 +391,14 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
       if (card?.dieFaces) {
         cardDieFaces[instanceId] = card.dieFaces as readonly import('./types.js').DieFace[];
       }
+      if (card) {
+        cardMeta[instanceId] = {
+          type: card.type as import('./types.js').CardType,
+          color: card.color as import('./types.js').Color,
+          subtypes: card.subtypes as readonly string[],
+          isUnique: card.isUnique,
+        };
+      }
     });
   }
 
@@ -388,6 +412,7 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
     cardTypes,
     cardStability,
     cardDieFaces,
+    cardMeta,
   });
 }
 

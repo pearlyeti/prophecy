@@ -31,6 +31,18 @@ export type DieSymbol =
 
 export type Keyword = 'ambush' | 'guardian' | 'modify' | 'redeploy';
 
+/**
+ * Lightweight card metadata stored on GameState for targeting criteria checks.
+ * Populated by newGameFromDecks for all card instances; test games pass it
+ * via NewGameInput.cardMeta.
+ */
+export interface CardMeta {
+  readonly type: CardType;
+  readonly color: Color;
+  readonly subtypes: readonly string[];
+  readonly isUnique: boolean;
+}
+
 export interface DieFace {
   readonly symbol: DieSymbol;
   readonly value: number;
@@ -288,4 +300,11 @@ export interface GameState {
     readonly activatingCharacterId: string;
     readonly activatingPlayerId: string;
   } | null;
+  /**
+   * Lightweight card metadata for targeting criteria resolution, keyed by
+   * card instance id. Populated by newGameFromDecks; tests inject it via
+   * NewGameInput.cardMeta. Cards not present here have no metadata for
+   * criteria checks (owner-type/color/subtype criteria won't match them).
+   */
+  readonly cardMeta: Readonly<Record<string, CardMeta>>;
 }
