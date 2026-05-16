@@ -1,8 +1,10 @@
 import { isError } from '@prophecy/protocol';
 import { useState } from 'react';
 
+import { authClient } from '../lib/auth-client.js';
 import { saveCachedLobby } from '../lib/lobbyCache.js';
 import { getSocket } from '../lib/socket.js';
+import { trpc } from '../lib/trpc.js';
 import { useApp } from '../store.js';
 
 // Splash: pick a name, then create / join a lobby or find a match.
@@ -13,8 +15,16 @@ export function Splash() {
   const setLobby = useApp((s) => s.setLobby);
   const setError = useApp((s) => s.setError);
 
+  const { data: session } = trpc.auth.session.useQuery();
+  const utils = trpc.useUtils();
+
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState<null | 'create' | 'join' | 'matchmaking'>(null);
+
+  const signOut = async () => {
+    await authClient.signOut();
+    await utils.auth.session.invalidate();
+  };
 
   const ready = displayName.trim().length > 0 && busy === null;
 
@@ -93,6 +103,18 @@ export function Splash() {
         <p className="max-w-md text-balance text-neutral-400">
           Two-player dice-and-card duel. Pick a name, then find a match or use an invite code.
         </p>
+        {session && (
+          <p className="text-xs text-neutral-500">
+            Signed in
+            <button
+              type="button"
+              onClick={signOut}
+              className="ml-2 underline underline-offset-2 hover:text-neutral-300"
+            >
+              Sign out
+            </button>
+          </p>
+        )}
       </header>
 
       <div className="w-full max-w-sm space-y-6">

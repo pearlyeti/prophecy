@@ -230,7 +230,11 @@ async function readJsonBody(req: import('node:http').IncomingMessage): Promise<u
   return text ? JSON.parse(text) : {};
 }
 
-const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
+interface SocketData {
+  userId: string;
+}
+
+const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<never, never>, SocketData>(httpServer, {
   cors: {
     // Dev-friendly: reflect any origin. Lock down via WEB_PUBLIC_URL
     // in prod (engine is server-authoritative; CORS isn't a security
@@ -238,6 +242,29 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     origin: process.env.WEB_PUBLIC_URL ?? true,
     credentials: true,
   },
+});
+
+// ── Auth middleware ──────────────────────────────────────────────────────────
+// Verify the session cookie on every new connection. Sockets without a valid
+// session are rejected before any game logic runs.
+
+const AUTH_API_URL = process.env.API_URL ?? 'http://localhost:3000';
+
+io.use(async (socket, next) => {
+  const cookie = socket.handshake.headers.cookie;
+  if (!cookie) return next(new Error('unauthorized'));
+  try {
+    const resp = await fetch(`${AUTH_API_URL}/api/auth/get-session`, {
+      headers: { cookie },
+    });
+    if (!resp.ok) return next(new Error('unauthorized'));
+    const data = (await resp.json()) as { user?: { id: string } } | null;
+    if (!data?.user?.id) return next(new Error('unauthorized'));
+    socket.data.userId = data.user.id;
+    next();
+  } catch {
+    next(new Error('unauthorized'));
+  }
 });
 
 // Engine.io-level diagnostics: tells us when and why the underlying
@@ -286,13 +313,16 @@ io.on('connection', (socket) => {
   socketStates.set(socket, state);
   console.log(`[game-server] connected: ${socket.id}`);
 
+  // Use the session userId as the authoritative player identifier for all room ops.
+  const userId = socket.data.userId;
+
   socket.on('lobby.create', (req, ack) => {
     if (draining) { ack({ code: 'internal', message: 'server is restarting, please reconnect' }); return; }
-    console.log(`[game-server] lobby.create from ${req.playerId} (${req.displayName})`);
+    console.log(`[game-server] lobby.create from ${userId} (${req.displayName})`);
     try {
-      const room = createRoom(req.playerId, req.displayName);
-      enterSocketRoom(socket, room, req.playerId);
-      state.playerId = req.playerId;
+      const room = createRoom(userId, req.displayName);
+      enterSocketRoom(socket, room, userId);
+      state.playerId = userId;
       state.roomId = room.id;
       ack(lobbyStateOf(room));
       io.to(room.id).emit('lobby.state', lobbyStateOf(room));
@@ -302,11 +332,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('lobby.join', (req, ack) => {
-    console.log(`[game-server] lobby.join code=${req.code} from ${req.playerId}`);
+    console.log(`[game-server] lobby.join code=${req.code} from ${userId}`);
     try {
-      const room = joinRoom(req.code, req.playerId, req.displayName);
-      enterSocketRoom(socket, room, req.playerId);
-      state.playerId = req.playerId;
+      const room = joinRoom(req.code, userId, req.displayName);
+      enterSocketRoom(socket, room, userId);
+      state.playerId = userId;
       state.roomId = room.id;
       ack(lobbyStateOf(room));
       io.to(room.id).emit('lobby.state', lobbyStateOf(room));
@@ -316,12 +346,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('lobby.rejoin', (req, ack) => {
-    console.log(`[game-server] lobby.rejoin room=${req.roomId} from ${req.playerId}`);
+    console.log(`[game-server] lobby.rejoin room=${req.roomId} from ${userId}`);
     try {
-      const room = rejoinRoom(req.roomId, req.playerId);
-      clearReconnectTimer(req.roomId, req.playerId);
-      enterSocketRoom(socket, room, req.playerId);
-      state.playerId = req.playerId;
+      const room = rejoinRoom(req.roomId, userId);
+      clearReconnectTimer(req.roomId, userId);
+      enterSocketRoom(socket, room, userId);
+      state.playerId = userId;
       state.roomId = room.id;
       ack({ lobby: lobbyStateOf(room), game: room.game });
       io.to(room.id).emit('lobby.state', lobbyStateOf(room));
@@ -337,7 +367,7 @@ io.on('connection', (socket) => {
   socket.on('lobby.start', (req, ack) => {
     try {
       const seed = randomUUID();
-      const room = startRoom(req.roomId, req.playerId, seed);
+      const room = startRoom(req.roomId, userId, seed);
       void startWriter(room.id, [...room.members.keys()], seed);
       ack(lobbyStateOf(room));
       io.to(room.id).emit('lobby.state', lobbyStateOf(room));
@@ -351,7 +381,7 @@ io.on('connection', (socket) => {
 
   socket.on('game.action', (req, ack) => {
     try {
-      const { room, result } = applyRoomAction(req.roomId, req.playerId, req.action);
+      const { room, result } = applyRoomAction(req.roomId, userId, req.action);
       appendEvents(room.id, result.events);
       ack({ ok: true });
       io.to(room.id).emit('game.events', {
@@ -376,16 +406,16 @@ io.on('connection', (socket) => {
 
   socket.on('lobby.findMatch', (req, ack) => {
     if (draining) { ack({ code: 'internal', message: 'server is restarting, please reconnect' }); return; }
-    console.log(`[game-server] lobby.findMatch from ${req.playerId} (${req.displayName})`);
+    console.log(`[game-server] lobby.findMatch from ${userId} (${req.displayName})`);
     try {
       // Remove any stale entry for this player (e.g. double-click).
-      matchmakingQueue.delete(req.playerId);
+      matchmakingQueue.delete(userId);
 
       const waiting = dequeue();
 
       if (waiting) {
         // Pair found — create room, join both players, start immediately.
-        console.log(`[game-server] pairing ${waiting.playerId} + ${req.playerId}`);
+        console.log(`[game-server] pairing ${waiting.playerId} + ${userId}`);
         const seed = randomUUID();
         const room = createRoom(waiting.playerId, waiting.displayName);
         console.log(`[game-server] room created: ${room.id} code=${room.code}`);
@@ -404,11 +434,11 @@ io.on('connection', (socket) => {
         }
 
         // Wire the current player's socket.
-        console.log(`[game-server] joining ${req.playerId} to room`);
-        joinRoom(room.code, req.playerId, req.displayName);
+        console.log(`[game-server] joining ${userId} to room`);
+        joinRoom(room.code, userId, req.displayName);
         socket.join(room.id);
-        trackConnection(room.id, req.playerId, 1);
-        state.playerId = req.playerId;
+        trackConnection(room.id, userId, 1);
+        state.playerId = userId;
         state.roomId = room.id;
 
         // Start the game.
@@ -420,16 +450,16 @@ io.on('connection', (socket) => {
 
         // Unicast to both — they're now in the socket.io room.
         io.to(room.id).emit('lobby.matchFound', payload);
-        console.log(`[game-server] matched ${waiting.playerId} + ${req.playerId} → room ${room.id}`);
+        console.log(`[game-server] matched ${waiting.playerId} + ${userId} → room ${room.id}`);
       } else {
         // No one waiting — add to queue.
-        matchmakingQueue.set(req.playerId, {
-          playerId: req.playerId,
+        matchmakingQueue.set(userId, {
+          playerId: userId,
           displayName: req.displayName,
           socketId: socket.id,
           joinedAt: Date.now(),
         });
-        console.log(`[game-server] queued ${req.playerId} (queue size: ${matchmakingQueue.size})`);
+        console.log(`[game-server] queued ${userId} (queue size: ${matchmakingQueue.size})`);
       }
 
       ack({ queued: true });
@@ -438,9 +468,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('lobby.leaveQueue', (req) => {
-    const deleted = matchmakingQueue.delete(req.playerId);
-    if (deleted) console.log(`[game-server] ${req.playerId} left matchmaking queue`);
+  socket.on('lobby.leaveQueue', (_req) => {
+    const deleted = matchmakingQueue.delete(userId);
+    if (deleted) console.log(`[game-server] ${userId} left matchmaking queue`);
   });
 
   socket.on('disconnect', (reason) => {

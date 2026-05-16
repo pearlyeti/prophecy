@@ -71,7 +71,8 @@ export type SelectionMode =
     };
 
 interface AppStore {
-  readonly playerId: string;
+  playerId: string;
+  setPlayerId: (id: string) => void;
   displayName: string;
   setDisplayName: (s: string) => void;
 
@@ -110,6 +111,7 @@ const STORAGE_KEY_NAME = 'prophecy.displayName';
 
 export const useApp = create<AppStore>((set) => ({
   playerId: getOrCreatePlayerId(),
+  setPlayerId: (id) => set({ playerId: id }),
   displayName: localStorage.getItem(STORAGE_KEY_NAME) ?? '',
   setDisplayName: (s) => {
     localStorage.setItem(STORAGE_KEY_NAME, s);
