@@ -106,7 +106,7 @@ export function Designer() {
         <TabButton
           active={tab === 'changes'}
           onClick={() => setTabAndUrl('changes')}
-          badge={pendingCount ?? undefined}
+          {...(pendingCount !== null ? { badge: pendingCount } : {})}
           pushRight
         >
           Changes
@@ -122,18 +122,18 @@ export function Designer() {
       {cards === null || decks === null || attributes === null ? (
         <div className="text-base text-neutral-500">Loading catalog…</div>
       ) : tab === 'cards' ? (
-        <CardsTab cards={cards} attributes={attributes} committedCards={committedCards ?? undefined} onReload={reload} onViewCommit={setCommitReportSha} />
+        <CardsTab cards={cards} attributes={attributes} {...(committedCards !== null ? { committedCards } : {})} onReload={reload} onViewCommit={setCommitReportSha} />
       ) : tab === 'decks' ? (
-        <DecksTab cards={cards} decks={decks} committedDecks={committedDecks ?? undefined} onReload={reload} />
+        <DecksTab cards={cards} decks={decks} {...(committedDecks !== null ? { committedDecks } : {})} onReload={reload} />
       ) : tab === 'attributes' ? (
         <AttributesTab attributes={attributes} onReload={reload} />
       ) : (
         <ChangesTab
           cards={cards}
           decks={decks}
-          committedCards={committedCards ?? undefined}
-          committedDecks={committedDecks ?? undefined}
-          committedAttributes={committedAttributes ?? undefined}
+          {...(committedCards !== null ? { committedCards } : {})}
+          {...(committedDecks !== null ? { committedDecks } : {})}
+          {...(committedAttributes !== null ? { committedAttributes } : {})}
           onReload={reload}
           onViewCommit={setCommitReportSha}
         />
