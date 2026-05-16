@@ -760,12 +760,29 @@ function buildLogEntries(
 
       case 'card.played': {
         const { playerId, cardId, costPaid } = e.payload;
-        const next = events[i + 1];
         const catId = game.cardCatalogIds[cardId];
         const playedCard = catId ? catalogById.get(catId) : undefined;
 
-        if (next?.type === 'damage.dealt') {
-          const { characterId, amount, shieldsBlocked } = next.payload;
+        // Scan ahead past intermediate effect events (draws, resource changes, die ops)
+        // until we find the primary result or hit an action boundary.
+        const ACTION_BOUNDARIES = new Set([
+          'turn.advanced', 'round.begin', 'card.played', 'character.activated',
+          'dice.resolved', 'dice.rerolled', 'battlefield.claimed', 'player.passed',
+        ]);
+        let j = i + 1;
+        let resultEvent: EngineEvent | undefined;
+        while (j < events.length) {
+          const ev = events[j];
+          if (!ev || ACTION_BOUNDARIES.has(ev.type)) break;
+          if (ev.type === 'damage.dealt' || ev.type === 'shields.placed' || ev.type === 'damage.healed') {
+            resultEvent = ev;
+            break;
+          }
+          j++;
+        }
+
+        if (resultEvent?.type === 'damage.dealt') {
+          const { characterId, amount, shieldsBlocked } = resultEvent.payload;
           const damageType = playedCard?.abilities
             .flatMap((ab) => 'effects' in ab ? ab.effects : [])
             .find((fx): fx is { op: 'dealDamage'; damageType?: string } => (fx as { op?: string }).op === 'dealDamage')
@@ -779,21 +796,21 @@ function buildLogEntries(
               </>
             ),
           });
-          i++;
-        } else if (next?.type === 'shields.placed') {
-          const { characterId, amount } = next.payload;
+          i = j;
+        } else if (resultEvent?.type === 'shields.placed') {
+          const { characterId, amount } = resultEvent.payload;
           out.push({
             kind: 'entry', key,
             node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — gives {amount} shield{amount !== 1 ? 's' : ''} to {cn(characterId)}</>,
           });
-          i++;
-        } else if (next?.type === 'damage.healed') {
-          const { characterId, amount } = next.payload;
+          i = j;
+        } else if (resultEvent?.type === 'damage.healed') {
+          const { characterId, amount } = resultEvent.payload;
           out.push({
             kind: 'entry', key,
             node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — heals {amount} from {cn(characterId)}</>,
           });
-          i++;
+          i = j;
         } else {
           out.push({
             kind: 'entry', key,
