@@ -1,5 +1,5 @@
 import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CommitSelection, PendingChanges } from './api.js';
 import { commitChanges, fetchPending, saveAttributes, saveCards, saveDecks } from './api.js';
@@ -7,7 +7,6 @@ import { commitChanges, fetchPending, saveAttributes, saveCards, saveDecks } fro
 interface Props {
   cards: readonly Card[];
   decks: readonly Deck[];
-  attributes: AttributeCatalog;
   committedCards?: readonly Card[];
   committedDecks?: readonly Deck[];
   committedAttributes?: AttributeCatalog;
@@ -17,7 +16,6 @@ interface Props {
 export function ChangesTab({
   cards,
   decks,
-  attributes,
   committedCards,
   committedDecks,
   committedAttributes,
@@ -74,6 +72,13 @@ export function ChangesTab({
 
   const totalPending = allKeys.length;
   const totalSelected = selected.size;
+
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = totalSelected > 0 && totalSelected < totalPending;
+    }
+  }, [totalSelected, totalPending]);
 
   const toggleKey = (key: string) => {
     setSelected((prev) => {
@@ -211,12 +216,19 @@ export function ChangesTab({
         </button>
       </div>
 
+      {totalPending === 0 && (
+        <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 px-4 py-10 text-center text-sm text-neutral-500">
+          Catalog is up to date — no uncommitted changes.
+        </div>
+      )}
+
       {totalPending > 0 && (
         <>
           {/* Select all */}
           <div className="flex items-center gap-3">
             <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-400">
               <input
+                ref={selectAllRef}
                 type="checkbox"
                 checked={selected.size === allKeys.length && allKeys.length > 0}
                 onChange={toggleAll}
@@ -349,7 +361,7 @@ export function ChangesTab({
                 disabled={busy || !message.trim() || totalSelected === 0}
                 className="min-h-[44px] rounded-lg border border-emerald-800 bg-emerald-900/60 px-4 text-sm font-medium text-emerald-100 hover:bg-emerald-900 disabled:opacity-50"
               >
-                {committing ? 'Committing…' : `Commit selected (${totalSelected})`}
+                {committing ? 'Committing…' : totalSelected > 0 ? `Commit selected (${totalSelected})` : 'Commit selected'}
               </button>
               <button
                 type="button"

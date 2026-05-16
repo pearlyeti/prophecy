@@ -1,4 +1,4 @@
-// Designer shell — three tabs (Cards / Decks / Attributes). Loads all
+// Designer shell — Cards / Decks / Attributes / Changes tabs. Loads all
 // catalogs once on mount; each tab calls `reload()` after a save.
 
 import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
@@ -8,7 +8,7 @@ import { AttributesTab } from './AttributesTab.js';
 import { CardsTab } from './CardsTab.js';
 import { ChangesTab } from './ChangesTab.js';
 import { DecksTab } from './DecksTab.js';
-import { fetchAttributes, fetchCards, fetchCommitted, fetchDecks } from './api.js';
+import { fetchAttributes, fetchCards, fetchCommitted, fetchDecks, fetchPending } from './api.js';
 
 type Tab = 'cards' | 'decks' | 'attributes' | 'changes';
 
@@ -26,15 +26,17 @@ export function Designer() {
   const [committedCards, setCommittedCards] = useState<readonly Card[] | null>(null);
   const [committedDecks, setCommittedDecks] = useState<readonly Deck[] | null>(null);
   const [committedAttributes, setCommittedAttributes] = useState<AttributeCatalog | null>(null);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = async () => {
     try {
-      const [c, d, a, committed] = await Promise.all([
+      const [c, d, a, committed, pending] = await Promise.all([
         fetchCards(),
         fetchDecks(),
         fetchAttributes(),
         fetchCommitted().catch(() => null),
+        fetchPending().catch(() => null),
       ]);
       setCards(c);
       setDecks(d);
@@ -43,6 +45,17 @@ export function Designer() {
         setCommittedCards(committed.cards);
         setCommittedDecks(committed.decks);
         setCommittedAttributes(committed.attributes);
+      }
+      if (pending?.enabled) {
+        setPendingCount(
+          pending.cards.added.length +
+          pending.cards.modified.length +
+          pending.cards.deleted.length +
+          pending.decks.added.length +
+          pending.decks.modified.length +
+          pending.decks.deleted.length +
+          (pending.attributes.modified ? 1 : 0),
+        );
       }
       setError(null);
     } catch (e) {
@@ -72,8 +85,7 @@ export function Designer() {
   };
 
   return (
-    <>
-    <main className="min-h-dvh bg-neutral-950 px-4 py-6 pb-16 sm:px-6">
+    <main className="min-h-dvh bg-neutral-950 px-4 py-6 sm:px-6">
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold text-neutral-100">Prophecy Designer</h1>
         <a
@@ -88,7 +100,14 @@ export function Designer() {
         <TabButton active={tab === 'cards'} onClick={() => setTabAndUrl('cards')}>Cards</TabButton>
         <TabButton active={tab === 'decks'} onClick={() => setTabAndUrl('decks')}>Decks</TabButton>
         <TabButton active={tab === 'attributes'} onClick={() => setTabAndUrl('attributes')}>Attributes</TabButton>
-        <TabButton active={tab === 'changes'} onClick={() => setTabAndUrl('changes')}>Changes</TabButton>
+        <TabButton
+          active={tab === 'changes'}
+          onClick={() => setTabAndUrl('changes')}
+          badge={pendingCount ?? undefined}
+          pushRight
+        >
+          Changes
+        </TabButton>
       </nav>
 
       {error && (
@@ -109,7 +128,6 @@ export function Designer() {
         <ChangesTab
           cards={cards}
           decks={decks}
-          attributes={attributes}
           committedCards={committedCards ?? undefined}
           committedDecks={committedDecks ?? undefined}
           committedAttributes={committedAttributes ?? undefined}
@@ -117,7 +135,6 @@ export function Designer() {
         />
       )}
     </main>
-    </>
   );
 }
 
@@ -125,22 +142,33 @@ function TabButton({
   active,
   onClick,
   children,
+  badge,
+  pushRight,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  badge?: number;
+  pushRight?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[44px] rounded-t-lg border-b-2 px-4 py-2 text-base ${
+      className={`${pushRight ? 'ml-auto' : ''} min-h-[44px] rounded-t-lg border-b-2 px-4 py-2 text-base ${
         active
           ? 'border-emerald-500 text-emerald-100'
           : 'border-transparent text-neutral-400 hover:text-neutral-200'
       }`}
     >
-      {children}
+      <span className="flex items-center gap-1.5">
+        {children}
+        {badge !== undefined && badge > 0 && (
+          <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
