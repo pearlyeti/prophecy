@@ -18,6 +18,9 @@ import { getAttributes, initializeAttributes, writeAttributes } from './attribut
 import { isStorageConfigured, uploadFile } from './storage.js';
 import {
   commitCatalog,
+  fetchCardAtSha,
+  fetchCardHistory,
+  fetchCommitReport,
   getCommittedSnapshot,
   GitHubConflictError,
   getPendingChanges,
@@ -288,6 +291,64 @@ const httpServer = createServer(async (req, res) => {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
       }
+    }
+    return;
+  }
+
+  const historyMatch = req.url?.match(/^\/designer\/cards\/([A-Za-z0-9_-]+)\/history$/) ?? null;
+  if (historyMatch && req.method === 'GET') {
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(501, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'GitHub sync not configured' }));
+      return;
+    }
+    try {
+      const cardId = historyMatch[1]!;
+      const history = await fetchCardHistory(cardId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(history));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (e as Error).message }));
+    }
+    return;
+  }
+
+  const atShaMatch = req.url?.match(/^\/designer\/cards\/([A-Za-z0-9_-]+)\/at\/([a-f0-9]{4,40})$/) ?? null;
+  if (atShaMatch && req.method === 'GET') {
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(501, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'GitHub sync not configured' }));
+      return;
+    }
+    try {
+      const cardId = atShaMatch[1]!;
+      const sha = atShaMatch[2]!;
+      const card = await fetchCardAtSha(cardId, sha);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(card));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (e as Error).message }));
+    }
+    return;
+  }
+
+  const commitReportMatch = req.url?.match(/^\/designer\/commits\/([a-f0-9]{4,40})$/) ?? null;
+  if (commitReportMatch && req.method === 'GET') {
+    if (!isGitHubSyncEnabled()) {
+      res.writeHead(501, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'GitHub sync not configured' }));
+      return;
+    }
+    try {
+      const sha = commitReportMatch[1]!;
+      const report = await fetchCommitReport(sha);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(report));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (e as Error).message }));
     }
     return;
   }

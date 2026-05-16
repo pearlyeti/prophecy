@@ -143,3 +143,42 @@ export async function commitChanges(
   }
   return (await r.json()) as { sha: string; url: string };
 }
+
+// ── History / diff ────────────────────────────────────────────────────
+
+export interface CommitSummary {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+}
+
+export interface CommitReport {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+  cards: Array<{ id: string; status: 'added' | 'modified' | 'removed' }>;
+  decksChanged: boolean;
+  attributesChanged: boolean;
+}
+
+export async function fetchCardHistory(cardId: string): Promise<CommitSummary[]> {
+  const r = await fetch(`${serverUrl()}/designer/cards/${encodeURIComponent(cardId)}/history`);
+  if (!r.ok) throw new Error(`GET /designer/cards/${cardId}/history failed: ${r.status}`);
+  return (await r.json()) as CommitSummary[];
+}
+
+export async function fetchCardAtSha(cardId: string, sha: string): Promise<Card> {
+  const r = await fetch(`${serverUrl()}/designer/cards/${encodeURIComponent(cardId)}/at/${encodeURIComponent(sha)}`);
+  if (!r.ok) throw new Error(`GET /designer/cards/${cardId}/at/${sha} failed: ${r.status}`);
+  return (await r.json()) as Card;
+}
+
+export async function fetchCommitReport(sha: string): Promise<CommitReport> {
+  const r = await fetch(`${serverUrl()}/designer/commits/${encodeURIComponent(sha)}`);
+  if (!r.ok) throw new Error(`GET /designer/commits/${sha} failed: ${r.status}`);
+  return (await r.json()) as CommitReport;
+}

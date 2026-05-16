@@ -74,6 +74,27 @@ interface CommittedSnapshot {
 
 let committedSnapshot: CommittedSnapshot | null = null;
 
+// ── New exports ───────────────────────────────────────────────────────
+
+export interface CommitSummary {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+}
+
+export interface CommitReport {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+  cards: Array<{ id: string; status: 'added' | 'modified' | 'removed' }>;
+  decksChanged: boolean;
+  attributesChanged: boolean;
+}
+
 // ── API helpers ───────────────────────────────────────────────────────
 
 async function ghFetch(path: string, options?: RequestInit): Promise<Response> {
@@ -102,6 +123,13 @@ async function fetchHeadSha(): Promise<string> {
   if (!res.ok) throw new Error(`git/ref fetch failed: ${res.status} ${await res.text()}`);
   const data = (await res.json()) as { object: { sha: string } };
   return data.object.sha;
+}
+
+async function fetchFileAtRef(path: string, ref: string): Promise<string> {
+  const res = await ghFetch(`/contents/${path}?ref=${encodeURIComponent(ref)}`);
+  if (!res.ok) throw new Error(`contents fetch failed for ${path}@${ref}: ${res.status}`);
+  const data = (await res.json()) as { content: string; encoding: string };
+  return data.encoding === 'base64' ? decodeBase64Content(data.content) : data.content;
 }
 
 async function fetchFileContent(path: string): Promise<string> {
@@ -149,6 +177,72 @@ async function loadSnapshot(): Promise<CommittedSnapshot> {
     decks: decksParsed.decks,
     attributes: attrsParsed,
     headSha,
+  };
+}
+
+// ── History / diff API ────────────────────────────────────────────────
+
+export async function fetchCardHistory(cardId: string): Promise<CommitSummary[]> {
+  const cfg = getConfig();
+  if (!cfg) throw new Error('GitHub sync not configured');
+  const path = `packages/db/seed/cards/${cardId}.json`;
+  const res = await ghFetch(`/commits?path=${encodeURIComponent(path)}&sha=${encodeURIComponent(cfg.branch)}&per_page=30`);
+  if (!res.ok) throw new Error(`commits fetch failed: ${res.status} ${await res.text()}`);
+  const data = (await res.json()) as Array<{
+    sha: string;
+    commit: { message: string; author: { name: string; date: string } };
+  }>;
+  return data.map((entry) => ({
+    sha: entry.sha,
+    shortSha: entry.sha.slice(0, 7),
+    message: entry.commit.message.split('\n')[0]!,
+    author: entry.commit.author.name,
+    date: entry.commit.author.date,
+  }));
+}
+
+export async function fetchCardAtSha(cardId: string, sha: string): Promise<Card> {
+  if (!getConfig()) throw new Error('GitHub sync not configured');
+  const path = `packages/db/seed/cards/${cardId}.json`;
+  const raw = await fetchFileAtRef(path, sha);
+  const parsed = JSON.parse(raw) as unknown;
+  return cardCatalogSchema.parse({ cards: [parsed] }).cards[0]!;
+}
+
+export async function fetchCommitReport(sha: string): Promise<CommitReport> {
+  if (!getConfig()) throw new Error('GitHub sync not configured');
+  const res = await ghFetch(`/commits/${sha}`);
+  if (!res.ok) throw new Error(`commit fetch failed: ${res.status} ${await res.text()}`);
+  const data = (await res.json()) as {
+    sha: string;
+    commit: { message: string; author: { name: string; date: string } };
+    files?: Array<{ filename: string; status: string }>;
+  };
+  const files = data.files ?? [];
+  const cardPattern = /^packages\/db\/seed\/cards\/([A-Za-z0-9_-]+)\.json$/;
+  const cards: Array<{ id: string; status: 'added' | 'modified' | 'removed' }> = [];
+  let decksChanged = false;
+  let attributesChanged = false;
+  for (const f of files) {
+    const m = cardPattern.exec(f.filename);
+    if (m) {
+      const status = f.status === 'added' ? 'added' : f.status === 'removed' ? 'removed' : 'modified';
+      cards.push({ id: m[1]!, status });
+    } else if (f.filename === 'packages/db/seed/decks.json') {
+      decksChanged = true;
+    } else if (f.filename === 'packages/db/seed/attributes.json') {
+      attributesChanged = true;
+    }
+  }
+  return {
+    sha: data.sha,
+    shortSha: data.sha.slice(0, 7),
+    message: data.commit.message.split('\n')[0]!,
+    author: data.commit.author.name,
+    date: data.commit.author.date,
+    cards,
+    decksChanged,
+    attributesChanged,
   };
 }
 
