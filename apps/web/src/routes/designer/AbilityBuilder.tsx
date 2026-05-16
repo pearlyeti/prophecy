@@ -6,7 +6,9 @@
 import type {
   Ability,
   ActionCost,
+  CardCriteria,
   CardDisposition,
+  DieCriteria,
   Effect,
   ImmediateAbility,
   PlayCondition,
@@ -661,68 +663,80 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
       );
     case 'dealDamage':
       return (
-        <div className="flex flex-wrap gap-2">
-          <NumberField label="Amount" value={effect.amount} min={1} max={99}
-            onChange={(amount) => onChange({ ...effect, amount })} />
-          <SelectField label="Type" value={effect.damageType ?? 'unspecified'}
-            options={[
-              { value: 'melee', label: 'Melee' }, { value: 'ranged', label: 'Ranged' },
-              { value: 'indirect', label: 'Indirect' }, { value: 'unspecified', label: 'Unspecified' },
-            ]}
-            onChange={(v) => onChange({ ...effect, damageType: v } as any)} />
-          <TargetPicker
-            value={effect.target}
-            options={['opponentCharacter', 'ownCharacter', 'anyCharacter', 'eachOpponentCharacter', 'eachCharacter']}
-            onChange={(t) => onChange({ ...effect, target: t })}
-          />
-          <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-            <input type="checkbox" checked={effect.unblockable ?? false}
-              onChange={(e) => onChange({ ...effect, unblockable: e.target.checked })} />
-            <span>Unblockable</span>
-          </label>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <NumberField label="Amount" value={effect.amount} min={1} max={99}
+              onChange={(amount) => onChange({ ...effect, amount })} />
+            <SelectField label="Type" value={effect.damageType ?? 'unspecified'}
+              options={[
+                { value: 'melee', label: 'Melee' }, { value: 'ranged', label: 'Ranged' },
+                { value: 'indirect', label: 'Indirect' }, { value: 'unspecified', label: 'Unspecified' },
+              ]}
+              onChange={(v) => onChange({ ...effect, damageType: v } as any)} />
+            <TargetPicker
+              value={effect.target}
+              options={['opponentCharacter', 'ownCharacter', 'anyCharacter', 'eachOpponentCharacter', 'eachCharacter']}
+              onChange={(t) => onChange({ ...effect, target: t })}
+            />
+            <label className="flex items-center gap-1 text-[11px] text-neutral-400">
+              <input type="checkbox" checked={effect.unblockable ?? false}
+                onChange={(e) => onChange({ ...effect, unblockable: e.target.checked })} />
+              <span>Unblockable</span>
+            </label>
+          </div>
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
         </div>
       );
     case 'addShields':
       return (
-        <div className="flex flex-wrap gap-2">
-          <NumberField label="Amount" value={effect.amount} min={1} max={3}
-            onChange={(amount) => onChange({ ...effect, amount })} />
-          <TargetPicker
-            value={effect.target}
-            options={['ownCharacter', 'opponentCharacter', 'anyCharacter', 'eachOpponentCharacter', 'eachCharacter']}
-            onChange={(t) => onChange({ ...effect, target: t })}
-          />
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <NumberField label="Amount" value={effect.amount} min={1} max={3}
+              onChange={(amount) => onChange({ ...effect, amount })} />
+            <TargetPicker
+              value={effect.target}
+              options={['ownCharacter', 'opponentCharacter', 'anyCharacter', 'eachOpponentCharacter', 'eachCharacter']}
+              onChange={(t) => onChange({ ...effect, target: t })}
+            />
+          </div>
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
         </div>
       );
     case 'removeShields':
       return (
-        <div className="flex flex-wrap gap-2">
-          <TargetPicker
-            value={effect.target}
-            options={['anyCharacter', 'opponentCharacter', 'ownCharacter', 'eachOpponentCharacter', 'eachCharacter']}
-            onChange={(t) => onChange({ ...effect, target: t })}
-          />
-          <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-            <input type="checkbox" checked={effect.amount === 'all'}
-              onChange={(e) => onChange({ ...effect, amount: e.target.checked ? 'all' : 1 })} />
-            <span>All shields</span>
-          </label>
-          {effect.amount !== 'all' && (
-            <NumberField label="Amount" value={effect.amount as number} min={1} max={3}
-              onChange={(amount) => onChange({ ...effect, amount })} />
-          )}
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <TargetPicker
+              value={effect.target}
+              options={['anyCharacter', 'opponentCharacter', 'ownCharacter', 'eachOpponentCharacter', 'eachCharacter']}
+              onChange={(t) => onChange({ ...effect, target: t })}
+            />
+            <label className="flex items-center gap-1 text-[11px] text-neutral-400">
+              <input type="checkbox" checked={effect.amount === 'all'}
+                onChange={(e) => onChange({ ...effect, amount: e.target.checked ? 'all' : 1 })} />
+              <span>All shields</span>
+            </label>
+            {effect.amount !== 'all' && (
+              <NumberField label="Amount" value={effect.amount as number} min={1} max={3}
+                onChange={(amount) => onChange({ ...effect, amount })} />
+            )}
+          </div>
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
         </div>
       );
     case 'healDamage':
       return (
-        <div className="flex flex-wrap gap-2">
-          <NumberField label="Amount" value={effect.amount} min={1} max={99}
-            onChange={(amount) => onChange({ ...effect, amount })} />
-          <TargetPicker
-            value={effect.target}
-            options={['ownCharacter', 'anyCharacter', 'opponentCharacter']}
-            onChange={(t) => onChange({ ...effect, target: t })}
-          />
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <NumberField label="Amount" value={effect.amount} min={1} max={99}
+              onChange={(amount) => onChange({ ...effect, amount })} />
+            <TargetPicker
+              value={effect.target}
+              options={['ownCharacter', 'anyCharacter', 'opponentCharacter']}
+              onChange={(t) => onChange({ ...effect, target: t })}
+            />
+          </div>
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
         </div>
       );
     case 'rollEventDie':
@@ -740,52 +754,52 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
         />
       );
     case 'removeDie': {
-      const e = effect as { op: 'removeDie'; from: string; symbol?: string; count?: number };
+      const e = effect as { op: 'removeDie'; from: string; criteria?: DieCriteria; count?: number };
       return (
-        <div className="flex flex-wrap gap-2">
-          <SelectField label="From" value={e.from}
-            options={[{ value: 'opponentPool', label: "Opponent's pool" }, { value: 'ownPool', label: 'Own pool' }]}
-            onChange={(v) => onChange({ ...e, from: v } as Effect)} />
-          <SelectField label="Symbol filter" value={e.symbol ?? ''}
-            options={[{ value: '', label: 'Any' }, ...DIE_SYMBOLS.map((s) => ({ value: s, label: s }))]}
-            onChange={(v) => onChange({ ...e, symbol: v || undefined } as Effect)} />
-          <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
-            onChange={(count) => onChange({ ...e, count } as Effect)} />
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <SelectField label="From" value={e.from}
+              options={[{ value: 'opponentPool', label: "Opponent's pool" }, { value: 'ownPool', label: 'Own pool' }]}
+              onChange={(v) => onChange({ ...e, from: v } as Effect)} />
+            <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
+              onChange={(count) => onChange({ ...e, count } as Effect)} />
+          </div>
+          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange({ ...e, criteria: c } as Effect)} />
         </div>
       );
     }
     case 'turnDie': {
-      const e = effect as { op: 'turnDie'; from: string; toSymbol: string; fromSymbol?: string; count?: number };
+      const e = effect as { op: 'turnDie'; from: string; toSymbol: string; criteria?: DieCriteria; count?: number };
       return (
-        <div className="flex flex-wrap gap-2">
-          <SelectField label="From" value={e.from}
-            options={[{ value: 'opponentPool', label: "Opponent's pool" }, { value: 'ownPool', label: 'Own pool' }]}
-            onChange={(v) => onChange({ ...e, from: v } as Effect)} />
-          <SelectField label="Turn to symbol" value={e.toSymbol}
-            options={DIE_SYMBOLS.map((s) => ({ value: s, label: s }))}
-            onChange={(v) => onChange({ ...e, toSymbol: v } as Effect)} />
-          <SelectField label="Only if showing" value={e.fromSymbol ?? ''}
-            options={[{ value: '', label: 'Any' }, ...DIE_SYMBOLS.map((s) => ({ value: s, label: s }))]}
-            onChange={(v) => onChange({ ...e, fromSymbol: v || undefined } as Effect)} />
-          <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
-            onChange={(count) => onChange({ ...e, count } as Effect)} />
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <SelectField label="From" value={e.from}
+              options={[{ value: 'opponentPool', label: "Opponent's pool" }, { value: 'ownPool', label: 'Own pool' }]}
+              onChange={(v) => onChange({ ...e, from: v } as Effect)} />
+            <SelectField label="Turn to symbol" value={e.toSymbol}
+              options={DIE_SYMBOLS.map((s) => ({ value: s, label: s }))}
+              onChange={(v) => onChange({ ...e, toSymbol: v } as Effect)} />
+            <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
+              onChange={(count) => onChange({ ...e, count } as Effect)} />
+          </div>
+          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange({ ...e, criteria: c } as Effect)} />
         </div>
       );
     }
     case 'modifyDieValue': {
-      const e = effect as { op: 'modifyDieValue'; from: string; delta: number; symbol?: string; count?: number };
+      const e = effect as { op: 'modifyDieValue'; from: string; delta: number; criteria?: DieCriteria; count?: number };
       return (
-        <div className="flex flex-wrap gap-2">
-          <SelectField label="From" value={e.from}
-            options={[{ value: 'ownPool', label: 'Own pool' }, { value: 'opponentPool', label: "Opponent's pool" }]}
-            onChange={(v) => onChange({ ...e, from: v } as Effect)} />
-          <NumberField label="Delta (±)" value={e.delta} min={-20} max={20}
-            onChange={(delta) => onChange({ ...e, delta } as Effect)} />
-          <SelectField label="Symbol filter" value={e.symbol ?? ''}
-            options={[{ value: '', label: 'Any' }, ...DIE_SYMBOLS.map((s) => ({ value: s, label: s }))]}
-            onChange={(v) => onChange({ ...e, symbol: v || undefined } as Effect)} />
-          <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
-            onChange={(count) => onChange({ ...e, count } as Effect)} />
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <SelectField label="From" value={e.from}
+              options={[{ value: 'ownPool', label: 'Own pool' }, { value: 'opponentPool', label: "Opponent's pool" }]}
+              onChange={(v) => onChange({ ...e, from: v } as Effect)} />
+            <NumberField label="Delta (±)" value={e.delta} min={-20} max={20}
+              onChange={(delta) => onChange({ ...e, delta } as Effect)} />
+            <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
+              onChange={(count) => onChange({ ...e, count } as Effect)} />
+          </div>
+          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange({ ...e, criteria: c } as Effect)} />
         </div>
       );
     }
@@ -884,5 +898,100 @@ function TextField({ label, value, onChange, multiline = false }: {
           className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs" />
       )}
     </label>
+  );
+}
+
+// Tristate select: "—" (undefined), "Yes" (true), "No" (false)
+function BoolField({ label, value, onChange }: {
+  label: string; value: boolean | undefined; onChange: (v: boolean | undefined) => void;
+}) {
+  const strVal = value === undefined ? '' : value ? 'true' : 'false';
+  return (
+    <SelectField label={label} value={strVal}
+      options={[{ value: '', label: '—' }, { value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]}
+      onChange={(v) => onChange(v === '' ? undefined : v === 'true')} />
+  );
+}
+
+// Optional numeric field: shows "—" when undefined, or the number value.
+function OptNumberField({ label, value, min, max, onChange }: {
+  label: string; value: number | undefined; min: number; max: number;
+  onChange: (n: number | undefined) => void;
+}) {
+  return (
+    <label className="flex flex-col text-[11px] text-neutral-400">
+      <span>{label}</span>
+      <input type="number" min={min} max={max} placeholder="—"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+        className="min-h-[36px] w-20 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs" />
+    </label>
+  );
+}
+
+function DieCriteriaEditor({ value, onChange }: {
+  value: DieCriteria | undefined;
+  onChange: (c: DieCriteria | undefined) => void;
+}) {
+  const c = value ?? {};
+  const set = (patch: Partial<DieCriteria>) => {
+    const next = { ...c, ...patch };
+    // If all fields are undefined/absent, clear the criteria entirely
+    const hasAny = Object.values(next).some((v) => v !== undefined);
+    onChange(hasAny ? next : undefined);
+  };
+  const symVal = Array.isArray(c.symbol) ? c.symbol[0] ?? '' : c.symbol ?? '';
+  return (
+    <Section label="Die criteria (optional — all fields AND together)">
+      <div className="flex flex-wrap gap-2">
+        <SelectField label="Symbol" value={symVal}
+          options={[{ value: '', label: 'Any' }, ...DIE_SYMBOLS.map((s) => ({ value: s, label: s }))]}
+          onChange={(v) => set({ symbol: v || undefined })} />
+        <OptNumberField label="Min value" value={c.minValue} min={0} max={20}
+          onChange={(v) => set({ minValue: v })} />
+        <OptNumberField label="Max value" value={c.maxValue} min={0} max={20}
+          onChange={(v) => set({ maxValue: v })} />
+        <BoolField label="Modifier face" value={c.modifier} onChange={(v) => set({ modifier: v })} />
+        <SelectField label="Owner type" value={Array.isArray(c.ownerCardType) ? '' : c.ownerCardType ?? ''}
+          options={[{ value: '', label: 'Any' }, ...CARD_TYPES.map((t) => ({ value: t, label: t }))]}
+          onChange={(v) => set({ ownerCardType: v || undefined })} />
+        <SelectField label="Owner color" value={Array.isArray(c.ownerColor) ? '' : c.ownerColor ?? ''}
+          options={[{ value: '', label: 'Any' }, ...COLORS.map((col) => ({ value: col, label: col }))]}
+          onChange={(v) => set({ ownerColor: v || undefined })} />
+        <TextField label="Owner subtype" value={c.ownerSubtype ?? ''}
+          onChange={(v) => set({ ownerSubtype: v || undefined })} />
+      </div>
+    </Section>
+  );
+}
+
+function CardCriteriaEditor({ value, onChange }: {
+  value: CardCriteria | undefined;
+  onChange: (c: CardCriteria | undefined) => void;
+}) {
+  const c = value ?? {};
+  const set = (patch: Partial<CardCriteria>) => {
+    const next = { ...c, ...patch };
+    const hasAny = Object.values(next).some((v) => v !== undefined);
+    onChange(hasAny ? next : undefined);
+  };
+  const colVal = Array.isArray(c.color) ? '' : c.color ?? '';
+  const subVal = Array.isArray(c.subtype) ? c.subtype[0] ?? '' : c.subtype ?? '';
+  return (
+    <Section label="Card criteria (optional — all fields AND together)">
+      <div className="flex flex-wrap gap-2">
+        <TextField label="Subtype" value={subVal} onChange={(v) => set({ subtype: v || undefined })} />
+        <SelectField label="Color" value={colVal}
+          options={[{ value: '', label: 'Any' }, ...COLORS.map((col) => ({ value: col, label: col }))]}
+          onChange={(v) => set({ color: v || undefined })} />
+        <BoolField label="Unique" value={c.unique} onChange={(v) => set({ unique: v })} />
+        <BoolField label="Exhausted" value={c.exhausted} onChange={(v) => set({ exhausted: v })} />
+        <BoolField label="Has upgrade" value={c.hasUpgrade} onChange={(v) => set({ hasUpgrade: v })} />
+        <OptNumberField label="Min health" value={c.minHealth} min={0} max={99}
+          onChange={(v) => set({ minHealth: v })} />
+        <OptNumberField label="Max damage" value={c.maxDamage} min={0} max={99}
+          onChange={(v) => set({ maxDamage: v })} />
+      </div>
+    </Section>
   );
 }

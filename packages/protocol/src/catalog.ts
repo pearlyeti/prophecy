@@ -127,6 +127,30 @@ export const cardDispositionSchema = z.enum([
 ]);
 
 // ────────────────────────────────────────────────────────────────────
+// ENGINE-TF1: targeting criteria schemas (used by effect schemas below)
+// ────────────────────────────────────────────────────────────────────
+
+export const dieCriteriaSchema = z.object({
+  symbol: z.union([dieSymbolSchema, z.array(dieSymbolSchema)]).optional(),
+  minValue: z.number().int().min(0).optional(),
+  maxValue: z.number().int().min(0).optional(),
+  modifier: z.boolean().optional(),
+  ownerCardType: z.union([cardTypeSchema, z.array(cardTypeSchema)]).optional(),
+  ownerColor: z.union([colorSchema, z.array(colorSchema)]).optional(),
+  ownerSubtype: z.string().optional(),
+});
+
+export const cardCriteriaSchema = z.object({
+  subtype: z.union([z.string(), z.array(z.string())]).optional(),
+  color: z.union([colorSchema, z.array(colorSchema)]).optional(),
+  unique: z.boolean().optional(),
+  exhausted: z.boolean().optional(),
+  hasUpgrade: z.boolean().optional(),
+  minHealth: z.number().int().min(0).optional(),
+  maxDamage: z.number().int().min(0).optional(),
+});
+
+// ────────────────────────────────────────────────────────────────────
 // Effect — discriminated on `op`
 // First-wave ops are fully typed. Stub ops use passthrough() so card
 // authors can add fields before the engine implements them.
@@ -137,6 +161,7 @@ const dealDamageEffect = z.object({
   amount: z.number().int().min(1).max(99),
   damageType: z.enum(['melee', 'ranged', 'indirect', 'unspecified']).default('unspecified'),
   target: targetSpecSchema.default({ kind: 'opponentCharacter' }),
+  criteria: cardCriteriaSchema.optional(),
   unblockable: z.boolean().default(false),
   optional: z.boolean().default(false),
 });
@@ -145,6 +170,7 @@ const addShieldsEffect = z.object({
   op: z.literal('addShields'),
   amount: z.number().int().min(1).max(3),
   target: targetSpecSchema.default({ kind: 'ownCharacter' }),
+  criteria: cardCriteriaSchema.optional(),
   optional: z.boolean().default(false),
 });
 
@@ -152,6 +178,7 @@ const removeShieldsEffect = z.object({
   op: z.literal('removeShields'),
   amount: z.union([z.literal('all'), z.number().int().min(1).max(3)]),
   target: targetSpecSchema.default({ kind: 'anyCharacter' }),
+  criteria: cardCriteriaSchema.optional(),
   optional: z.boolean().default(false),
 });
 
@@ -180,6 +207,7 @@ const healDamageEffect = z.object({
   op: z.literal('healDamage'),
   amount: z.number().int().min(1).max(99),
   target: targetSpecSchema.default({ kind: 'ownCharacter' }),
+  criteria: cardCriteriaSchema.optional(),
   optional: z.boolean().default(false),
 });
 
@@ -201,7 +229,7 @@ const diePoolSide = z.enum(['ownPool', 'opponentPool']);
 const removeDieEffect = z.object({
   op: z.literal('removeDie'),
   from: diePoolSide,
-  symbol: dieSymbolSchema.optional(),
+  criteria: dieCriteriaSchema.optional(),
   count: z.number().int().min(1).optional(),
   optional: z.boolean().default(false),
 });
@@ -210,7 +238,7 @@ const turnDieEffect = z.object({
   op: z.literal('turnDie'),
   from: diePoolSide,
   toSymbol: dieSymbolSchema,
-  fromSymbol: dieSymbolSchema.optional(),
+  criteria: dieCriteriaSchema.optional(),
   count: z.number().int().min(1).optional(),
   optional: z.boolean().default(false),
 });
@@ -219,7 +247,7 @@ const modifyDieValueEffect = z.object({
   op: z.literal('modifyDieValue'),
   from: diePoolSide,
   delta: z.number().int(),
-  symbol: dieSymbolSchema.optional(),
+  criteria: dieCriteriaSchema.optional(),
   count: z.number().int().min(1).optional(),
   optional: z.boolean().default(false),
 });
@@ -371,7 +399,7 @@ export const abilitySchema: z.ZodType<Ability> = z.discriminatedUnion('kind', [
   claimAbility,
 ] as const) as z.ZodType<Ability>;
 
-export type { Ability } from '@prophecy/game-engine';
+export type { Ability, CardCriteria, DieCriteria } from '@prophecy/game-engine';
 
 // ────────────────────────────────────────────────────────────────────
 // Card

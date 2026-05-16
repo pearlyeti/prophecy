@@ -77,6 +77,8 @@ export type DealDamageEffect = {
   amount: number;
   damageType?: 'melee' | 'ranged' | 'indirect' | 'unspecified';
   target: TargetSpec;
+  /** Additional criteria the targeted character must meet. */
+  criteria?: CardCriteria;
   unblockable?: boolean;
   optional?: boolean;
 };
@@ -85,6 +87,8 @@ export type AddShieldsEffect = {
   op: 'addShields';
   amount: number;
   target: TargetSpec;
+  /** Additional criteria the targeted character must meet. */
+  criteria?: CardCriteria;
   optional?: boolean;
 };
 
@@ -92,6 +96,8 @@ export type RemoveShieldsEffect = {
   op: 'removeShields';
   amount: number | 'all';
   target: TargetSpec;
+  /** Additional criteria the targeted character must meet. */
+  criteria?: CardCriteria;
   optional?: boolean;
 };
 
@@ -120,6 +126,8 @@ export type HealDamageEffect = {
   op: 'healDamage';
   amount: number;
   target: TargetSpec;
+  /** Additional criteria the targeted character must meet. */
+  criteria?: CardCriteria;
   optional?: boolean;
 };
 
@@ -137,6 +145,52 @@ export type RollCardDieEffect = {
   optional?: boolean;
 };
 
+// ENGINE-TF1: targeting criteria for dice and card effects.
+
+/**
+ * Criteria that a die in a pool must meet to be selected by a die-targeting
+ * effect. All present fields must match (AND semantics). Array fields use OR
+ * semantics within the set (e.g. symbol: ['melee', 'ranged'] matches either).
+ */
+export type DieCriteria = {
+  /** Current face symbol must be in this set. */
+  symbol?: string | string[];
+  /** Current face value must be ≥ this. */
+  minValue?: number;
+  /** Current face value must be ≤ this. */
+  maxValue?: number;
+  /** Must (true) or must not (false) be a modifier face. */
+  modifier?: boolean;
+  /** Owning card's type must be in this set. */
+  ownerCardType?: string | string[];
+  /** Owning card's color must be in this set. */
+  ownerColor?: string | string[];
+  /** Owning card must have this subtype. */
+  ownerSubtype?: string;
+};
+
+/**
+ * Criteria that a character (or support) must meet to be selected by a
+ * character-targeting effect. All present fields must match (AND semantics).
+ * Array fields use OR semantics within the set.
+ */
+export type CardCriteria = {
+  /** Card must have at least one subtype in this set. */
+  subtype?: string | string[];
+  /** Card color must be in this set. */
+  color?: string | string[];
+  /** Card isUnique flag must match. */
+  unique?: boolean;
+  /** Card must be exhausted (true) or ready (false). */
+  exhausted?: boolean;
+  /** Character must (true) or must not (false) have at least one upgrade attached. */
+  hasUpgrade?: boolean;
+  /** Remaining health (health − damage) must be ≥ this. */
+  minHealth?: number;
+  /** Current damage must be ≤ this. */
+  maxDamage?: number;
+};
+
 // ENGINE-D1: dice pool manipulation ops (fully typed, dispatched).
 
 /** Which player's pool an op targets. */
@@ -145,8 +199,8 @@ export type DiePoolSide = 'ownPool' | 'opponentPool';
 export type RemoveDieEffect = {
   op: 'removeDie';
   from: DiePoolSide;
-  /** Filter by die symbol; if omitted, matches any non-blank die. */
-  symbol?: string;
+  /** Criteria a die must meet to be removed. If absent, any non-blank die qualifies. */
+  criteria?: DieCriteria;
   /** Number of dice to remove (default 1). */
   count?: number;
   optional?: boolean;
@@ -157,8 +211,8 @@ export type TurnDieEffect = {
   from: DiePoolSide;
   /** Symbol to turn the matched die to (replaces face.symbol, keeps value/cost). */
   toSymbol: string;
-  /** Only match dice currently showing this symbol; if omitted matches any. */
-  fromSymbol?: string;
+  /** Criteria a die must meet to be turned. If absent, any die qualifies. */
+  criteria?: DieCriteria;
   /** Number of dice to turn (default 1). */
   count?: number;
   optional?: boolean;
@@ -169,8 +223,8 @@ export type ModifyDieValueEffect = {
   from: DiePoolSide;
   /** Value delta (positive = increase, negative = decrease), clamped at 0. */
   delta: number;
-  /** Filter by current symbol; if omitted matches any non-blank die. */
-  symbol?: string;
+  /** Criteria a die must meet. If absent, any non-blank die qualifies. */
+  criteria?: DieCriteria;
   /** Number of dice to modify (default 1). */
   count?: number;
   optional?: boolean;
