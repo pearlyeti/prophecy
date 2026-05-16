@@ -43,6 +43,29 @@ import {
   trackConnection,
   type Room,
 } from './rooms.js';
+import { GameWriter, getDb } from './persistence.js';
+
+// One GameWriter per active room. Created when a game starts; removed after flush.
+const gameWriters = new Map<string, GameWriter>();
+
+function startWriter(roomId: string, playerIds: string[], seed: string): void {
+  gameWriters.set(roomId, new GameWriter(getDb(), playerIds, seed));
+}
+
+function appendEvents(roomId: string, events: readonly import('@prophecy/game-engine').EngineEvent[]): void {
+  gameWriters.get(roomId)?.append(events);
+}
+
+async function flushWriter(roomId: string, winnerId: string | null): Promise<void> {
+  const writer = gameWriters.get(roomId);
+  if (!writer) return;
+  gameWriters.delete(roomId);
+  try {
+    await writer.flush(winnerId);
+  } catch (e) {
+    console.error('[game-server] persistence flush failed:', e);
+  }
+}
 
 const httpServer = createServer(async (req, res) => {
   // CORS preflight + headers for /designer and /card-art routes.
@@ -307,6 +330,7 @@ io.on('connection', (socket) => {
     try {
       const seed = randomUUID();
       const room = startRoom(req.roomId, req.playerId, seed);
+      startWriter(room.id, [...room.members.keys()], seed);
       ack(lobbyStateOf(room));
       io.to(room.id).emit('lobby.state', lobbyStateOf(room));
       if (room.game) {
@@ -320,6 +344,7 @@ io.on('connection', (socket) => {
   socket.on('game.action', (req, ack) => {
     try {
       const { room, result } = applyRoomAction(req.roomId, req.playerId, req.action);
+      appendEvents(room.id, result.events);
       ack({ ok: true });
       io.to(room.id).emit('game.events', {
         roomId: room.id,
@@ -328,6 +353,7 @@ io.on('connection', (socket) => {
       io.to(room.id).emit('game.state', { roomId: room.id, state: result.state });
       if (room.phase === 'ended') {
         io.to(room.id).emit('lobby.state', lobbyStateOf(room));
+        void flushWriter(room.id, result.state.winnerId);
       }
     } catch (e) {
       ack(toError(e));
@@ -373,6 +399,7 @@ io.on('connection', (socket) => {
         // Start the game.
         console.log(`[game-server] starting room, members: ${room.members.size}`);
         const started = startRoom(room.id, waiting.playerId, seed);
+        startWriter(started.id, [...started.members.keys()], seed);
         const payload = { lobby: lobbyStateOf(started), game: started.game ?? null };
         console.log(`[game-server] game started, phase: ${started.phase}`);
 
@@ -422,9 +449,11 @@ io.on('connection', (socket) => {
             console.log(`[game-server] reconnect timeout for ${playerId} in room ${roomId} — forfeiting`);
             try {
               const { room: ended, result } = applyRoomAction(roomId, playerId, { type: 'concede', playerId });
+              appendEvents(ended.id, result.events);
               io.to(ended.id).emit('game.events', { roomId: ended.id, events: result.events });
               io.to(ended.id).emit('game.state', { roomId: ended.id, state: result.state });
               io.to(ended.id).emit('lobby.state', lobbyStateOf(ended));
+              void flushWriter(ended.id, result.state.winnerId);
             } catch (e) {
               console.error('[game-server] reconnect timeout forfeit failed:', e);
             }

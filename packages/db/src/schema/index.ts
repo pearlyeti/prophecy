@@ -4,3 +4,4 @@ export * from './enums';
 export * from './users';
 export * from './cards';
 export * from './decks';
+export * from './games';

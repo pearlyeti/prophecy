@@ -72,6 +72,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.1047.0
         version: 3.1047.0
+      '@prophecy/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@prophecy/game-engine':
         specifier: workspace:*
         version: link:../../packages/game-engine
@@ -91,6 +94,12 @@ importers:
       '@types/sharp':
         specifier: ^0.32.0
         version: 0.32.0
+      drizzle-orm:
+        specifier: ^0.38.3
+        version: 0.38.4(@types/react@19.2.14)(postgres@3.4.9)(react@19.2.6)
+      postgres:
+        specifier: ^3.4.5
+        version: 3.4.9
       tsx:
         specifier: ^4.19.2
         version: 4.21.0
