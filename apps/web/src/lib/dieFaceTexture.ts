@@ -112,27 +112,24 @@ export function makeFaceTexture(
   // UV axis mapping:
   //   canvas_y = S/2  → die center horizontally
   //   canvas_x        → die vertical position (canvas_x/S = fraction from die top)
-  //
-  // Safe canvas_x zone (flat face): [~15%, ~75%] = [77, 384].
-  // Perspective asymmetry: the near edge of the die appears larger, so 25% at bottom
-  // vs 15% at top. The flat-face center is therefore at 45% of S, not 50%.
-  // Centering content at CTR=S*0.45 makes the block symmetric within [77, 384].
-  //
+  // Safe canvas_x zone for the flat face: [~15%, ~75%] of S = [77, 384].
+  // Centering the block at S/2 keeps it symmetric within the top margin (179px
+  // from 256 to 77) but the bottom margin is only 128px (256 to 384), so the
+  // total block must stay ≤ 256px (GAP + V_MAX + L_MAX).
   // Safe canvas_y zone (text width along die horizontal): [~20%, ~80%] → maxW = 0.60*S
 
-  const CTR    = Math.round(S * 0.45); // actual flat-face center in canvas_x
   const maxW   = Math.round(S * 0.60); // max text extent along die horizontal
-  const V_MAX  = Math.round(S * 0.35); // max value font
-  const L_MAX  = Math.round(S * 0.22); // max label font (bold; ~63% of V_MAX → ~50% larger value)
-  const GAP    = Math.round(S * 0.03); // gap between value and label
+  const V_MAX  = Math.round(S * 0.29); // max value font
+  const L_MAX  = Math.round(S * 0.19); // max label font (bold)
+  const GAP    = Math.round(S * 0.02); // gap between value and label
 
   if (symbol === 'blank') {
     // intentionally empty
 
   } else if (symbol === 'special') {
-    const size = fittedSize(ctx, 'Special', maxW, Math.round(S * 0.26), 'bold');
+    const size = fittedSize(ctx, 'Special', maxW, Math.round(S * 0.22), 'bold');
     ctx.font = `bold ${size}px ui-sans-serif, sans-serif`;
-    drawRotated(ctx, 'Special', CTR, S / 2);
+    drawRotated(ctx, 'Special', S / 2, S / 2);
 
   } else {
     const valueStr = modifier ? `+${value}` : (value > 0 ? `${value}` : '');
@@ -142,11 +139,10 @@ export function makeFaceTexture(
       const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
       const lSize = fittedSize(ctx, label,    maxW, L_MAX, 'bold');
 
-      // Center the block at CTR (45% of S = flat-face center).
-      // Block top  = vCX - vSize/2, bot = lCX + lSize/2, center = CTR.
+      // Center the block at S/2. Constraint: vSize + GAP + lSize ≤ 256.
       const half = Math.round(GAP / 2);
-      const vCX = CTR - half - Math.round(lSize / 2);
-      const lCX = CTR + half + Math.round(vSize / 2);
+      const vCX = S / 2 - half - Math.round(lSize / 2);
+      const lCX = S / 2 + half + Math.round(vSize / 2);
 
       ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
       drawRotated(ctx, valueStr, vCX, S / 2);
@@ -156,11 +152,11 @@ export function makeFaceTexture(
 
     } else if (valueStr) {
       fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
-      drawRotated(ctx, valueStr, CTR, S / 2);
+      drawRotated(ctx, valueStr, S / 2, S / 2);
 
     } else if (label) {
       fittedSize(ctx, label, maxW, L_MAX, 'bold');
-      drawRotated(ctx, label, CTR, S / 2);
+      drawRotated(ctx, label, S / 2, S / 2);
     }
   }
 
