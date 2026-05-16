@@ -2148,9 +2148,10 @@ function OpponentZone({
     () => distributeToRows(oppPlayer?.characterOrder ?? [], maxPerRow).reverse(),
     [oppPlayer, maxPerRow],
   );
+  const cardCount = Math.max(1, oppPlayer?.characterOrder.length ?? 1);
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-end gap-2 overflow-hidden pb-1">
+    <div ref={containerRef} className="flex min-h-0 shrink basis-0 flex-col justify-end gap-2 overflow-hidden pb-1" style={{ flexGrow: cardCount }}>
       {oppPlayer && rows.map((rowIds, i) => (
         <BattlefieldRow
           key={i}
@@ -2205,6 +2206,7 @@ function PlayerZone({
     () => distributeToRows(myPlayer?.characterOrder ?? [], maxPerRow),
     [myPlayer, maxPerRow],
   );
+  const cardCount = Math.max(1, myPlayer?.characterOrder.length ?? 1);
 
   // Compute eligible actions — only when it's my turn, in action phase, no active flow
   const legalActions = useMemo(
@@ -2219,7 +2221,7 @@ function PlayerZone({
   const powerActionableIds = legalActions?.powerActionableCardIds ?? [];
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-start gap-2 overflow-hidden pt-1">
+    <div ref={containerRef} className="flex min-h-0 shrink basis-0 flex-col justify-start gap-2 overflow-hidden pt-1" style={{ flexGrow: cardCount }}>
       {myPlayer && rows.map((rowIds, i) => (
         <BattlefieldRow
           key={i}
