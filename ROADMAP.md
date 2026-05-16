@@ -12,93 +12,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
-#### ENGINE-K2 — Ambush keyword
-**Why now.** The infrastructure landed in ENGINE-4: `extraTurnsPending`, `ambushGrantedThisTurn`, and `grantExtraTurn` are all in place and `endTurn` already consumes extra turns. Wiring the Ambush trigger is the final step to activate that plumbing and unlock Ambush characters in the card pool.
-
-**Scope.**
-1. In `performCharacterActivation` (`packages/game-engine/src/actions/activate.ts`), after `stateAfterActivate` is built and after-triggers are committed but **before** `endTurn` is called: check `state.cardKeywords[characterId]?.includes('ambush')` and `!stateAfterActivate.ambushGrantedThisTurn`. If both hold, call `grantExtraTurn(stateAfterActivate, playerId)` and set `ambushGrantedThisTurn: true` on the result.
-2. No changes to `endTurn` — it already consumes `extraTurnsPending` and clears `ambushGrantedThisTurn` on every turn boundary.
-3. Add tests covering: Ambush character grants an extra turn (active player acts again immediately); Ambush does not stack — a second Ambush activation in the same extra turn does not grant another; non-Ambush characters do not grant extra turns; Ambush respects `ambushGrantedThisTurn` being reset between rounds.
-
-**Context to load.**
-- `packages/game-engine/src/actions/activate.ts`
-- `packages/game-engine/src/state/turn.ts`
-- `packages/game-engine/src/state/types.ts` (extraTurnsPending, ambushGrantedThisTurn)
-- `packages/game-engine/src/state/legal-actions.ts`
-- `docs/rules-reference.md` (Ambush keyword section)
-
-**Out of scope.** Redeploy, Modify keywords. Guardian (done). UI affordance for the extra-action prompt. `grantExtraTurn` effects from non-Ambush ability ops (`takeAdditionalActions` op).
-
-**Done when.**
-- Typecheck clean across the workspace (`pnpm typecheck`).
-- All existing engine tests still pass.
-- New tests (≥ 4) covering the scenarios in Scope §3 all pass.
-- After activating an Ambush character, `activePlayerId` stays on the same player for one more action (extra turn consumed by end of that action).
-- Activating a second Ambush character during the extra turn does NOT grant another extra turn (`ambushGrantedThisTurn` gate).
-
----
-
-#### ENGINE-K3 — Special ability dispatcher
-**Why now.** `special` die faces and the `SpecialAbility` kind are fully defined in the type system. Resolving a Special die currently throws `NotImplementedError`. Wiring the dispatcher is a targeted change to `applyResolveDice` that enables the first Special cards in the pool.
-
-**Scope.**
-1. In `applyResolveDice` (`packages/game-engine/src/actions/resolve-dice.ts`), add a `case 'special':` branch in the symbol switch. For each die in the resolved group:
-   a. Look up the die's `ownerInstanceId`.
-   b. Find `special` abilities in `state.cardAbilities[ownerInstanceId]`.
-   c. If none, skip (the die resolves as a no-op per rules — a special on a card with no special ability text has no effect).
-   d. If exactly one, fire it via `applyEffects` with the activating player's context.
-   e. If multiple, pick the first for now (full player-choice requires the `choice` op — out of scope here).
-2. Remove the `IllegalActionError` for `symbol === 'special'` in the existing guard (or convert to a handled case before the guard).
-3. Add `'special'` to `RESOLVABLE_SYMBOLS_V1` in `legal-actions.ts` so the symbol appears in `resolvableSymbols` when a special face is in the pool.
-4. Add tests covering: resolving a special die fires its ability effects; resolving a special die on a card with no special ability is a no-op (no error); special die with `gainResources` effect grants resources; after resolve the die is removed from the pool (same removal path as all resolved dice).
-
-**Context to load.**
-- `packages/game-engine/src/actions/resolve-dice.ts`
-- `packages/game-engine/src/state/legal-actions.ts`
-- `packages/game-engine/src/abilities/dispatch.ts`
-- `packages/game-engine/src/abilities/types.ts` (SpecialAbility)
-- `docs/rules-reference.md` (Special abilities section)
-
-**Out of scope.** Player-choice between multiple special abilities on one card (requires `choice` op — separate card). Special die on a support card. Transient/event dice with special faces.
-
-**Done when.**
-- Typecheck clean across the workspace.
-- All existing engine tests still pass.
-- New tests (≥ 4) passing.
-- `'special'` appears in `resolvableSymbols` when the pool contains a non-modifier special face.
-- Resolving a special die with no matching ability on the card does not throw.
-- Ability op status table: `special` ability kind checked.
-
----
-
-#### ENGINE-C1 — Claim ability dispatcher
-**Why now.** `applyClaim` has a stub comment noting the resolver is deferred. The `ClaimAbility` kind is in the type system, battlefield card abilities need to fire on claim, and `cardAbilities` already supports arbitrary instance ids. This wires the last ability-kind dispatcher.
-
-**Scope.**
-1. In `applyClaim` (`packages/game-engine/src/actions/claim.ts`): after setting `battlefieldControllerId` and before calling `endTurn`, look up `state.cardAbilities[player.battlefieldCardId]` (the player's battlefield instance id from `player.battlefieldCardId`). For each ability with `kind === 'claim'`, fire it via `applyEffects` with the claiming player's context. Append any resulting events to the events array.
-2. `cardAbilities` is already keyed by instance id. For tests, set `cardAbilities[battlefieldCardId]` directly on the game state — no new `GameState` field needed.
-3. Note: the battlefield card is a card id, not a character instance id, but `cardAbilities` accepts any string key — no schema change required.
-4. Add tests covering: claiming a battlefield with a `claim` ability fires its effects; claiming a battlefield with no ability has no effect (no regression); `gainResources` claim ability grants resources to the claimer; `dealDamage` claim ability deals damage to the correct target.
-
-**Context to load.**
-- `packages/game-engine/src/actions/claim.ts`
-- `packages/game-engine/src/abilities/dispatch.ts`
-- `packages/game-engine/src/abilities/types.ts` (ClaimAbility)
-- `packages/game-engine/src/state/types.ts`
-- `docs/rules-reference.md` (Claim abilities section)
-
-**Out of scope.** Battlefield ongoing abilities. Plot card abilities. Claim abilities that target opponent characters (requires `targetCharacterIds` threading — flag it if encountered). UI affordance for choosing claim ability targets.
-
-**Done when.**
-- Typecheck clean across the workspace.
-- All existing engine tests still pass.
-- New tests (≥ 4) passing.
-- Claiming a battlefield with a `gainResources` claim ability awards the correct resources.
-- Claiming with no `claim` abilities still works (no regression).
-- Ability op status table: `claim` ability kind checked.
-
----
-
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
@@ -388,17 +301,17 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - [x] `triggered` — before/after a game event fires this automatically · _ENGINE-7_
 - [x] `action` — player activates (exhaust/remove-die/spend cost) · _ENGINE-A1_
 - [x] `powerAction` — same, once per round · _ENGINE-A1_
-- [ ] `special` — fires when this card's special die face is resolved
+- [x] `special` — fires when this card's special die face is resolved · _ENGINE-K3_
 - [ ] `passive` — always-on predicate read by other engine paths; no dispatcher
-- [ ] `claim` — fires when this battlefield is claimed
+- [x] `claim` — fires when this battlefield is claimed · _ENGINE-C1_
 
 #### Effect ops
 **First-wave (ENGINE-6)**
 - [x] `dealDamage` · [x] `addShields` · [x] `removeShields` · [x] `drawCards` · [x] `gainResources` · [x] `loseResources` · [x] `healDamage`
 
 **Dice ops (ENGINE-6b)**
-- [ ] `rollEventDie` — roll the event card's own die into pool (transient)
-- [ ] `rollCardDie` — roll a named card's die into pool (transient; catalog lookup)
+- [x] `rollEventDie` — roll the event card's own die into pool (transient) · _ENGINE-6b_
+- [x] `rollCardDie` — roll a named card's die into pool (transient; catalog lookup) · _ENGINE-6b_
 
 **Dice manipulation**
 - [ ] `removeDie` · [ ] `rerollDice` · [ ] `turnDie` · [ ] `resolveDie` · [ ] `resolveWithoutRemoving` · [ ] `rollDie` · [ ] `setAsideDie` · [ ] `modifyDieValue`
@@ -415,6 +328,9 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 ---
 
 ## Done
+- **2026-05-16 — ENGINE-C1 — Claim ability dispatcher.** `applyClaim` now fires all `claim`-kind abilities on the claimer's battlefield card via `applyEffects` before rotating the turn. `cardAbilities` keyed by `battlefieldCardId` — no new GameState fields required. 4 new tests; all engine tests green; workspace typecheck clean.
+- **2026-05-16 — ENGINE-K3 — Special ability dispatcher.** `applyResolveDice` gains a `case 'special':` branch that looks up the die's owning card's `special` ability and fires it via `applyEffects`. Resolving a special die on a card with no special ability is a silent no-op. `'special'` added to `RESOLVABLE_SYMBOLS_V1`. Existing test updated to remove `special` from the "should throw" list. 4 new tests; all engine tests green; workspace typecheck clean.
+- **2026-05-16 — ENGINE-K2 — Ambush keyword.** `performCharacterActivation` checks `cardKeywords[characterId]?.includes('ambush')` and `!ambushGrantedThisTurn` after after-triggers commit; if both hold, calls `grantExtraTurn` and sets `ambushGrantedThisTurn: true`. `endTurn` already consumes the extra turn and clears the flag — no other changes needed. 4 new tests; all engine tests green; workspace typecheck clean.
 - **2026-05-16 — ENGINE-K1 — Guardian keyword.** `cardKeywords` map added to `GameState`; `pendingGuardian` state added. `applyActivate` checks Guardian keyword + opponent damage dice before before-triggers fire, setting `pendingGuardian` and returning early. New `applyGuardianIntercept` handler (`guardian-intercept.ts`) removes the chosen opponent die, deals its face value as damage to the Guardian (shields-first, defeat-checked), clears `pendingGuardian`, then delegates to extracted `performCharacterActivation` shared with the normal path. `getLegalActions` blocks all other actions while `pendingGuardian` is set, exposes `guardianInterceptableDieIds` and `canSkipGuardian`. 8 new tests; 201 engine tests green; workspace typecheck clean. (`8803396`)
 - **2026-05-16 — API-3 — Incremental event-log writes for in-flight durability.** Added `game_session_status` enum and `status` column to `game_sessions` (migration `0002_deep_bishop.sql`). Rewrote `GameWriter` with `open()`/`append()`/`close()` API: `open()` inserts the session row with `status='active'`; `append()` enqueues immediate per-room event writes via a promise chain; `close()` chains the final `status='completed'` update and awaits the queue. `markAbandonedSessions()` on boot updates any leftover `active` sessions to `abandoned`. 2 persistence tests (incremental write + boot scan); 185 engine tests green; workspace typecheck clean. (`199fea5`)
 - **2026-05-16 — OPS-3 — Game-server graceful shutdown on deploy.** On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green. (`d82e29f`) On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green.

@@ -3,7 +3,7 @@ import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
 import { createRng } from '../rng/seeded-rng.js';
-import { endTurn } from '../state/turn.js';
+import { endTurn, grantExtraTurn } from '../state/turn.js';
 import { guardCanAct, runUpkeepAndStartRound } from './pass.js';
 import type { ApplyResult } from './pass.js';
 import type { CharacterState, DieFace, DieInPool, GameState, PlayerState, SupportState } from '../state/types.js';
@@ -150,6 +150,18 @@ export function performCharacterActivation(
 
   if (stateAfterActivate.winnerId !== null) {
     return { state: stateAfterActivate, events: allEvents };
+  }
+
+  // ── Ambush keyword ───────────────────────────────────────────────
+  // Grant one extra turn if the activated character has Ambush and the
+  // per-turn gate hasn't already fired. endTurn consumes the extra turn
+  // (keeping activePlayerId the same) and clears ambushGrantedThisTurn.
+  const ambushKeywords = stateAfterActivate.cardKeywords[characterId] ?? [];
+  if (ambushKeywords.includes('ambush') && !stateAfterActivate.ambushGrantedThisTurn) {
+    stateAfterActivate = {
+      ...grantExtraTurn(stateAfterActivate, playerId),
+      ambushGrantedThisTurn: true,
+    };
   }
 
   const rotated = endTurn(stateAfterActivate, playerId, allEvents);
