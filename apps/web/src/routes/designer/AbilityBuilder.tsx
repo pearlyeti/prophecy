@@ -684,7 +684,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               <span>Unblockable</span>
             </label>
           </div>
-          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange(patchEffect(effect, { criteria: c }))} />
         </div>
       );
     case 'addShields':
@@ -699,7 +699,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               onChange={(t) => onChange({ ...effect, target: t })}
             />
           </div>
-          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange(patchEffect(effect, { criteria: c }))} />
         </div>
       );
     case 'removeShields':
@@ -721,7 +721,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
                 onChange={(amount) => onChange({ ...effect, amount })} />
             )}
           </div>
-          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange(patchEffect(effect, { criteria: c }))} />
         </div>
       );
     case 'healDamage':
@@ -736,7 +736,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               onChange={(t) => onChange({ ...effect, target: t })}
             />
           </div>
-          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange({ ...effect, criteria: c })} />
+          <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange(patchEffect(effect, { criteria: c }))} />
         </div>
       );
     case 'rollEventDie':
@@ -764,7 +764,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
             <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
               onChange={(count) => onChange({ ...e, count } as Effect)} />
           </div>
-          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange({ ...e, criteria: c } as Effect)} />
+          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange(patchEffect(e, { criteria: c }))} />
         </div>
       );
     }
@@ -782,7 +782,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
             <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
               onChange={(count) => onChange({ ...e, count } as Effect)} />
           </div>
-          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange({ ...e, criteria: c } as Effect)} />
+          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange(patchEffect(e, { criteria: c }))} />
         </div>
       );
     }
@@ -799,7 +799,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
             <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
               onChange={(count) => onChange({ ...e, count } as Effect)} />
           </div>
-          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange({ ...e, criteria: c } as Effect)} />
+          <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange(patchEffect(e, { criteria: c }))} />
         </div>
       );
     }
@@ -929,16 +929,30 @@ function OptNumberField({ label, value, min, max, onChange }: {
   );
 }
 
+// Merge a patch (which may contain undefined values) onto an effect,
+// deleting keys set to undefined rather than assigning undefined.
+// Needed because exactOptionalPropertyTypes disallows { key: undefined }.
+function patchEffect(base: unknown, patch: Record<string, unknown>): Effect {
+  const result = { ...(base as Record<string, unknown>) };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) delete result[k];
+    else result[k] = v;
+  }
+  return result as Effect;
+}
+
 function DieCriteriaEditor({ value, onChange }: {
   value: DieCriteria | undefined;
   onChange: (c: DieCriteria | undefined) => void;
 }) {
   const c = value ?? {};
-  const set = (patch: Partial<DieCriteria>) => {
-    const next = { ...c, ...patch };
-    // If all fields are undefined/absent, clear the criteria entirely
-    const hasAny = Object.values(next).some((v) => v !== undefined);
-    onChange(hasAny ? next : undefined);
+  const set = (patch: Record<string, unknown>) => {
+    const next = { ...c } as Record<string, unknown>;
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) delete next[k];
+      else next[k] = v;
+    }
+    onChange(Object.keys(next).length > 0 ? next as DieCriteria : undefined);
   };
   const symVal = Array.isArray(c.symbol) ? c.symbol[0] ?? '' : c.symbol ?? '';
   return (
@@ -970,10 +984,13 @@ function CardCriteriaEditor({ value, onChange }: {
   onChange: (c: CardCriteria | undefined) => void;
 }) {
   const c = value ?? {};
-  const set = (patch: Partial<CardCriteria>) => {
-    const next = { ...c, ...patch };
-    const hasAny = Object.values(next).some((v) => v !== undefined);
-    onChange(hasAny ? next : undefined);
+  const set = (patch: Record<string, unknown>) => {
+    const next = { ...c } as Record<string, unknown>;
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) delete next[k];
+      else next[k] = v;
+    }
+    onChange(Object.keys(next).length > 0 ? next as CardCriteria : undefined);
   };
   const colVal = Array.isArray(c.color) ? '' : c.color ?? '';
   const subVal = Array.isArray(c.subtype) ? c.subtype[0] ?? '' : c.subtype ?? '';
