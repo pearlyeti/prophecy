@@ -19,7 +19,6 @@ export function App() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <SocketBridge />
         <ErrorBoundary>
           <Router />
         </ErrorBoundary>
@@ -55,9 +54,12 @@ function Router() {
 
   if (!session) return <SignIn />;
 
-  if (game) return <Game />;
-  if (lobby) return <Lobby />;
-  return <Splash />;
+  return (
+    <>
+      <SocketBridge />
+      {game ? <Game /> : lobby ? <Lobby /> : <Splash />}
+    </>
+  );
 }
 
 function SocketBridge() {

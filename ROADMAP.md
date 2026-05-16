@@ -97,6 +97,26 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### SERVER-3 — Session-gate designer write routes
+**Why now.** The designer PUT endpoints (`/designer/cards`, `/designer/decks`, `/designer/attributes`, `/designer/card-art/:cardId`) on the deployed game-server are completely unauthenticated — any request can overwrite the card catalog. AUTH-1 shipped real session auth; using it here is a one-session fix.
+
+**Scope.**
+- In `apps/game-server/src/index.ts`, extract a `requireSession(req, res): Promise<string | null>` helper that calls `{API_URL}/api/auth/get-session` with the incoming cookies and returns `userId` or writes a `401` and returns `null`. (Same pattern as the socket middleware.)
+- Call `requireSession` at the top of each PUT route handler: if it returns `null`, return early — the 401 is already sent.
+- GET routes (`GET /designer/cards`, etc.) remain open (read-only, no secrets at stake).
+- No role check needed: any authenticated session can use the designer (it's a dev tool, not publicly linked).
+
+**Context to load.**
+- `apps/game-server/src/index.ts` (designer HTTP routes + socket session-verify middleware)
+
+**Out of scope.** Role-based access control. Admin-only restriction. Rate limiting. Protecting GET routes.
+
+**Depends on.** AUTH-1 ✅.
+
+**Done when.** Typecheck clean. `curl -X PUT /designer/cards` without a valid session cookie → 401. Sign in, replay the request with the session cookie → succeeds.
+
+---
+
 ## Backlog
 
 Rough ideas and deferred work. Not yet specced, not yet claimable. When an item is ready to work on, spec it out, move it to **Up next**, and create a GitHub Issue. See [CLAUDE.md — Promoting a backlog item](CLAUDE.md#promoting-a-backlog-item-to-a-task-card).
@@ -104,12 +124,10 @@ Rough ideas and deferred work. Not yet specced, not yet claimable. When an item 
 #### Engine
 - Replacement-effect interceptor framework — "instead" / "would be" effects that fire before the original event, prevent it being considered to have happened, and disqualify any abilities that would have triggered off it. Likely 2–3 cards once sized.
 - Battlefield controller tiebreak across simultaneous abilities.
-- Keyword resolvers: Ambush (extra-turn plumbing), Guardian (redirect damage), Modify (modifier-die routing), Redeploy (upgrades move on defeat).
-- Special-ability registry with inherent-die semantics (S face).
+- Keyword resolvers: Modify (modifier-die routing), Redeploy (upgrades move on defeat).
 - Ability AST resolver dispatch — full coverage of the op status table below.
 - Replay reconstruction from seed + event log.
 - "After setup" trigger pass.
-- Plots / battlefield abilities (Claim).
 
 #### Services
 - Deck builder API + validator (CRUD to save user decks to DB).
