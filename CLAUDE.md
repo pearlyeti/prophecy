@@ -16,6 +16,8 @@ Before doing anything substantive in this repo, read [README.md](README.md). It 
 
 If a question can be answered from the README, prefer that over guessing or grepping the web.
 
+[DECISIONS.md](DECISIONS.md) is the append-only log of **why** decisions were made. Read it before working on anything that touches architecture, tech stack, or scope boundaries — it will tell you whether a choice is settled or still open.
+
 The binding spec for game mechanics is [docs/rules-reference.md](docs/rules-reference.md). Read it before writing engine code.
 
 Each package and app also has its own README covering how to run it locally, its file layout, and conventions specific to that codebase. **Load the relevant package/app README whenever a task card sends you into that directory** — it tells you where things go, what patterns to follow, and what the hard boundaries are. These READMEs document *how to work here*; the top-level README documents *why decisions were made*.
@@ -49,13 +51,13 @@ When the user hands you a task code (e.g. `ENGINE-2`, `WEB-1`), follow this prot
 
 1. **Find the card.** Read its full entry under "Up next — task cards" in `ROADMAP.md`. If a `Depends on:` line points to an unfinished card (open GitHub Issue), stop and ask the user before proceeding.
 2. **Check for conflicts.** Use `mcp__github__list_issues` with `labels: ["in-progress"]` to list all currently claimed cards. Compare the "Context to load" files of every in-progress card against this card's files. If there is any overlap, stop and report it to the user — do not claim the card. Multiple sessions may be running concurrently; GitHub Issues are the coordination layer.
-3. **Claim it.** Add the `in-progress` label to the card's GitHub Issue using `mcp__github__issue_write` with `method: "update"`. If no issue exists yet for the card, create one first with `method: "create"`.
+3. **Claim it — before writing a single line of code.** Add the `in-progress` label to the card's GitHub Issue using `mcp__github__issue_write` with `method: "update"`. If no issue exists yet for the card, create one first with `method: "create"`. The label is how concurrent sessions know this card is taken; skipping it means two sessions can end up working on the same files.
 4. **Load only the listed files.** The card's "Context to load" section is the contract for context — load those, plus what they transitively reveal. Don't grep the codebase for general "understanding" outside the card's scope.
 5. **Stay strictly in scope.** If you find related work that doesn't fit, surface it to the user and propose a new card — don't bundle it in. Scope creep is the #1 way a fresh context burns tokens for no value.
 6. **Run the listed checks.** "Done when" gates completion. Don't claim done if anything's red. For UI cards, "manual smoke" means actually run the dev server and verify in a browser — typecheck does not prove a feature works.
-7. **Merge cleanly.** For deployed-path cards (anything touching the paths listed in [Pull requests & self-healing main](#pull-requests--self-healing-main)), open a PR with Auto-fix and auto-merge — follow that section. Include `Closes #N` in the PR body so the GitHub Issue closes automatically on merge. For doc-only or fixture-only cards, rebase onto main (`git fetch origin && git rebase origin/main`), re-run "Done when" checks, then push directly and close the issue manually. If the rebase has conflicts, stop and report to the user.
-8. **Close out in ROADMAP.md.** Append the card to the `### Done` section with today's date and a one-line summary. The GitHub Issue is closed automatically by the `Closes #N` PR reference (or close it manually for direct-push cards via `mcp__github__issue_write`).
-9. **Commit, then backfill the hash.** Stage everything (including the ROADMAP.md close-out) and commit. Then edit the Done entry to append the resulting short hash in backticks at the end of the line — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. The hash is non-negotiable for traceability; every Done entry must end up with one.
+7. **Write the ROADMAP.md close-out before you commit.** Append the card to the `### Done` section with today's date and a one-line summary. This goes in the **same commit as the feature code** — not a follow-up after the PR is open. Stage it alongside the implementation.
+8. **Merge cleanly.** For deployed-path cards (anything touching the paths listed in [Pull requests & self-healing main](#pull-requests--self-healing-main)), open a PR with Auto-fix and auto-merge — follow that section. **Before running `gh pr create`, verify the PR body includes `Closes #N`** — the GitHub Issue auto-closes on merge only if that line is present; without it the Issue stays open forever. For doc-only or fixture-only cards, rebase onto main (`git fetch origin && git rebase origin/main`), re-run "Done when" checks, then push directly and close the Issue manually via `mcp__github__issue_write`. If the rebase has conflicts, stop and report to the user.
+9. **Backfill the hash.** Edit the Done entry to append the resulting short hash in backticks — e.g. `` (`8d4526f`) `` — and make a tiny follow-up commit like `docs: backfill ENGINE-N hash`. For PR merges, use the merge commit's hash once auto-merge fires. The hash is non-negotiable for traceability; every Done entry must end up with one.
 10. **If the premise is wrong, stop.** If you discover the design needs to change (missing dependency, wrong approach), report it to the user. Don't silently redefine scope and push through.
 
 Cards are sized for one focused session — roughly 200–500 lines of changes including tests. If a card feels much bigger than that once you've loaded the files, that's a signal: flag it and propose splitting before you start writing code.
@@ -100,9 +102,23 @@ Every time a decision is made or scope changes, the README must be updated **in 
 - **New task card or shipped milestone** → update [ROADMAP.md](ROADMAP.md). Add cards to *Up next*; append shipped work to *Done*. Status (in-progress, blocked) lives in GitHub Issues, not in this file.
 - **New working agreement / convention** → add it to [Working agreements](README.md#working-agreements).
 
-If you find yourself making a decision in chat without writing it down, stop and update the README first. Conversation transcripts are not durable; the README is.
+If you find yourself making a decision in chat without writing it down, stop and record it — in the README if it changes the current design, in DECISIONS.md if it's rationale for a choice that the README doesn't explain. Conversation transcripts are not durable; the README and DECISIONS.md are.
 
 If the README is wrong (out of date vs. the code), fix the README, then keep working. Don't silently work around stale docs.
+
+## DECISIONS.md — record non-obvious choices
+
+[DECISIONS.md](DECISIONS.md) is the cross-session memory for *why* things are the way they are. Append an entry when:
+
+- You choose one library or pattern over another and the reason isn't obvious from the code.
+- You set or adjust a scope boundary ("X is post-v1 because…", "Y lives in the engine, not the server, because…").
+- You implement a workaround for a non-obvious constraint.
+- You make a rules call on game mechanics that affects engine design.
+- The README records *what* the current design is but not *why* it was chosen.
+
+Don't append when the README already captures the rationale, when the decision is trivially reversible, or when it's a style call with no lasting consequence.
+
+**Format:** `### YYYY-MM-DD — [AREA] One-line decision` followed by one or two sentences of rationale. Append at the bottom; never edit existing entries.
 
 ## IP boundary
 
@@ -208,5 +224,5 @@ If you're adding a feature to `packages/protocol/src/catalog.ts` or `packages/ga
 
 - Match the README's tone in any docs you write — concise, declarative, no marketing language.
 - Don't write multi-paragraph code comments. One short line max, only when the *why* is non-obvious.
-- Don't create new top-level docs (`ARCHITECTURE.md`, `DECISIONS.md`, etc.) — fold the content into the README instead.
-- The rules document, the README, and this file are the only canonical docs. Everything else is code, fixtures, or tests.
+- Don't create new top-level docs (`ARCHITECTURE.md`, `CHANGELOG.md`, etc.) — fold the content into the README or DECISIONS.md instead.
+- The canonical docs are: `docs/rules-reference.md` (game rules), `README.md` (product and architecture), `CLAUDE.md` (agent instructions), and `DECISIONS.md` (decision log). Everything else is code, fixtures, or tests.
