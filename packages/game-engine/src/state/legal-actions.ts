@@ -75,6 +75,11 @@ export interface LegalActions {
    * them to send guardian.intercept with dieInstanceId = null to skip.
    */
   readonly canSkipGuardian: boolean;
+  /**
+   * True when a searchDeck effect is waiting for this player to resolve it.
+   * While true, only resolve-search (+ concede) is legal.
+   */
+  readonly canResolveSearch: boolean;
 }
 
 /** Returns true if all costs of an action/powerAction ability can currently be paid. */
@@ -112,6 +117,14 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
 
   const player = state.players[playerId];
   if (!player) return EMPTY;
+
+  // ---- Pending search ----
+  // While a searchDeck effect is waiting, only resolve-search is legal
+  // for the waiting player. The opponent may only concede.
+  if (state.pendingSearch) {
+    const isWaiting = state.pendingSearch.waitingForPlayerId === playerId;
+    return { ...EMPTY, canConcede: true, canResolveSearch: isWaiting };
+  }
 
   // ---- Pending Guardian intercept ----
   // While a Guardian intercept is waiting, only 'guardian.intercept' is
@@ -232,6 +245,7 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     canPlaceShield: false,
     guardianInterceptableDieIds: [],
     canSkipGuardian: false,
+    canResolveSearch: false,
   };
 }
 
@@ -251,4 +265,5 @@ const EMPTY: LegalActions = {
   canPlaceShield: false,
   guardianInterceptableDieIds: [],
   canSkipGuardian: false,
+  canResolveSearch: false,
 };
