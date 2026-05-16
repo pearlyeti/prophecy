@@ -414,23 +414,51 @@ export async function commitCatalog(
   if (!newCommitRes.ok) throw new Error(`Failed to create commit: ${newCommitRes.status} ${await newCommitRes.text()}`);
   const newCommit = (await newCommitRes.json()) as { sha: string; html_url: string };
 
-  // Advance the branch ref (422 = SHA conflict — someone else pushed)
-  const patchRes = await ghFetch(`/git/refs/heads/${getConfig()!.branch}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ sha: newCommit.sha }),
-  });
-  if (!patchRes.ok) {
+  // Advance the branch ref. On 422 (stale SHA), re-sync and retry once.
+  const tryUpdateRef = async (commitSha: string): Promise<void> => {
+    const patchRes = await ghFetch(`/git/refs/heads/${getConfig()!.branch}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ sha: commitSha }),
+    });
+    if (patchRes.ok) return;
     const errText = await patchRes.text();
-    if (patchRes.status === 422) {
-      throw new GitHubConflictError(
-        `Branch ${getConfig()!.branch} was updated since your last sync — refresh and try again.`,
-      );
-    }
+    if (patchRes.status === 422) throw new GitHubConflictError('stale');
     throw new Error(`Failed to update ref: ${patchRes.status} ${errText}`);
+  };
+
+  let finalCommitSha = newCommit.sha;
+  try {
+    await tryUpdateRef(finalCommitSha);
+  } catch (e) {
+    if (!(e instanceof GitHubConflictError)) throw e;
+    // Branch moved — re-sync snapshot and rebuild the commit against the new HEAD
+    committedSnapshot = await loadSnapshot();
+    const freshHeadSha = committedSnapshot.headSha;
+    const freshCommitRes = await ghFetch(`/git/commits/${freshHeadSha}`);
+    if (!freshCommitRes.ok) throw new Error(`Failed to fetch fresh HEAD: ${freshCommitRes.status}`);
+    const freshCommitData = (await freshCommitRes.json()) as { tree: { sha: string } };
+    const retryTreeRes = await ghFetch('/git/trees', {
+      method: 'POST',
+      body: JSON.stringify({ base_tree: freshCommitData.tree.sha, tree: treeEntries }),
+    });
+    if (!retryTreeRes.ok) throw new Error(`Failed to create retry tree: ${retryTreeRes.status}`);
+    const retryTree = (await retryTreeRes.json()) as { sha: string };
+    const retryCommitRes = await ghFetch('/git/commits', {
+      method: 'POST',
+      body: JSON.stringify({ message, tree: retryTree.sha, parents: [freshHeadSha] }),
+    });
+    if (!retryCommitRes.ok) throw new Error(`Failed to create retry commit: ${retryCommitRes.status}`);
+    const retryCommit = (await retryCommitRes.json()) as { sha: string; html_url: string };
+    finalCommitSha = retryCommit.sha;
+    await tryUpdateRef(finalCommitSha).catch(() => {
+      throw new GitHubConflictError(
+        `Branch ${getConfig()!.branch} is updating too fast — wait a moment and try again.`,
+      );
+    });
   }
 
   // Refresh the committed snapshot so the next diff is accurate
   committedSnapshot = await loadSnapshot();
 
-  return { sha: newCommit.sha.slice(0, 7), url: newCommit.html_url };
+  return { sha: finalCommitSha.slice(0, 7), url: newCommit.html_url };
 }

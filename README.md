@@ -465,16 +465,31 @@ All three are loaded at game-server startup (`apps/game-server/src/corpus.ts`) a
 
 ### Designer server deployment
 
-The designer (`apps/web/src/routes/designer/`) can run on the deployed game-server so the whole team can edit cards without running a local dev environment. Two optional env vars unlock the team workflow:
+The designer (`apps/web/src/routes/designer/`) runs on the deployed game-server so the whole team can edit cards without a local dev environment. Navigate to `/designer` on the web app.
+
+**Tabs:**
+- **Cards / Decks / Attributes** — edit catalog items. Changes are saved to disk immediately.
+- **Changes** — shows every uncommitted card, deck, and attribute change vs. what's in `main`. Check individual items, then click **Commit selected** or **Commit all**. A modal pops up with a summary of what's being committed and asks for a commit message. **Revert selected** restores checked items to their last committed state.
+
+**Card history:** open any card in the Cards tab and click **History** to see the full commit log for that card, a field-level diff between any historical version and the current one, and a **Restore** button to roll back.
+
+**Commit report:** any commit SHA shown in the designer (Changes tab result, History panel) is clickable and opens a modal listing every card, deck, and attribute changed in that commit. Clicking a card or deck navigates directly to it.
+
+**Env vars** (game-server / Railway):
 
 | Var | Purpose |
 |-----|---------|
-| `DESIGNER_SECRET` | Shared secret gating all `PUT`/`POST /designer/*` routes. Leave unset locally. AUTH-1 will replace this with session auth. Set matching `VITE_DESIGNER_SECRET` on the Vercel web app. |
-| `GITHUB_TOKEN` | Fine-grained PAT with Contents read+write on this repo. Enables the "Commit to GitHub" button. |
+| `DESIGNER_SECRET` | Shared secret gating all `PUT`/`POST /designer/*` routes. Leave unset locally; SERVER-3 will replace this with session auth. Set matching `VITE_DESIGNER_SECRET` on Vercel. |
+| `GITHUB_TOKEN` | Fine-grained PAT with Contents read+write on this repo. Enables the Changes tab commit workflow. |
 | `GITHUB_REPO` | `owner/repo` (e.g. `pearlyeti/prophecy`). |
 | `GITHUB_BRANCH` | Target branch (default: `main`). |
 
-When `GITHUB_TOKEN` is configured, `GET /designer/pending` returns a diff of in-memory catalog vs. the last-committed state, and `POST /designer/commit` creates an atomic git commit with all pending card, deck, and attribute changes. Card art is binary and stays in S3/disk only.
+When `GITHUB_TOKEN` is configured, the server fetches the committed snapshot at startup and keeps it in memory. `GET /designer/pending` diffs the in-memory corpus against that snapshot. `POST /designer/commit` creates an atomic git commit via the Git Data API (create-tree → create-commit → update-ref). If the branch moved since the last sync, the server automatically re-syncs and retries once before surfacing an error. Card art is binary and stays in S3/disk only — not committed to git.
+
+**Local testing against deployed server:**
+```
+VITE_GAME_SERVER_URL=https://your-railway-url.railway.app VITE_DESIGNER_SECRET=your-secret pnpm --filter @prophecy/web dev
+```
 
 ### Admin UX
 

@@ -179,7 +179,7 @@ function TabButton({
       <span className="flex items-center gap-1.5">
         {children}
         {badge !== undefined && badge > 0 && (
-          <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+          <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold leading-none text-neutral-900">
             {badge > 99 ? '99+' : badge}
           </span>
         )}
