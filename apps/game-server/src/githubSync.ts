@@ -154,6 +154,10 @@ async function loadSnapshot(): Promise<CommittedSnapshot> {
 
 // ── Public API ────────────────────────────────────────────────────────
 
+export function getCommittedSnapshot(): CommittedSnapshot | null {
+  return committedSnapshot;
+}
+
 export async function initializeGitHubSync(): Promise<void> {
   if (!isGitHubSyncEnabled()) return;
   try {

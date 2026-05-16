@@ -91,10 +91,12 @@ interface CardTab {
 export function CardsTab({
   cards,
   attributes,
+  committedCards,
   onReload,
 }: {
   cards: readonly Card[];
   attributes: AttributeCatalog;
+  committedCards?: readonly Card[];
   onReload: () => void;
 }) {
   const [tabs, setTabs] = useState<CardTab[]>([]);
@@ -625,10 +627,12 @@ export function CardsTab({
                 type="button"
                 onClick={() => {
                   if (!selectedId || !activeTabKey) return;
-                  const original = cards.find((c) => c.id === selectedId);
+                  const source = committedCards ?? cards;
+                  const original = source.find((c) => c.id === selectedId);
                   if (original) setTabs((prev) => prev.map((t) => t.key === activeTabKey ? { ...t, draft: structuredClone(original), savedAt: null } : t));
                 }}
                 disabled={saving || selectedId === null}
+                title={committedCards ? 'Revert to last commit' : 'Revert to last save'}
                 className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-base hover:border-neutral-500 disabled:opacity-50"
               >
                 Revert

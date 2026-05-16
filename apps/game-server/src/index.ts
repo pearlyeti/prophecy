@@ -18,6 +18,7 @@ import { getAttributes, initializeAttributes, writeAttributes } from './attribut
 import { isStorageConfigured, uploadFile } from './storage.js';
 import {
   commitCatalog,
+  getCommittedSnapshot,
   GitHubConflictError,
   getPendingChanges,
   initializeGitHubSync,
@@ -227,6 +228,18 @@ const httpServer = createServer(async (req, res) => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: (e as Error).message }));
     }
+    return;
+  }
+
+  if (req.url === '/designer/committed' && req.method === 'GET') {
+    const snap = getCommittedSnapshot();
+    if (!snap) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ enabled: false }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ enabled: true, cards: snap.cards, decks: snap.decks }));
     return;
   }
 

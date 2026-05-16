@@ -88,6 +88,18 @@ export async function saveDecks(decks: readonly Deck[]): Promise<void> {
   }
 }
 
+export interface CommittedCatalog {
+  enabled: boolean;
+  cards: Card[];
+  decks: Deck[];
+}
+
+export async function fetchCommitted(): Promise<CommittedCatalog> {
+  const r = await fetch(`${serverUrl()}/designer/committed`);
+  if (!r.ok) throw new Error(`GET /designer/committed failed: ${r.status}`);
+  return (await r.json()) as CommittedCatalog;
+}
+
 // ── GitHub sync ───────────────────────────────────────────────────────
 
 export interface ChangeSet {

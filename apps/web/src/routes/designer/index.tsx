@@ -8,7 +8,7 @@ import { AttributesTab } from './AttributesTab.js';
 import { CardsTab } from './CardsTab.js';
 import { DecksTab } from './DecksTab.js';
 import { PendingPanel } from './PendingPanel.js';
-import { fetchAttributes, fetchCards, fetchDecks } from './api.js';
+import { fetchAttributes, fetchCards, fetchCommitted, fetchDecks } from './api.js';
 
 type Tab = 'cards' | 'decks' | 'attributes';
 
@@ -22,14 +22,25 @@ export function Designer() {
   const [cards, setCards] = useState<readonly Card[] | null>(null);
   const [decks, setDecks] = useState<readonly Deck[] | null>(null);
   const [attributes, setAttributes] = useState<AttributeCatalog | null>(null);
+  const [committedCards, setCommittedCards] = useState<readonly Card[] | null>(null);
+  const [committedDecks, setCommittedDecks] = useState<readonly Deck[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = async () => {
     try {
-      const [c, d, a] = await Promise.all([fetchCards(), fetchDecks(), fetchAttributes()]);
+      const [c, d, a, committed] = await Promise.all([
+        fetchCards(),
+        fetchDecks(),
+        fetchAttributes(),
+        fetchCommitted().catch(() => null),
+      ]);
       setCards(c);
       setDecks(d);
       setAttributes(a);
+      if (committed?.enabled) {
+        setCommittedCards(committed.cards);
+        setCommittedDecks(committed.decks);
+      }
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -81,9 +92,9 @@ export function Designer() {
       {cards === null || decks === null || attributes === null ? (
         <div className="text-base text-neutral-500">Loading catalog…</div>
       ) : tab === 'cards' ? (
-        <CardsTab cards={cards} attributes={attributes} onReload={reload} />
+        <CardsTab cards={cards} attributes={attributes} committedCards={committedCards ?? undefined} onReload={reload} />
       ) : tab === 'decks' ? (
-        <DecksTab cards={cards} decks={decks} onReload={reload} />
+        <DecksTab cards={cards} decks={decks} committedDecks={committedDecks ?? undefined} onReload={reload} />
       ) : (
         <AttributesTab attributes={attributes} onReload={reload} />
       )}
