@@ -195,6 +195,35 @@ const rollCardDieEffect = z.object({
   optional: z.boolean().default(false),
 });
 
+// ENGINE-D1: dice pool manipulation schemas.
+const diePoolSide = z.enum(['ownPool', 'opponentPool']);
+
+const removeDieEffect = z.object({
+  op: z.literal('removeDie'),
+  from: diePoolSide,
+  symbol: dieSymbolSchema.optional(),
+  count: z.number().int().min(1).optional(),
+  optional: z.boolean().default(false),
+});
+
+const turnDieEffect = z.object({
+  op: z.literal('turnDie'),
+  from: diePoolSide,
+  toSymbol: dieSymbolSchema,
+  fromSymbol: dieSymbolSchema.optional(),
+  count: z.number().int().min(1).optional(),
+  optional: z.boolean().default(false),
+});
+
+const modifyDieValueEffect = z.object({
+  op: z.literal('modifyDieValue'),
+  from: diePoolSide,
+  delta: z.number().int(),
+  symbol: dieSymbolSchema.optional(),
+  count: z.number().int().min(1).optional(),
+  optional: z.boolean().default(false),
+});
+
 // Stub helper: op name + optional flag + any additional fields.
 function stub(op: string) {
   return z.object({ op: z.literal(op), optional: z.boolean().default(false) }).passthrough();
@@ -220,9 +249,9 @@ export const effectSchema: z.ZodType<Effect> = z.discriminatedUnion('op', [
   rollEventDieEffect,
   rollCardDieEffect,
   // Stub ops
-  stub('removeDie'),
+  removeDieEffect,
   stub('rerollDice'),
-  stub('turnDie'),
+  turnDieEffect,
   stub('resolveDie'),
   stub('resolveWithoutRemoving'),
   stub('rollDie'),
@@ -244,7 +273,7 @@ export const effectSchema: z.ZodType<Effect> = z.discriminatedUnion('op', [
   stub('takeAdditionalActions'),
   stub('forceActivate'),
   stub('grantKeyword'),
-  stub('modifyDieValue'),
+  modifyDieValueEffect,
   stub('setAsideDie'),
   stub('placeDamageOnCard'),
   stub('placeResourceOnCard'),
@@ -264,6 +293,9 @@ export const KNOWN_OPS = [
   'healDamage',
   'rollEventDie',
   'rollCardDie',
+  'removeDie',
+  'turnDie',
+  'modifyDieValue',
 ] as const;
 export type KnownOp = (typeof KNOWN_OPS)[number];
 

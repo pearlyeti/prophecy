@@ -313,8 +313,11 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - [x] `rollEventDie` — roll the event card's own die into pool (transient) · _ENGINE-6b_
 - [x] `rollCardDie` — roll a named card's die into pool (transient; catalog lookup) · _ENGINE-6b_
 
-**Dice manipulation**
-- [ ] `removeDie` · [ ] `rerollDice` · [ ] `turnDie` · [ ] `resolveDie` · [ ] `resolveWithoutRemoving` · [ ] `rollDie` · [ ] `setAsideDie` · [ ] `modifyDieValue`
+**Dice manipulation (ENGINE-D1)**
+- [x] `removeDie` — remove N dice from own or opponent pool, filtered by symbol · _ENGINE-D1_
+- [x] `turnDie` — turn a die to show a different symbol (keeps value/cost) · _ENGINE-D1_
+- [x] `modifyDieValue` — adjust die value up or down, clamped at 0 · _ENGINE-D1_
+- [ ] `rerollDice` · [ ] `resolveDie` · [ ] `resolveWithoutRemoving` · [ ] `rollDie` · [ ] `setAsideDie`
 
 **Card plays**
 - [ ] `playCard` · [ ] `returnToHand` · [ ] `searchDeck` · [ ] `discardCards` · [ ] `discardFromDeck` · [ ] `lookAtCards` · [ ] `revealTopCard` · [ ] `returnDefeatedCharacter`
@@ -328,6 +331,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 ---
 
 ## Done
+- **2026-05-16 — ENGINE-D1 — Dice manipulation ops.** `removeDie`, `turnDie`, `modifyDieValue` implemented in `abilities/dispatch.ts`. Proper typed effects replace stubs in `abilities/types.ts`; Zod schemas added to `packages/protocol/src/catalog.ts`; all three added to `KNOWN_OPS`; `AbilityBuilder.tsx` updated with per-op form UI. Events: `die.removed`, `die.turned`, `die.value-modified`. 13 new tests; 226 engine tests green; full workspace typecheck clean.
 - **2026-05-16 — ENGINE-C1 — Claim ability dispatcher.** `applyClaim` now fires all `claim`-kind abilities on the claimer's battlefield card via `applyEffects` before rotating the turn. `cardAbilities` keyed by `battlefieldCardId` — no new GameState fields required. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
 - **2026-05-16 — ENGINE-K3 — Special ability dispatcher.** `applyResolveDice` gains a `case 'special':` branch that looks up the die's owning card's `special` ability and fires it via `applyEffects`. Resolving a special die on a card with no special ability is a silent no-op. `'special'` added to `RESOLVABLE_SYMBOLS_V1`. Existing test updated to remove `special` from the "should throw" list. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
 - **2026-05-16 — ENGINE-K2 — Ambush keyword.** `performCharacterActivation` checks `cardKeywords[characterId]?.includes('ambush')` and `!ambushGrantedThisTurn` after after-triggers commit; if both hold, calls `grantExtraTurn` and sets `ambushGrantedThisTurn: true`. `endTurn` already consumes the extra turn and clears the flag — no other changes needed. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
