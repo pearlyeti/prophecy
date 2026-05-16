@@ -6,6 +6,7 @@ import { authClient } from './lib/auth-client.js';
 import { ErrorBoundary } from './lib/ErrorBoundary.js';
 import { clearCachedLobby, loadCachedLobby, saveCachedLobby } from './lib/lobbyCache.js';
 import { Designer } from './routes/designer/index.js';
+import { DicePreview } from './routes/DicePreview.js';
 import { Game } from './routes/Game.js';
 import { Lobby } from './routes/Lobby.js';
 import { Splash } from './routes/Splash.js';
@@ -42,7 +43,8 @@ function Router() {
     if (session?.userId) setPlayerId(session.userId);
   }, [session?.userId, setPlayerId]);
 
-  // /designer/* is its own surface — bypass game state entirely.
+  // Standalone dev previews — no auth or game state needed.
+  if (window.location.pathname.startsWith('/dice-preview')) return <DicePreview />;
   if (window.location.pathname.startsWith('/designer')) return <Designer />;
 
   if (isLoading) {

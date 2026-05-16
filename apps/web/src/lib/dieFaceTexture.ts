@@ -1,5 +1,9 @@
 // Shared die face texture generator used by the board dice (DicePool3D).
 // Produces a 512×512 CanvasTexture with the die's value and symbol on the card's base color.
+//
+// UV layout notes: with DIE_RADIUS=0.16 on a 0.8-unit die, the chamfered edges
+// consume ~20% of UV space on each side. Keep all text within canvas y=[15%, 75%]
+// to stay on the flat face and avoid the curved edges.
 
 import * as THREE from 'three';
 
@@ -47,7 +51,7 @@ function faceWord(s: string): string {
   }
 }
 
-// Returns the font size that fits `text` within `maxWidth`, starting from `startSize`.
+// Sets ctx.font and returns the size that fits text within maxWidth.
 function fittedSize(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -85,9 +89,16 @@ export function makeFaceTexture(
 
   ctx.fillStyle = textColor;
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
-  // Max usable width — leaves ~9% padding on each side.
-  const maxW = Math.round(S * 0.82);
+  // Safe content zone: canvas y = [15%, 75%] avoids the chamfered edge UV regions.
+  // The pair is centered on CENTER_Y; GAP separates the two baselines.
+  const CENTER_Y = Math.round(S * 0.44);
+  const maxW     = Math.round(S * 0.80);
+  const GAP      = Math.round(S * 0.04);
+  // Value is 1.5× the label: 0.30 / 0.20 = 1.5
+  const V_MAX    = Math.round(S * 0.30); // ~154 px
+  const L_MAX    = Math.round(S * 0.20); // ~102 px
 
   if (symbol === 'blank') {
     // intentionally empty
@@ -95,28 +106,24 @@ export function makeFaceTexture(
   } else if (symbol === 'special') {
     const size = fittedSize(ctx, 'Special', maxW, Math.round(S * 0.22), 'bold');
     ctx.font = `bold ${size}px ui-sans-serif, sans-serif`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Special', S / 2, S / 2);
+    ctx.fillText('Special', S / 2, CENTER_Y);
 
   } else {
     const valueStr = modifier ? `+${value}` : (value > 0 ? `${value}` : '');
-    const label = faceWord(symbol);
-    const GAP = Math.round(S * 0.04);
+    const label    = faceWord(symbol);
 
     if (valueStr && label) {
-      // Fit each text to maxW independently, then center the pair vertically.
-      const vSize = fittedSize(ctx, valueStr, maxW, Math.round(S * 0.35), 'bold');
-      const lSize = fittedSize(ctx, label,    maxW, Math.round(S * 0.22), '');
+      const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
+      const lSize = fittedSize(ctx, label,    maxW, L_MAX, '');
 
-      // Derive y so the combined block is centered on S/2.
-      // With textBaseline='middle', visual height ≈ fontSize.
-      // yValue = (S - GAP - lSize) / 2  →  centers the pair on S/2.
-      // yLabel = S/2 + GAP/2 + vSize/2
-      const yValue = (S - GAP - lSize) / 2;
-      const yLabel = S / 2 + GAP / 2 + vSize / 2;
+      // yValue / yLabel derived so the pair is centered on CENTER_Y:
+      //   block top    = yValue − vSize/2
+      //   block bottom = yLabel + lSize/2
+      //   center       = CENTER_Y  (proof: cancels identically)
+      const yValue = CENTER_Y - GAP / 2 - lSize / 2;
+      const yLabel = CENTER_Y + GAP / 2 + vSize / 2;
 
       ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
-      ctx.textBaseline = 'middle';
       ctx.fillText(valueStr, S / 2, yValue);
 
       ctx.globalAlpha = 0.85;
@@ -125,16 +132,14 @@ export function makeFaceTexture(
       ctx.globalAlpha = 1;
 
     } else if (valueStr) {
-      const vSize = fittedSize(ctx, valueStr, maxW, Math.round(S * 0.35), 'bold');
+      const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
       ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
-      ctx.textBaseline = 'middle';
-      ctx.fillText(valueStr, S / 2, S / 2);
+      ctx.fillText(valueStr, S / 2, CENTER_Y);
 
     } else if (label) {
-      const lSize = fittedSize(ctx, label, maxW, Math.round(S * 0.22), '');
+      const lSize = fittedSize(ctx, label, maxW, L_MAX, '');
       ctx.font = `${lSize}px ui-sans-serif, sans-serif`;
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, S / 2, S / 2);
+      ctx.fillText(label, S / 2, CENTER_Y);
     }
   }
 
