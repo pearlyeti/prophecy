@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { runMigrations } from '@prophecy/db';
 import { appRouter } from '@prophecy/protocol/server';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { Hono } from 'hono';
@@ -8,6 +9,17 @@ import { logger } from 'hono/logger';
 import { auth } from './auth.js';
 import { createContext } from './context.js';
 import { startWorkers } from './workers/index.js';
+
+const DB_URL =
+  process.env.DATABASE_URL ?? 'postgres://prophecy:prophecy@localhost:5432/prophecy';
+
+try {
+  await runMigrations(DB_URL);
+  console.log('[db] migrations up to date');
+} catch (err) {
+  console.error('[db] migration failed — refusing to start:', err);
+  process.exit(1);
+}
 
 const app = new Hono();
 
