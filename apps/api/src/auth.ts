@@ -12,6 +12,13 @@ const BETTER_AUTH_SECRET = process.env.AUTH_SECRET ?? 'dev-secret-replace-me';
 // Strip trailing slash so origin comparisons don't fail on a mismatch.
 const webOrigin = process.env.WEB_PUBLIC_URL?.replace(/\/+$/, '');
 
+// Comma-separated list of extra allowed origins, e.g. Vercel preview URLs.
+// Set EXTRA_TRUSTED_ORIGINS in Railway to cover all preview deployments.
+const extraOrigins = (process.env.EXTRA_TRUSTED_ORIGINS ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 // Surface missing production env vars at startup so Railway logs make the
 // problem obvious rather than manifesting as a cryptic 500 mid-request.
 if (process.env.NODE_ENV === 'production') {
@@ -80,9 +87,10 @@ export const auth = betterAuth({
         }
       : {}),
   },
-  trustedOrigins: webOrigin
-    ? [webOrigin]
-    : ['http://localhost:5173', 'http://localhost:4173'],
+  trustedOrigins: [
+    ...(webOrigin ? [webOrigin] : ['http://localhost:5173', 'http://localhost:4173']),
+    ...extraOrigins,
+  ],
   // Web app (Vercel) and API (Railway) are on different domains. The browser
   // treats the API as a third party when the web app fetches sign-in/social,
   // so Set-Cookie is only honoured if the cookie carries SameSite=None;Secure.
