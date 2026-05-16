@@ -8,7 +8,11 @@ async function setupPlayer(
   name: string,
   stateFile: string,
 ): Promise<void> {
-  const ctx = await request.newContext({ baseURL: API });
+  // better-auth requires an Origin header on sign-up/sign-in for CSRF protection.
+  const ctx = await request.newContext({
+    baseURL: API,
+    extraHTTPHeaders: { Origin: 'http://localhost:5173' },
+  });
 
   // Sign up — idempotent; 422 means the user already exists from a prior run.
   await ctx.post('/api/auth/sign-up/email', {
