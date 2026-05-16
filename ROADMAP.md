@@ -12,59 +12,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
-
-#### WEB-21 — Live opponent action preview
-**Why now.** The opponent sees only committed game state; there's no indication of what the active player is doing until the action commits — it feels like a laggy card game rather than a live duel.
-
-**Scope.**
-- Active player's client emits a `game.preview` socket event (debounced ~50 ms) whenever `activeFlow` changes, only while it is their turn and the game is in the action phase. Emits `null` when `activeFlow` clears.
-- Game-server handler: relay `game.preview` to all other players in the room. Fire-and-forget, no validation needed.
-- `packages/protocol/src/events.ts`: add `GamePreviewPayload` + `game.preview` to both `ClientToServerEvents` and `ServerToClientEvents`.
-- `store.ts`: add `opponentPreview: ActiveFlow | null` and `setOpponentPreview`.
-- `App.tsx` SocketBridge: listen for `game.preview` → `setOpponentPreview`. On `game.state` arrival (committed action) → `setOpponentPreview(null)`.
-- Opponent's view renders preview highlights on the active player's zone:
-  - `resolve` flow: active player's selected dice glow green; spent dice (in `pendingTargets`) dimmed; pending counter badges appear on targeted characters.
-  - `activate` flow: green eligible ring on the character being activated.
-  - `reroll` flow: selected dice show amber tint.
-  - `null`: all highlights clear.
-- Preview renders across both zones: active player's dice/characters shown via `opponentPreview` in `OpponentZone`; characters targeted for damage shown via `opponentPreview` in `PlayerZone`.
-- Only the active player broadcasts. Inactive player does not broadcast.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (OpponentZone, PlayerZone, BattlefieldRow, DiceStack)
-- `apps/web/src/routes/DicePool3D.tsx`
-- `apps/web/src/store.ts`
-- `apps/web/src/App.tsx` (SocketBridge)
-- `apps/game-server/src/index.ts`
-- `packages/protocol/src/events.ts`
-
-**Out of scope.** Preview for the inactive player's actions. face-pick flow preview. Animated preview transitions.
-
-**Depends on.** Nothing (fully independent).
-
-**Done when.** Typecheck clean. Manual smoke (two browser windows): Player A selects melee dice → Player B sees them glow on A's zone. A taps a target character → B sees the pending counter badge on their character. A undos → B sees selection clear. A commits → preview clears and committed state renders normally.
-
----
-
-#### WEB-22 — Adaptive zone sizing
-**Why now.** Both zones are hardcoded 50/50 vertical split regardless of card count; a player with 2 characters wastes screen space while an opponent with 5 is cramped.
-
-**Scope.**
-- `PlayerZone` and `OpponentZone` each receive `flex-grow` proportional to their total card count (characters + supports in play), with a minimum of 1 so an empty zone doesn't collapse.
-- Recomputes automatically as card counts change (characters are defeated, supports enter/leave play).
-- No card resizing, no dice pool relocation — only the vertical proportion between zones changes.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (BattleZone, PlayerZone, OpponentZone)
-
-**Out of scope.** Card resizing. Dice pool relocation. Smart column-width packing (WEB-23).
-
-**Depends on.** Nothing (works with character-only state today; supports slot in automatically once ENGINE-S1 lands).
-
-**Done when.** Typecheck clean. One player has 2 characters, other has 4 → zone with 4 characters is visibly taller. Equal card counts → equal zone heights.
-
----
-
 #### WEB-S1 — Support cards on the battlefield
 **Why now.** ENGINE-S1 delivers `SupportState`; players can play support cards to the board but nothing renders them.
 
@@ -432,7 +379,8 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - **2026-05-15 — ENGINE-6b — Event-owned dice + cross-card die roll mechanic.** `rollEventDie` rolls the event card's own dieFaces into the pool as a transient die; `rollCardDie` rolls any referenced catalog card's die by ID. `CatalogDieEntry` interface threaded through `applyPlayCard` → `applyAction` via `ApplyOptions`. Transient die cleanup on resolve-dice confirmed. Seed cards EVT_056 (Wild Strike) and EVT_057 (Call the Hound) added. `AbilityBuilder.tsx` forms added for both ops. 4 new tests; 175 engine tests green; workspace typecheck clean. (`04fb024`)
 - **2026-05-15 — ENGINE-8 — Multi-target resolve-dice action.** `resolve-dice` action gains `targets: readonly { dieInstanceIds; targetCharacterId? }[]`; resolution loop applies per-group damage/shields; backward-compat flat shape normalised in apply-action.ts; 3 new tests (2-melee split, shield split, legacy compat); all existing tests migrated to new shape; 171 engine tests green, typecheck clean. (`8a0c00e`)
 - **2026-05-15 — SERVER-1 — Reconnect window.** 60-second away timer starts on disconnect when game is in-progress; clears on `lobby.rejoin`. Timer expiry applies a `concede` on behalf of the disconnected player and broadcasts `game.events` + `game.state` + `lobby.state` to the room. Client-side rejoin was already fully wired (`SocketBridge` → `lobby.rejoin` on reconnect, `lobbyCache` for roomId persistence). Game-server typecheck clean; 168 engine tests green. (`5fae253`)
-- **2026-05-16 — WEB-21 — Live opponent action preview.** `game.preview` socket event (debounced 50 ms) broadcasts `ActiveFlow` to opponent on every change while active. Game-server relays fire-and-forget. `opponentPreview` in Zustand; SocketBridge sets/clears it. `BattlefieldRow` renders: green selected / dimmed spent dice on opponent zone (resolve), amber dice on reroll pick, faint sky ring on opponent char being activated, pending counter badges on any targeted character (both zones). `DiceStack` + `DicePool3D` accept preview die-ID props. `CharacterCard` gains `previewActivate`. Typecheck + 175 engine tests green. (`49204d7`)
+- **2026-05-16 — WEB-22 — Adaptive zone sizing.** `OpponentZone` and `PlayerZone` containers replace `flex-1` with `flexGrow: Math.max(1, characterOrder.length)` (inline style + `shrink basis-0` Tailwind classes). Zones proportionally share vertical space based on live card count; minimum of 1 prevents collapse on empty zones. WEB-21 Done hash backfilled to `224105e`. Typecheck clean. (``)
+- **2026-05-16 — WEB-21 — Live opponent action preview.** `game.preview` socket event (debounced 50 ms) broadcasts `ActiveFlow` to opponent on every change while active. Game-server relays fire-and-forget. `opponentPreview` in Zustand; SocketBridge sets/clears it. `BattlefieldRow` renders: green selected / dimmed spent dice on opponent zone (resolve), amber dice on reroll pick, faint sky ring on opponent char being activated, pending counter badges on any targeted character (both zones). `DiceStack` + `DicePool3D` accept preview die-ID props. `CharacterCard` gains `previewActivate`. Typecheck + 175 engine tests green. (`224105e`)
 - **2026-05-15 — WEB-19 — Multi-target damage and shield resolution UI.** `ActiveFlow.resolve` gains `pendingTargets` (committed die groups) replacing `targetCharacterId`. Resolution loop: select dice → tap character to commit group → dice dim as spent → pending counter badge (−N red / +N blue) on target character. Tapping an already-assigned character replaces its group. Commit enabled when `pendingTargets.length > 0 && selectedDieIds.length === 0`. Dispatches `resolve-dice` with `targets` array. DicePool3D and DiceStack both updated. Resource/disrupt unchanged single-group path. Typecheck + 175 engine tests green. (`30e02ca`)
 - **2026-05-15 — WEB-7 — Human-readable activity log.** (`b508409`) Replaced raw JSON event dump with a formatted collapsible activity log in BattleZone. `buildLogEntries` maps all engine events to plain-English strings with bold player/character names and color-coded die chips (`DieChip`). `dice.resolved` is merged with follow-on `damage.dealt` / `shields.placed` / `resources.gained` / `resources.lost` into single entries. `round.begin` renders as a centered divider. Automatic passes, trigger lifecycle, and upkeep noise are suppressed. Log is collapsed by default via `<details>`, scrollable to 30 entries, `aria-live` for screen readers. Typecheck + 168 engine tests green.
 - **2026-05-15 — WEB-3D-3 — Die face picker (focus flow).** (`95c55e3`) Engine: focus path in `applyResolveDice` — focuser dice removed from pool, target dice stay with updated faces, self-targeting blocked, 6 new tests. `focus` added to `RESOLVABLE_SYMBOLS_V1`. `FacePickEvent` union + `face-pick` ActiveFlow in store. UI: tapping a focus die → resolve flow → commit transitions to face-pick; tapping target die opens `FacePickerPanel` (6 face tiles, current face highlighted); picking a face records a flip event and decrements budget; focus-face tap chains die as new focuser; Undo backs out one flip/chain at a time; End focus dispatches resolve-dice with ordered focusFlips. DicePool3D shows focuser as dimmed, open-picker die highlighted, flipped dice amber. Typecheck + 168 engine tests green.
