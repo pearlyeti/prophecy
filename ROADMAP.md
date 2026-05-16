@@ -12,6 +12,102 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+
+#### WEB-21 — Live opponent action preview
+**Why now.** The opponent sees only committed game state; there's no indication of what the active player is doing until the action commits — it feels like a laggy card game rather than a live duel.
+
+**Scope.**
+- Active player's client emits a `game.preview` socket event (debounced ~50 ms) whenever `activeFlow` changes, only while it is their turn and the game is in the action phase. Emits `null` when `activeFlow` clears.
+- Game-server handler: relay `game.preview` to all other players in the room. Fire-and-forget, no validation needed.
+- `packages/protocol/src/events.ts`: add `GamePreviewPayload` + `game.preview` to both `ClientToServerEvents` and `ServerToClientEvents`.
+- `store.ts`: add `opponentPreview: ActiveFlow | null` and `setOpponentPreview`.
+- `App.tsx` SocketBridge: listen for `game.preview` → `setOpponentPreview`. On `game.state` arrival (committed action) → `setOpponentPreview(null)`.
+- Opponent's view renders preview highlights on the active player's zone:
+  - `resolve` flow: active player's selected dice glow green; spent dice (in `pendingTargets`) dimmed; pending counter badges appear on targeted characters.
+  - `activate` flow: green eligible ring on the character being activated.
+  - `reroll` flow: selected dice show amber tint.
+  - `null`: all highlights clear.
+- Preview renders across both zones: active player's dice/characters shown via `opponentPreview` in `OpponentZone`; characters targeted for damage shown via `opponentPreview` in `PlayerZone`.
+- Only the active player broadcasts. Inactive player does not broadcast.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (OpponentZone, PlayerZone, BattlefieldRow, DiceStack)
+- `apps/web/src/routes/DicePool3D.tsx`
+- `apps/web/src/store.ts`
+- `apps/web/src/App.tsx` (SocketBridge)
+- `apps/game-server/src/index.ts`
+- `packages/protocol/src/events.ts`
+
+**Out of scope.** Preview for the inactive player's actions. face-pick flow preview. Animated preview transitions.
+
+**Depends on.** Nothing (fully independent).
+
+**Done when.** Typecheck clean. Manual smoke (two browser windows): Player A selects melee dice → Player B sees them glow on A's zone. A taps a target character → B sees the pending counter badge on their character. A undos → B sees selection clear. A commits → preview clears and committed state renders normally.
+
+---
+
+#### WEB-22 — Adaptive zone sizing
+**Why now.** Both zones are hardcoded 50/50 vertical split regardless of card count; a player with 2 characters wastes screen space while an opponent with 5 is cramped.
+
+**Scope.**
+- `PlayerZone` and `OpponentZone` each receive `flex-grow` proportional to their total card count (characters + supports in play), with a minimum of 1 so an empty zone doesn't collapse.
+- Recomputes automatically as card counts change (characters are defeated, supports enter/leave play).
+- No card resizing, no dice pool relocation — only the vertical proportion between zones changes.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (BattleZone, PlayerZone, OpponentZone)
+
+**Out of scope.** Card resizing. Dice pool relocation. Smart column-width packing (WEB-23).
+
+**Depends on.** Nothing (works with character-only state today; supports slot in automatically once ENGINE-S1 lands).
+
+**Done when.** Typecheck clean. One player has 2 characters, other has 4 → zone with 4 characters is visibly taller. Equal card counts → equal zone heights.
+
+---
+
+#### WEB-S1 — Support cards on the battlefield
+**Why now.** ENGINE-S1 delivers `SupportState`; players can play support cards to the board but nothing renders them.
+
+**Scope.**
+- Render support cards in `PlayerZone` and `OpponentZone` alongside characters in the same flex layout. Support cards render at ~75% the width of character cards.
+- Stability badge (display-only): read `SupportState.stability` / `maxStability`; show as `stability/maxStability` in a small badge.
+- Die-supports: tap → activate flow → Roll Dice dispatches `activate`. Exhausted tilt same as characters. Supports without a die show no activate ring and cannot enter the activate flow.
+- Dieless supports with `action`/`powerAction` abilities: show A/PA badge (same as WEB-18 for characters).
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (BattlefieldRow, PlayerZone, OpponentZone, CharacterCard)
+- `apps/web/src/store.ts` (ActiveFlow)
+- `packages/game-engine/src/state/types.ts` (SupportState from ENGINE-S1)
+
+**Out of scope.** Disrupt/Discard targeting of supports. Upgrade badges on supports. Detail overlay. Support pagination (WEB-20).
+
+**Depends on.** ENGINE-S1.
+
+**Done when.** Typecheck clean. Play a support card → it appears on the board at ~75% character card size. Activate a die-support → dice roll into pool. Dieless support with action ability shows A badge. Exhausted support tilts.
+
+---
+
+#### WEB-20 — Per-player zone pagination
+**Why now.** Supports enter play mid-game and may not fit alongside characters; we need a way to navigate to them without disrupting the character view.
+
+**Scope.**
+- Each player's zone independently shows a character page and optionally a support page.
+- Support page only appears when at least one support cannot fit in the remaining column slots of the character view. When all supports fit, no pagination UI is shown.
+- Page indicator (arrow buttons + dot pip) appears at the zone edge when a support page exists. Swipe (touch) and arrow buttons (pointer) navigate between pages.
+- `activeFlow` — selected dice, `pendingTargets`, activate state — persists across page switches so cross-zone targeting works: select a support die on the support page, switch to the character page, tap a target.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (PlayerZone, OpponentZone, BattlefieldRow)
+- `apps/web/src/store.ts` (ActiveFlow)
+
+**Out of scope.** Animated slide transitions. Keyboard navigation.
+
+**Depends on.** WEB-S1.
+
+**Done when.** Typecheck clean. Play supports until they overflow the character page → support page indicator appears. Swipe navigates between pages. Select support die, switch to character page, tap target → resolve dispatches the full multi-target payload correctly.
+
+---
+
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
@@ -239,9 +335,6 @@ Rough ideas and deferred work. Not yet specced, not yet claimable. When an item 
 - "After setup" trigger pass.
 - Plots / battlefield abilities (Claim).
 
-#### Supports & stability _(WEB-S1 blocked on ENGINE-S1)_
-- **WEB-S1** — Render support cards in `BattleZone` below characters. Stability badge instead of health badge. Activate flow same as characters. Upgrade badges on supports. Detail overlay with Stability, ability text, subtypes.
-
 #### Services
 - Deck builder API + validator (CRUD to save user decks to DB).
 - Card ownership logic (`card_collections` integration, opened packs).
@@ -269,6 +362,7 @@ Rough ideas and deferred work. Not yet specced, not yet claimable. When an item 
 - i18n scaffold (Paraglide); ship English first.
 - Screen-reader event narration in live match.
 - **Roll cam (revamp)** — removed 2026-05-15 (feel was too janky). Bring back when there's time to do it right: proper die geometry with six textured faces, weighty physics, clean camera-cut back to the board. `DicePool3D` and `FACE_CORRECT_Q` are good foundations.
+- **WEB-23 — Smart zone column packing** — Instead of a fixed column width, compute each card column's width from the maximum dice count for that card in the pool. Cards with large dice pools get wider columns; cards never needing more than 2 dice get narrower ones. Keeps the total zone width fixed while maximising use of available real estate. Depends on WEB-S1 (supports add columns of their own).
 
 #### Content & ops
 - First original Prophecy set: ~140 cards across factions/colors with 5 keywords represented.
