@@ -1,5 +1,5 @@
 // Shared die face texture generator used by the board dice (DicePool3D).
-// Produces a 512×512 CanvasTexture with the die's value and symbol on the card's base color.
+// Produces a 512×512 CanvasTexture with the die's value and symbol on the card base color.
 //
 // UV orientation: RoundedBoxGeometry maps canvas_y → die horizontal axis and
 // canvas_x → die vertical axis (as seen from the overhead camera). All text is
