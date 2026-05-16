@@ -20,13 +20,16 @@ test('reconnect within 60 s window — game resumes', async ({ browser }) => {
     ]);
 
     // ── Disconnect Player A ───────────────────────────────────────────────
-    await ctxA.setOffline(true);
+    // socket.ts exposes the socket as window.__sock. Calling disconnect()
+    // closes the connection without auto-reconnect (unlike setOffline which
+    // only blocks new connections and won't drop an existing WebSocket).
+    await pageA.evaluate(() => (window as { __sock?: { disconnect: () => void } }).__sock?.disconnect());
 
     // The ConnectionPill renders when status !== 'connected'.
-    await expect(pageA.getByText(/disconnected|reconnecting/)).toBeVisible({ timeout: 15_000 });
+    await expect(pageA.getByText(/disconnected|reconnecting/)).toBeVisible({ timeout: 10_000 });
 
     // ── Reconnect Player A ────────────────────────────────────────────────
-    await ctxA.setOffline(false);
+    await pageA.evaluate(() => (window as { __sock?: { connect: () => void } }).__sock?.connect());
 
     // Pill disappears once status returns to 'connected' and lobby.rejoin succeeds.
     await expect(pageA.getByText(/disconnected|reconnecting/)).not.toBeVisible({ timeout: 20_000 });

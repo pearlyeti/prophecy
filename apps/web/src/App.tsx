@@ -6,7 +6,6 @@ import { authClient } from './lib/auth-client.js';
 import { ErrorBoundary } from './lib/ErrorBoundary.js';
 import { clearCachedLobby, loadCachedLobby, saveCachedLobby } from './lib/lobbyCache.js';
 import { Designer } from './routes/designer/index.js';
-import { DicePreview } from './routes/DicePreview.js';
 import { Game } from './routes/Game.js';
 import { Lobby } from './routes/Lobby.js';
 import { Splash } from './routes/Splash.js';
@@ -17,9 +16,6 @@ import { useApp } from './store.js';
 
 export function App() {
   const [queryClient] = useState(() => new QueryClient());
-
-  // Bypass all auth and network setup for dev preview routes.
-  if (window.location.pathname.startsWith('/dice-preview')) return <DicePreview />;
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
@@ -46,6 +42,7 @@ function Router() {
     if (session?.userId) setPlayerId(session.userId);
   }, [session?.userId, setPlayerId]);
 
+  // /designer/* is its own surface — bypass game state entirely.
   if (window.location.pathname.startsWith('/designer')) return <Designer />;
 
   if (isLoading) {
@@ -86,10 +83,9 @@ function SocketBridge() {
     const attemptRejoin = () => {
       const cached = loadCachedLobby();
       if (!cached) return;
-      // Always call lobby.rejoin on (re)connect — the server tracks
-      // socket→room mapping fresh per connection. Skipping when local
-      // state has the lobby leaves the new socket unbound on the server
-      // after a forced reconnect.
+      // Don't check Zustand lobby state here — a reconnected socket has a new
+      // socket ID and is not in any room yet even if the store still has the
+      // lobby. The in-flight guard below prevents duplicate concurrent requests.
       if (rejoinInFlightFor.current === cached.roomId) return;
 
       rejoinInFlightFor.current = cached.roomId;
@@ -117,19 +113,6 @@ function SocketBridge() {
     };
     const onDisconnect = () => setStatus('disconnected');
     const onReconnectAttempt = () => setStatus('reconnecting');
-
-    // Socket.IO's ping timeout is 20s by default, so it can take that long to
-    // notice a dropped connection. Drive disconnect/reconnect directly from
-    // the browser's online/offline events so the pill responds immediately
-    // and Socket.IO doesn't waste time waiting on a dead transport.
-    const onOffline = () => {
-      setStatus('disconnected');
-      if (socket.connected) socket.disconnect();
-    };
-    const onOnline = () => {
-      setStatus('reconnecting');
-      socket.connect();
-    };
 
     const onLobby: Parameters<typeof socket.on<'lobby.state'>>[1] = (state) => {
       setLobby(state);
@@ -171,8 +154,6 @@ function SocketBridge() {
     socket.on('game.preview', onPreview);
     socket.on('error', onError);
     socket.on('lobby.matchFound', onMatchFound);
-    window.addEventListener('offline', onOffline);
-    window.addEventListener('online', onOnline);
 
     if (socket.connected) {
       onConnect();
@@ -197,8 +178,6 @@ function SocketBridge() {
       socket.off('game.preview', onPreview);
       socket.off('error', onError);
       socket.off('lobby.matchFound', onMatchFound);
-      window.removeEventListener('offline', onOffline);
-      window.removeEventListener('online', onOnline);
     };
   }, [playerId, setLobby, setGame, appendEvents, setStatus, setError, setOpponentPreview]);
 
