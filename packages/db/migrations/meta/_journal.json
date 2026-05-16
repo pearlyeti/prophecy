@@ -22,6 +22,13 @@
       "when": 1778891341401,
       "tag": "0002_deep_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778895701935,
+      "tag": "0003_huge_sinister_six",
+      "breakpoints": true
     }
   ]
 }

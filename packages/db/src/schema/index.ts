@@ -5,3 +5,4 @@ export * from './users.js';
 export * from './cards.js';
 export * from './decks.js';
 export * from './games.js';
+export * from './auth.js';

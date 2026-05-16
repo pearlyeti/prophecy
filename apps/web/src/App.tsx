@@ -8,6 +8,7 @@ import { Designer } from './routes/designer/index.js';
 import { Game } from './routes/Game.js';
 import { Lobby } from './routes/Lobby.js';
 import { Splash } from './routes/Splash.js';
+import { SignIn } from './routes/SignIn.js';
 import { getSocket } from './lib/socket.js';
 import { trpc, trpcClient } from './lib/trpc.js';
 import { useApp } from './store.js';
@@ -32,9 +33,27 @@ export function App() {
 function Router() {
   const lobby = useApp((s) => s.lobby);
   const game = useApp((s) => s.game);
+  const setPlayerId = useApp((s) => s.setPlayerId);
+
+  const { data: session, isLoading } = trpc.auth.session.useQuery();
+
+  // Sync session userId into the store so socket requests use the right identity.
+  useEffect(() => {
+    if (session?.userId) setPlayerId(session.userId);
+  }, [session?.userId, setPlayerId]);
 
   // /designer/* is its own surface — bypass game state entirely.
   if (window.location.pathname.startsWith('/designer')) return <Designer />;
+
+  if (isLoading) {
+    return (
+      <main className="min-h-dvh flex items-center justify-center">
+        <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-neutral-700 border-t-emerald-500" />
+      </main>
+    );
+  }
+
+  if (!session) return <SignIn />;
 
   if (game) return <Game />;
   if (lobby) return <Lobby />;

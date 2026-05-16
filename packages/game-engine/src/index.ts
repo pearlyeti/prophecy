@@ -30,6 +30,8 @@ export type {
   TurnDieEffect,
   ModifyDieValueEffect,
   DiePoolSide,
+  DieCriteria,
+  CardCriteria,
   TargetSpec,
   PlayCondition,
   TriggerEvent,

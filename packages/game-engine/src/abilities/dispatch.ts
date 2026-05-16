@@ -22,7 +22,9 @@ import {
 import type { DieFace, GameState, DieInPool } from '../state/types.js';
 import type {
   AddShieldsEffect,
+  CardCriteria,
   DealDamageEffect,
+  DieCriteria,
   DrawCardsEffect,
   Effect,
   GainResourcesEffect,
@@ -206,7 +208,7 @@ function applyDealDamage(
   const events: EngineEvent[] = [];
   const unblockable = effect.unblockable ?? false;
 
-  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset);
+  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset, effect.criteria);
   let current = state;
   for (const { ownerId, characterId } of targets) {
     current = dealDamage(current, ownerId, characterId, effect.amount, events, unblockable);
@@ -223,7 +225,7 @@ function applyAddShields(
   targetOffset: number,
 ): EffectResult {
   const events: EngineEvent[] = [];
-  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset);
+  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset, effect.criteria);
   let current = state;
   for (const { ownerId, characterId } of targets) {
     current = addShields(current, ownerId, characterId, effect.amount, events);
@@ -238,7 +240,7 @@ function applyRemoveShields(
   targetOffset: number,
 ): EffectResult {
   const events: EngineEvent[] = [];
-  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset);
+  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset, effect.criteria);
   let current = state;
   for (const { ownerId, characterId } of targets) {
     current = removeShields(current, ownerId, characterId, effect.amount, events);
@@ -253,7 +255,7 @@ function applyHealDamage(
   targetOffset: number,
 ): EffectResult {
   const events: EngineEvent[] = [];
-  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset);
+  const targets = resolveCharacterTargets(state, ctx, effect.target, targetOffset, effect.criteria);
   let current = state;
   for (const { ownerId, characterId } of targets) {
     current = healDamage(current, ownerId, characterId, effect.amount, events);
@@ -327,6 +329,81 @@ function applyRollCardDie(state: GameState, ctx: DispatchContext, effect: RollCa
   return { state: nextState, events: [], targetsConsumed: 0 };
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Targeting criteria helpers (ENGINE-TF1)
+// ────────────────────────────────────────────────────────────────────
+
+/** Returns true when the die satisfies all fields in the criteria. */
+export function matchesDieCriteria(die: DieInPool, criteria: DieCriteria | undefined, state: GameState): boolean {
+  if (!criteria) return true;
+
+  const { symbol, minValue, maxValue, modifier, ownerCardType, ownerColor, ownerSubtype } = criteria;
+
+  if (symbol !== undefined) {
+    const set = Array.isArray(symbol) ? symbol : [symbol];
+    if (!set.includes(die.face.symbol)) return false;
+  }
+  if (minValue !== undefined && die.face.value < minValue) return false;
+  if (maxValue !== undefined && die.face.value > maxValue) return false;
+  if (modifier !== undefined && die.face.modifier !== modifier) return false;
+
+  if (ownerCardType !== undefined || ownerColor !== undefined || ownerSubtype !== undefined) {
+    const meta = die.ownerInstanceId ? state.cardMeta[die.ownerInstanceId] : undefined;
+    if (!meta) return false;
+    if (ownerCardType !== undefined) {
+      const set = Array.isArray(ownerCardType) ? ownerCardType : [ownerCardType];
+      if (!set.includes(meta.type)) return false;
+    }
+    if (ownerColor !== undefined) {
+      const set = Array.isArray(ownerColor) ? ownerColor : [ownerColor];
+      if (!set.includes(meta.color)) return false;
+    }
+    if (ownerSubtype !== undefined && !meta.subtypes.includes(ownerSubtype)) return false;
+  }
+
+  return true;
+}
+
+/** Returns true when the character/support satisfies all fields in the criteria. */
+export function matchesCardCriteria(
+  charId: string,
+  ownerId: string,
+  state: GameState,
+  criteria: CardCriteria | undefined,
+): boolean {
+  if (!criteria) return true;
+
+  const player = state.players[ownerId];
+  const charState = player?.characters[charId] ?? player?.supports[charId];
+  if (!charState) return false;
+
+  const { subtype, color, unique, exhausted, hasUpgrade, minHealth, maxDamage } = criteria;
+
+  if (exhausted !== undefined && charState.exhausted !== exhausted) return false;
+
+  if ('damage' in charState) {
+    if (minHealth !== undefined && charState.health - charState.damage < minHealth) return false;
+    if (maxDamage !== undefined && charState.damage > maxDamage) return false;
+    if (hasUpgrade !== undefined && (charState.upgradeIds.length > 0) !== hasUpgrade) return false;
+  }
+
+  const meta = state.cardMeta[charId];
+  if (subtype !== undefined || color !== undefined || unique !== undefined) {
+    if (!meta) return false;
+    if (unique !== undefined && meta.isUnique !== unique) return false;
+    if (color !== undefined) {
+      const set = Array.isArray(color) ? color : [color];
+      if (!set.includes(meta.color)) return false;
+    }
+    if (subtype !== undefined) {
+      const set = Array.isArray(subtype) ? subtype : [subtype];
+      if (!set.some((s) => meta.subtypes.includes(s))) return false;
+    }
+  }
+
+  return true;
+}
+
 function applyRemoveDie(state: GameState, ctx: DispatchContext, effect: RemoveDieEffect): EffectResult {
   const targetPlayerId =
     effect.from === 'ownPool' ? ctx.playerId : (opponentOf(state, ctx.playerId) ?? ctx.playerId);
@@ -336,7 +413,7 @@ function applyRemoveDie(state: GameState, ctx: DispatchContext, effect: RemoveDi
   const remaining: DieInPool[] = [];
   const removed: DieInPool[] = [];
   for (const die of player.diceInPool) {
-    if (removed.length < count && (effect.symbol == null || die.face.symbol === effect.symbol)) {
+    if (removed.length < count && matchesDieCriteria(die, effect.criteria, state)) {
       removed.push(die);
     } else {
       remaining.push(die);
@@ -365,7 +442,7 @@ function applyTurnDie(state: GameState, ctx: DispatchContext, effect: TurnDieEff
   const events: EngineEvent[] = [];
   const newPool = player.diceInPool.map((die) => {
     if (turned >= count) return die;
-    if (effect.fromSymbol != null && die.face.symbol !== effect.fromSymbol) return die;
+    if (!matchesDieCriteria(die, effect.criteria, state)) return die;
     turned++;
     const fromSymbol = die.face.symbol;
     events.push({
@@ -392,8 +469,8 @@ function applyModifyDieValue(state: GameState, ctx: DispatchContext, effect: Mod
   const events: EngineEvent[] = [];
   const newPool = player.diceInPool.map((die) => {
     if (modified >= count) return die;
-    if (effect.symbol != null && die.face.symbol !== effect.symbol) return die;
     if (die.face.symbol === 'blank') return die;
+    if (!matchesDieCriteria(die, effect.criteria, state)) return die;
     modified++;
     const newValue = Math.max(0, die.face.value + effect.delta);
     events.push({
@@ -428,6 +505,7 @@ function resolveCharacterTargets(
   ctx: DispatchContext,
   spec: TargetSpec,
   targetOffset: number,
+  criteria?: CardCriteria,
 ): TargetList {
   const result: TargetList = Object.assign([], { consumed: 0 });
 
@@ -439,6 +517,9 @@ function resolveCharacterTargets(
       if (!characterId) throw new Error(`effect needs a character target at index ${targetOffset} but none was provided`);
       const ownerId = ownerOf(state, characterId);
       if (!ownerId) throw new Error(`character ${characterId} is not in play`);
+      if (!matchesCardCriteria(characterId, ownerId, state, criteria)) {
+        throw new Error(`character ${characterId} does not meet the effect's targeting criteria`);
+      }
       result.push({ ownerId, characterId });
       result.consumed = 1;
       break;
@@ -447,7 +528,9 @@ function resolveCharacterTargets(
       const oppId = opponentOf(state, ctx.playerId);
       if (oppId) {
         for (const charId of state.players[oppId]?.characterOrder ?? []) {
-          result.push({ ownerId: oppId, characterId: charId });
+          if (matchesCardCriteria(charId, oppId, state, criteria)) {
+            result.push({ ownerId: oppId, characterId: charId });
+          }
         }
       }
       result.consumed = 0;
@@ -456,7 +539,9 @@ function resolveCharacterTargets(
     case 'eachCharacter': {
       for (const pid of state.playerOrder) {
         for (const charId of state.players[pid]?.characterOrder ?? []) {
-          result.push({ ownerId: pid, characterId: charId });
+          if (matchesCardCriteria(charId, pid, state, criteria)) {
+            result.push({ ownerId: pid, characterId: charId });
+          }
         }
       }
       result.consumed = 0;
@@ -464,7 +549,6 @@ function resolveCharacterTargets(
     }
     case 'attachedCharacter':
     case 'thisCharacter': {
-      // Resolved from sourceCharacterId if available, otherwise from characterTargets.
       const characterId = ctx.sourceCharacterId ?? ctx.characterTargets[targetOffset];
       if (!characterId) throw new Error(`effect needs an attached/this-character target at index ${targetOffset}`);
       const ownerId = ownerOf(state, characterId);
@@ -473,8 +557,6 @@ function resolveCharacterTargets(
       result.consumed = 1;
       break;
     }
-    // opponent / self are not character targets; callers that pass these
-    // to a character-targeting function have authored bad card data.
     default:
       throw new Error(`resolveCharacterTargets: target kind "${spec.kind}" is not a character target`);
   }

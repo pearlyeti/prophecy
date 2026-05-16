@@ -426,6 +426,18 @@ Services will be available at:
 - API: `http://localhost:3000`
 - Game Server: `http://localhost:3001`
 
+### Auth env vars (required for sign-in)
+
+| Variable | Service | Description |
+|---|---|---|
+| `AUTH_SECRET` | api | Random 32-byte secret for session signing. `openssl rand -hex 32`. |
+| `API_PUBLIC_URL` | api | Public URL of the api service (used as OAuth redirect base). Defaults to `http://localhost:3000`. |
+| `GOOGLE_CLIENT_ID` | api | Google OAuth 2.0 client ID. Create at [console.cloud.google.com](https://console.cloud.google.com/). Authorized redirect URI: `{API_PUBLIC_URL}/api/auth/callback/google`. |
+| `GOOGLE_CLIENT_SECRET` | api | Google OAuth 2.0 client secret. |
+| `DISCORD_CLIENT_ID` | api | Discord OAuth2 application client ID (optional; sign-in button disabled when unset). |
+| `DISCORD_CLIENT_SECRET` | api | Discord OAuth2 application client secret. |
+| `API_URL` | game-server | Internal URL of the api service, used to verify session cookies. Defaults to `http://localhost:3000`. |
+
 ### Running tests
 
 ```bash
