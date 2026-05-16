@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
   readonly VITE_GAME_SERVER_URL?: string;
+  readonly VITE_DESIGNER_SECRET?: string;
 }
 
 interface ImportMeta {

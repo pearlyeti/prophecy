@@ -1,0 +1,46 @@
+{
+  "id": "EVT_002",
+  "name": "Steady Stance",
+  "type": "event",
+  "subtypes": [],
+  "faction": "shadow",
+  "color": "red",
+  "rarity": "common",
+  "cost": 1,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Give a character 2 shields.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "addShields",
+          "amount": 2,
+          "target": {
+            "kind": "ownCharacter"
+          },
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

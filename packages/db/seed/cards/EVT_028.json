@@ -1,0 +1,46 @@
+{
+  "id": "EVT_028",
+  "name": "Field Medic",
+  "type": "event",
+  "subtypes": [],
+  "faction": "light",
+  "color": "red",
+  "rarity": "common",
+  "cost": 1,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Remove 2 damage from a character.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "healDamage",
+          "amount": 2,
+          "target": {
+            "kind": "ownCharacter"
+          },
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

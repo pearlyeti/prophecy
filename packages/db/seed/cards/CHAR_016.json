@@ -1,0 +1,87 @@
+{
+  "id": "CHAR_016",
+  "name": "Shield Maiden",
+  "type": "character",
+  "subtypes": [
+    "Apprentice"
+  ],
+  "faction": "light",
+  "color": "red",
+  "rarity": "rare",
+  "cost": null,
+  "health": 7,
+  "pointValue": 8,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "",
+  "dieFaces": [
+    {
+      "symbol": "ranged",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "ranged",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "ranged",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "shield",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "blank",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    }
+  ],
+  "abilities": [
+    {
+      "kind": "powerAction",
+      "costs": [],
+      "effects": [
+        {
+          "op": "addShields",
+          "amount": 1,
+          "target": {
+            "kind": "ownCharacter"
+          },
+          "optional": false
+        }
+      ],
+      "optional": false
+    }
+  ],
+  "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_016.webp",
+  "artFrameX": 44.834087481146334,
+  "artFrameY": 26.99849170437417,
+  "artFrameZoom": 1,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": 56.0416666666667,
+  "badgeFrameY": 72.70833333333329,
+  "badgeFrameZoom": 4,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

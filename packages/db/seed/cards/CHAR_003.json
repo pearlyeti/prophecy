@@ -1,0 +1,86 @@
+{
+  "id": "CHAR_003",
+  "name": "War Hound",
+  "type": "character",
+  "subtypes": [
+    "Soldier"
+  ],
+  "faction": "shadow",
+  "color": "red",
+  "rarity": "rare",
+  "cost": null,
+  "health": 10,
+  "pointValue": 13,
+  "elitePointValue": 18,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Special: Remove all shields from an opponent's character.",
+  "dieFaces": [
+    {
+      "symbol": "melee",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "melee",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "melee",
+      "value": 3,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "disrupt",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "special",
+      "value": 0,
+      "cost": 1,
+      "modifier": false
+    }
+  ],
+  "abilities": [
+    {
+      "kind": "special",
+      "effects": [
+        {
+          "op": "removeShields",
+          "amount": "all",
+          "target": {
+            "kind": "opponentCharacter"
+          },
+          "optional": false
+        }
+      ],
+      "optional": false
+    }
+  ],
+  "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_003.webp",
+  "artFrameX": 71.07114245907361,
+  "artFrameY": 40.06844305120174,
+  "artFrameZoom": 2.9,
+  "cardFrameX": 41.71974522292997,
+  "cardFrameY": 50,
+  "cardFrameZoom": 1,
+  "badgeFrameX": 75.25496511003762,
+  "badgeFrameY": 39.43907675791731,
+  "badgeFrameZoom": 2.7,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

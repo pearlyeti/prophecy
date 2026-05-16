@@ -1,0 +1,43 @@
+{
+  "id": "EVT_019",
+  "name": "Quick Pocket",
+  "type": "event",
+  "subtypes": [],
+  "faction": "shadow",
+  "color": "yellow",
+  "rarity": "uncommon",
+  "cost": 0,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Gain 1 resource.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "gainResources",
+          "amount": 1,
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

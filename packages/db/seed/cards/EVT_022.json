@@ -1,0 +1,48 @@
+{
+  "id": "EVT_022",
+  "name": "Pressing Assault",
+  "type": "event",
+  "subtypes": [],
+  "faction": "shadow",
+  "color": "yellow",
+  "rarity": "uncommon",
+  "cost": 1,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Deal 2 melee damage to a character.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "dealDamage",
+          "amount": 2,
+          "damageType": "melee",
+          "target": {
+            "kind": "opponentCharacter"
+          },
+          "unblockable": false,
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

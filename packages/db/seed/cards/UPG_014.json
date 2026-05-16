@@ -1,0 +1,71 @@
+{
+  "id": "UPG_014",
+  "name": "Tide-Touched Helm",
+  "type": "upgrade",
+  "subtypes": [
+    "Armor"
+  ],
+  "faction": "light",
+  "color": "blue",
+  "rarity": "rare",
+  "cost": 3,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": true,
+  "keywords": [],
+  "displayText": "",
+  "dieFaces": [
+    {
+      "symbol": "disrupt",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "discard",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "special",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "special",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "blank",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    }
+  ],
+  "abilities": [],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

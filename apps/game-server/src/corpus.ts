@@ -1,14 +1,13 @@
 // Loads the original-IP card / deck catalog at startup. The committed
-// files at `packages/db/seed/{cards,decks}.json` are the canonical
-// catalog — the `/admin` endpoints in this same server read / write
-// them, and once the DB lands, `pnpm db:seed` will import them too.
+// files under `packages/db/seed/cards/` (one JSON per card) and
+// `packages/db/seed/decks.json` are the canonical catalog.
 //
-// When object storage is configured (S3_* env vars), the card catalog
-// is also persisted to `catalog/cards.json` in the bucket so Railway
-// picks up changes without a redeploy.
+// When object storage is configured (S3_* env vars), a combined
+// `catalog/cards.json` is also persisted to the bucket so the cloud
+// server picks up changes without reading individual files.
 
 import { cardCatalogSchema, deckCatalogSchema, type Card, type Deck } from '@prophecy/protocol';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,13 +20,34 @@ const seedDir = resolve(here, '..', '..', '..', 'packages', 'db', 'seed');
 export const artDir = resolve(seedDir, 'card-art');
 mkdirSync(artDir, { recursive: true });
 
-const cardsPath = resolve(seedDir, 'cards.json');
+/** Per-card JSON directory. */
+const cardsDir = resolve(seedDir, 'cards');
+mkdirSync(cardsDir, { recursive: true });
+
 const decksPath = resolve(seedDir, 'decks.json');
 
 function loadCardsFromDisk(): Card[] {
-  const raw = JSON.parse(readFileSync(cardsPath, 'utf8'));
-  const parsed = cardCatalogSchema.safeParse(raw);
-  if (!parsed.success) throw new Error(`cards.json failed schema validation: ${parsed.error.message}`);
+  const files = readdirSync(cardsDir).filter((f) => f.endsWith('.json'));
+
+  // Auto-migrate from legacy cards.json on first run after this change.
+  if (files.length === 0) {
+    const legacyPath = resolve(seedDir, 'cards.json');
+    if (existsSync(legacyPath)) {
+      const raw = JSON.parse(readFileSync(legacyPath, 'utf8'));
+      const parsed = cardCatalogSchema.safeParse(raw);
+      if (!parsed.success) throw new Error(`cards.json failed schema validation: ${parsed.error.message}`);
+      for (const card of parsed.data.cards) {
+        writeFileSync(resolve(cardsDir, `${card.id}.json`), JSON.stringify(card, null, 2) + '\n');
+      }
+      console.log(`[corpus] auto-migrated ${parsed.data.cards.length} cards to cards/`);
+      return parsed.data.cards;
+    }
+    return [];
+  }
+
+  const rawCards = files.map((f) => JSON.parse(readFileSync(resolve(cardsDir, f), 'utf8')) as unknown);
+  const parsed = cardCatalogSchema.safeParse({ cards: rawCards });
+  if (!parsed.success) throw new Error(`cards/ directory failed schema validation: ${parsed.error.message}`);
   return parsed.data.cards;
 }
 
@@ -43,12 +63,9 @@ let cachedDecks: Deck[] | null = null;
 
 /**
  * Call once at startup (before httpServer.listen). Tries to load the card
- * catalog from object storage; falls back to the committed cards.json on
- * disk. If storage is configured and the catalog wasn't there yet, seeds it
- * from disk so future startups skip the fallback.
+ * catalog from object storage; falls back to the per-card disk files.
  */
 export async function initialize(): Promise<void> {
-  // Decks are always loaded from disk (they don't change at runtime).
   cachedDecks = loadDecks();
 
   const json = await readCatalogFromStorage();
@@ -64,7 +81,7 @@ export async function initialize(): Promise<void> {
 
   cachedCards = loadCardsFromDisk();
 
-  // Seed storage so the next cold start doesn't need to fall back.
+  // Seed storage so the next cold start doesn't need to read per-card files.
   const diskJson = JSON.stringify({ cards: cachedCards }, null, 2) + '\n';
   writeCatalogToStorage(diskJson).catch((e) =>
     console.warn('[corpus] could not seed catalog to storage:', (e as Error).message),
@@ -81,13 +98,29 @@ export function getDecks(): readonly Deck[] {
   return cachedDecks;
 }
 
-/** Replace the catalog wholesale (admin PUT). Writes to disk and storage. */
+/** Replace the catalog. Writes each card to its own file and syncs to object storage. */
 export function writeCards(cards: readonly Card[]): void {
   const parsed = cardCatalogSchema.parse({ cards: [...cards] });
-  const json = JSON.stringify(parsed, null, 2) + '\n';
-  writeFileSync(cardsPath, json);
+  const newIds = new Set(parsed.cards.map((c) => c.id));
+
+  // Remove files for deleted cards
+  for (const file of readdirSync(cardsDir)) {
+    if (!file.endsWith('.json')) continue;
+    const id = file.slice(0, -5);
+    if (!newIds.has(id)) unlinkSync(resolve(cardsDir, `${id}.json`));
+  }
+
+  // Write / update individual card files
+  for (const card of parsed.cards) {
+    writeFileSync(resolve(cardsDir, `${card.id}.json`), JSON.stringify(card, null, 2) + '\n');
+  }
+
   cachedCards = [...parsed.cards];
-  writeCatalogToStorage(json).catch((e) =>
+
+  // Still write combined JSON to object storage so the cloud server can load
+  // the catalog without making N individual file reads.
+  const combinedJson = JSON.stringify({ cards: cachedCards }, null, 2) + '\n';
+  writeCatalogToStorage(combinedJson).catch((e) =>
     console.warn('[corpus] storage write failed:', (e as Error).message),
   );
 }

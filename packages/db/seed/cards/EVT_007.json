@@ -1,0 +1,45 @@
+{
+  "id": "EVT_007",
+  "name": "Brace for Action",
+  "type": "event",
+  "subtypes": [],
+  "faction": "shadow",
+  "color": "red",
+  "rarity": "uncommon",
+  "cost": 1,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "Each player draws 2 cards.",
+  "dieFaces": null,
+  "abilities": [
+    {
+      "kind": "immediate",
+      "effects": [
+        {
+          "op": "drawCards",
+          "player": "eachPlayer",
+          "amount": 2,
+          "toHandSize": false,
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

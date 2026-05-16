@@ -1,0 +1,71 @@
+{
+  "id": "UPG_002",
+  "name": "Blackthorn Edge",
+  "type": "upgrade",
+  "subtypes": [
+    "Weapon"
+  ],
+  "faction": "shadow",
+  "color": "red",
+  "rarity": "fixed",
+  "cost": 2,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": false,
+  "keywords": [],
+  "displayText": "",
+  "dieFaces": [
+    {
+      "symbol": "ranged",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "ranged",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "ranged",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "special",
+      "value": 0,
+      "cost": 0,
+      "modifier": false
+    }
+  ],
+  "abilities": [],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}

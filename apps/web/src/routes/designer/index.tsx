@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { AttributesTab } from './AttributesTab.js';
 import { CardsTab } from './CardsTab.js';
 import { DecksTab } from './DecksTab.js';
+import { PendingPanel } from './PendingPanel.js';
 import { fetchAttributes, fetchCards, fetchDecks } from './api.js';
 
 type Tab = 'cards' | 'decks' | 'attributes';
@@ -53,7 +54,8 @@ export function Designer() {
   };
 
   return (
-    <main className="min-h-dvh bg-neutral-950 px-4 py-6 sm:px-6">
+    <>
+    <main className="min-h-dvh bg-neutral-950 px-4 py-6 pb-16 sm:px-6">
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold text-neutral-100">Prophecy Designer</h1>
         <a
@@ -86,6 +88,8 @@ export function Designer() {
         <AttributesTab attributes={attributes} onReload={reload} />
       )}
     </main>
+    <PendingPanel onCommitSuccess={reload} />
+    </>
   );
 }
 

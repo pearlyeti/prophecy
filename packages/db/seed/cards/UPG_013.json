@@ -1,0 +1,71 @@
+{
+  "id": "UPG_013",
+  "name": "Sunsteel Sword",
+  "type": "upgrade",
+  "subtypes": [
+    "Weapon"
+  ],
+  "faction": "light",
+  "color": "red",
+  "rarity": "rare",
+  "cost": 2,
+  "health": null,
+  "pointValue": null,
+  "elitePointValue": null,
+  "plotPointValue": null,
+  "isUnique": true,
+  "keywords": [],
+  "displayText": "",
+  "dieFaces": [
+    {
+      "symbol": "melee",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "focus",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "shield",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "shield",
+      "value": 2,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    },
+    {
+      "symbol": "resource",
+      "value": 1,
+      "cost": 0,
+      "modifier": false
+    }
+  ],
+  "abilities": [],
+  "artUrl": null,
+  "artFrameX": null,
+  "artFrameY": null,
+  "artFrameZoom": null,
+  "cardFrameX": null,
+  "cardFrameY": null,
+  "cardFrameZoom": null,
+  "badgeFrameX": null,
+  "badgeFrameY": null,
+  "badgeFrameZoom": null,
+  "landscapeFrameX": null,
+  "landscapeFrameY": null,
+  "landscapeFrameZoom": null
+}
