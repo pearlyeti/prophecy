@@ -207,6 +207,8 @@ export const CardFixtureSchema = z
     cost: z.number().int().min(0).max(8).nullable(),
     /** Health (characters only). */
     health: z.number().int().min(1).max(20).nullable(),
+    /** Stability (support cards only). */
+    stability: z.number().int().min(1).max(20).nullable().default(null),
     /** Non-elite point value (characters). null for plots' negative-value case handled separately. */
     pointValue: z.number().int().min(1).max(25).nullable(),
     /** Elite point value (characters with 2 dice). */

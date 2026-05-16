@@ -36,7 +36,10 @@ export type EngineEvent =
   | { readonly type: 'game.ended'; readonly payload: GameEndedPayload }
   | { readonly type: 'trigger.queued'; readonly payload: TriggerQueuedPayload }
   | { readonly type: 'trigger.resolved'; readonly payload: TriggerResolvedPayload }
-  | { readonly type: 'triggers.ordering-required'; readonly payload: TriggersOrderingRequiredPayload };
+  | { readonly type: 'triggers.ordering-required'; readonly payload: TriggersOrderingRequiredPayload }
+  | { readonly type: 'support.activated'; readonly payload: SupportActivatedPayload }
+  | { readonly type: 'support.discarded'; readonly payload: SupportDiscardedPayload }
+  | { readonly type: 'stability.lost'; readonly payload: StabilityLostPayload };
 
 export type EngineEventType = EngineEvent['type'];
 
@@ -187,5 +190,23 @@ export interface ResourcesGainedPayload {
 
 export interface ResourcesLostPayload {
   readonly playerId: string;
+  readonly amount: number;
+}
+
+export interface SupportActivatedPayload {
+  readonly playerId: string;
+  readonly supportId: string;
+  readonly rolledDice: readonly { instanceId: string; faceIndex: number; face: DieFace }[];
+}
+
+export interface SupportDiscardedPayload {
+  readonly playerId: string;
+  readonly supportId: string;
+  readonly reason: 'stability-depleted' | 'effect';
+}
+
+export interface StabilityLostPayload {
+  readonly playerId: string;
+  readonly supportId: string;
   readonly amount: number;
 }

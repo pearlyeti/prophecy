@@ -4,7 +4,7 @@ import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, commitTriggers } from '../queue/scan.js';
 import { endTurn } from '../state/turn.js';
-import type { GameState, PlayerState } from '../state/types.js';
+import type { CardDie, GameState, PlayerState, SupportState } from '../state/types.js';
 import { IllegalActionError } from './illegal.js';
 import { guardCanAct, runUpkeepAndStartRound } from './pass.js';
 import type { ApplyResult } from './pass.js';
@@ -50,10 +50,71 @@ export function applyPlayCard(
     { type: 'card.played', payload: { playerId, cardId, costPaid: cost } },
   ];
 
-  // Determine card disposition from the first immediate ability that
-  // specifies one, defaulting to 'discard'.
   const abilities = state.cardAbilities[cardId] ?? [];
   const immediateAbilities = abilities.filter((a) => a.kind === 'immediate');
+
+  // Support cards enter play in player.supports instead of the discard pile.
+  if (state.cardTypes[cardId] === 'support') {
+    const stability = state.cardStability[cardId] ?? 0;
+    const dieFacesArr = state.cardDieFaces[cardId];
+    const dice: CardDie[] = dieFacesArr
+      ? [
+          {
+            instanceId: `${cardId}.die.0`,
+            cardId: state.cardCatalogIds[cardId] ?? cardId,
+            faces: dieFacesArr as CardDie['faces'],
+          },
+        ]
+      : [];
+
+    const supportState: SupportState = {
+      id: cardId,
+      cardId: state.cardCatalogIds[cardId] ?? cardId,
+      stability,
+      maxStability: stability,
+      shields: 0,
+      exhausted: false,
+      dice,
+      upgradeIds: [],
+    };
+
+    const updatedPlayerWithSupport: PlayerState = {
+      ...player,
+      resources: player.resources - cost,
+      hand: player.hand.filter((id) => id !== cardId),
+      supports: { ...player.supports, [cardId]: supportState },
+      supportOrder: [...player.supportOrder, cardId],
+    };
+
+    let working: GameState = {
+      ...state,
+      players: { ...state.players, [playerId]: updatedPlayerWithSupport },
+      consecutivePasses: 0,
+    };
+
+    const ctx = { playerId, characterTargets, sourceCharacterId: cardId, ...(catalog !== undefined ? { catalog } : {}) };
+    for (const ability of immediateAbilities) {
+      if (ability.kind !== 'immediate') continue;
+      const result = applyEffects(working, ctx, ability.effects);
+      working = result.state;
+      events.push(...result.events);
+      if (working.winnerId !== null) return { state: working, events };
+    }
+
+    const afterCandidates = collectAfterTriggers(working, events);
+    working = commitTriggers(working, afterCandidates);
+    if (!working.pendingTriggers) {
+      const drained = drainQueue(working);
+      working = drained.state;
+      events.push(...drained.events);
+    }
+    if (working.winnerId !== null) return { state: working, events };
+    const rotated = endTurn(working, playerId, events);
+    if (rotated.allPlayersPassed) return runUpkeepAndStartRound(rotated.state, rotated.events);
+    return { state: rotated.state, events: rotated.events };
+  }
+
+  // Non-support cards: determine disposition (discard or set-aside) and proceed.
   const disposition =
     immediateAbilities.find((a) => a.kind === 'immediate' && a.cardDisposition)?.cardDisposition ??
     'discard';

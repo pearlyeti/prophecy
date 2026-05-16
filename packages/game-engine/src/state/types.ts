@@ -108,6 +108,23 @@ export interface CharacterState {
   readonly upgradeIds: readonly string[];
 }
 
+/**
+ * A support card currently in play. Supports have Stability instead of
+ * Health — only Disrupt and Discard dice sides reduce it; shields block
+ * Stability loss the same way they block character damage. When Stability
+ * reaches 0 the support is immediately discarded and its dice removed.
+ */
+export interface SupportState {
+  readonly id: string;
+  readonly cardId: string;
+  readonly stability: number;
+  readonly maxStability: number;
+  readonly shields: number;
+  readonly exhausted: boolean;
+  readonly dice: readonly CardDie[];
+  readonly upgradeIds: readonly string[];
+}
+
 export interface PlayerState {
   readonly id: string;
   /** Card instance ids currently in the player's hand, in seating order. */
@@ -121,6 +138,10 @@ export interface PlayerState {
   readonly characters: Readonly<Record<string, CharacterState>>;
   /** The character instance ids in their seating/display order on the team. */
   readonly characterOrder: readonly string[];
+  /** Support cards currently in play, keyed by instance id. */
+  readonly supports: Readonly<Record<string, SupportState>>;
+  /** Support instance ids in their display order. */
+  readonly supportOrder: readonly string[];
   /** The battlefield card this player brought to the game. */
   readonly battlefieldCardId: string | null;
   readonly diceInPool: readonly DieInPool[];
@@ -236,4 +257,21 @@ export interface GameState {
    * client to look up card names, ability text, and die face specs.
    */
   readonly cardCatalogIds: Readonly<Record<string, string>>;
+  /**
+   * Card type for each deck-card instance id. Used by applyPlayCard to
+   * route support cards into player.supports instead of player.discard.
+   * Populated by newGameFromDecks; tests set it directly via NewGameInput.
+   */
+  readonly cardTypes: Readonly<Record<string, CardType>>;
+  /**
+   * Stability value for support-card instances. Read by applyPlayCard when
+   * creating the initial SupportState. Populated by newGameFromDecks.
+   */
+  readonly cardStability: Readonly<Record<string, number>>;
+  /**
+   * Six die faces for deck-card instances that carry a die (supports,
+   * some upgrades). Read by applyPlayCard to create the support's CardDie.
+   * Populated by newGameFromDecks; keyed by card instance id.
+   */
+  readonly cardDieFaces: Readonly<Record<string, readonly DieFace[]>>;
 }

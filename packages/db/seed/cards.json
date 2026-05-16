@@ -2195,6 +2195,46 @@
       "landscapeFrameX": null,
       "landscapeFrameY": null,
       "landscapeFrameZoom": null
+    },
+    {
+      "id": "SUP_001",
+      "name": "Scout Walker",
+      "type": "support",
+      "subtypes": ["Vehicle"],
+      "faction": "neutral",
+      "color": "gray",
+      "rarity": "uncommon",
+      "cost": 2,
+      "health": null,
+      "stability": 4,
+      "pointValue": null,
+      "elitePointValue": null,
+      "plotPointValue": null,
+      "isUnique": false,
+      "keywords": [],
+      "displayText": "After this support activates, you may deal 1 damage to a character.",
+      "dieFaces": [
+        { "symbol": "melee", "value": 2, "cost": 0, "modifier": false },
+        { "symbol": "ranged", "value": 2, "cost": 0, "modifier": false },
+        { "symbol": "resource", "value": 1, "cost": 0, "modifier": false },
+        { "symbol": "shield", "value": 1, "cost": 0, "modifier": false },
+        { "symbol": "disrupt", "value": 1, "cost": 0, "modifier": false },
+        { "symbol": "blank", "value": 0, "cost": 0, "modifier": false }
+      ],
+      "abilities": [],
+      "artUrl": null,
+      "artFrameX": null,
+      "artFrameY": null,
+      "artFrameZoom": null,
+      "cardFrameX": null,
+      "cardFrameY": null,
+      "cardFrameZoom": null,
+      "badgeFrameX": null,
+      "badgeFrameY": null,
+      "badgeFrameZoom": null,
+      "landscapeFrameX": null,
+      "landscapeFrameY": null,
+      "landscapeFrameZoom": null
     }
   ]
 }

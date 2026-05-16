@@ -93,11 +93,18 @@ export function runUpkeepAndStartRound(
         ? { ...c, exhausted: false, powerActionUsedThisRound: false }
         : c;
     }
+    const readiedSupports: Record<string, (typeof p.supports)[string]> = {};
+    for (const sid of p.supportOrder) {
+      const s = p.supports[sid];
+      if (!s) continue;
+      readiedSupports[sid] = s.exhausted ? { ...s, exhausted: false } : s;
+    }
     players[id] = {
       ...p,
       diceInPool: [],
       resources: p.resources + UPKEEP_RESOURCES,
       characters: readied,
+      supports: readiedSupports,
     };
   }
   working = { ...state, players };

@@ -56,6 +56,24 @@ export interface NewGameInput {
    * newGameFromDecks; tests leave it unset (defaults to empty).
    */
   readonly cardCatalogIds?: Readonly<Record<string, string>>;
+  /**
+   * Optional per-instance card type map. Used by applyPlayCard to route
+   * support cards into player.supports. Populated by newGameFromDecks;
+   * tests set it directly for support-card scenarios.
+   */
+  readonly cardTypes?: Readonly<Record<string, import('./types.js').CardType>>;
+  /**
+   * Optional stability value for support-card instances. Used by
+   * applyPlayCard when constructing SupportState on play. Populated by
+   * newGameFromDecks; tests set it directly.
+   */
+  readonly cardStability?: Readonly<Record<string, number>>;
+  /**
+   * Optional six-face die specs for deck-card instances that carry a die
+   * (supports, some upgrades). Used by applyPlayCard. Populated by
+   * newGameFromDecks; tests set it directly.
+   */
+  readonly cardDieFaces?: Readonly<Record<string, readonly import('./types.js').DieFace[]>>;
 }
 
 const DEFAULT_HAND_SIZE = 5;
@@ -100,6 +118,9 @@ export function newGame(input: NewGameInput): GameState {
     cardCosts,
     cardAbilities,
     cardCatalogIds,
+    cardTypes,
+    cardStability,
+    cardDieFaces,
   } = input;
 
   for (const id of playerIds) {
@@ -170,6 +191,8 @@ export function newGame(input: NewGameInput): GameState {
       handSize: DEFAULT_HAND_SIZE,
       characters,
       characterOrder: order,
+      supports: {},
+      supportOrder: [],
       battlefieldCardId: playerBattlefieldCardIds[id]!,
       diceInPool: [],
     };
@@ -194,6 +217,9 @@ export function newGame(input: NewGameInput): GameState {
     cardCosts: cardCosts ?? {},
     cardAbilities: cardAbilities ?? {},
     cardCatalogIds: cardCatalogIds ?? {},
+    cardTypes: cardTypes ?? {},
+    cardStability: cardStability ?? {},
+    cardDieFaces: cardDieFaces ?? {},
     queue: emptyQueue,
     pendingTriggers: null,
     nextQueueEntryId: 0,
@@ -289,6 +315,9 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
   const playerBattlefieldCardIds: Record<string, string> = {};
   const cardCatalogIds: Record<string, string> = {};
   const cardCosts: Record<string, number> = {};
+  const cardTypes: Record<string, import('./types.js').CardType> = {};
+  const cardStability: Record<string, number> = {};
+  const cardDieFaces: Record<string, readonly import('./types.js').DieFace[]> = {};
 
   for (const a of assignments) {
     const team: CharacterInput[] = [];
@@ -331,6 +360,13 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
       cardCatalogIds[instanceId] = catalogId;
       const card = byId.get(catalogId);
       cardCosts[instanceId] = card?.cost ?? 0;
+      if (card?.type) cardTypes[instanceId] = card.type as import('./types.js').CardType;
+      if (card?.type === 'support' && card.stability != null) {
+        cardStability[instanceId] = card.stability;
+      }
+      if (card?.dieFaces) {
+        cardDieFaces[instanceId] = card.dieFaces as readonly import('./types.js').DieFace[];
+      }
     });
   }
 
@@ -341,6 +377,9 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
     playerBattlefieldCardIds,
     cardCatalogIds,
     cardCosts,
+    cardTypes,
+    cardStability,
+    cardDieFaces,
   });
 }
 

@@ -56,6 +56,7 @@ function newCard(): Card {
     rarity: 'common',
     cost: 1,
     health: null,
+    stability: null,
     pointValue: null,
     elitePointValue: null,
     plotPointValue: null,

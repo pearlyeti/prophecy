@@ -356,6 +356,8 @@ export const cardSchema = z
     rarity: raritySchema,
     cost: z.number().int().min(0).max(20).nullable().default(null),
     health: z.number().int().min(1).max(99).nullable().default(null),
+    /** Stability for support cards. null for all other card types. */
+    stability: z.number().int().min(1).max(99).nullable().default(null),
     pointValue: z.number().int().min(1).max(99).nullable().default(null),
     elitePointValue: z.number().int().min(1).max(99).nullable().default(null),
     plotPointValue: z.number().int().min(-5).max(5).nullable().default(null),

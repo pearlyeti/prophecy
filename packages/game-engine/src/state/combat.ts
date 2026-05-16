@@ -3,7 +3,7 @@
 // code paths apply damage, shields, and resources identically.
 
 import type { EngineEvent } from '../events.js';
-import type { CharacterState, GameState, PlayerState } from './types.js';
+import type { CharacterState, GameState, PlayerState, SupportState } from './types.js';
 
 export const MAX_SHIELDS = 3;
 
@@ -188,4 +188,110 @@ export function ownerOf(state: GameState, characterId: string): string | null {
 
 export function opponentOf(state: GameState, playerId: string): string | null {
   return state.playerOrder.find((id) => id !== playerId) ?? null;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Support helpers
+// ────────────────────────────────────────────────────────────────────
+
+export function supportOwnerOf(state: GameState, supportId: string): string | null {
+  for (const id of state.playerOrder) {
+    if (state.players[id]?.supports[supportId]) return id;
+  }
+  return null;
+}
+
+export function defeatSupport(
+  state: GameState,
+  ownerId: string,
+  supportId: string,
+  events: EngineEvent[],
+): GameState {
+  const owner = state.players[ownerId];
+  if (!owner) return state;
+  const support = owner.supports[supportId];
+  if (!support) return state;
+
+  events.push({ type: 'support.discarded', payload: { playerId: ownerId, supportId, reason: 'stability-depleted' } });
+
+  const dieIds = new Set(support.dice.map((d) => d.instanceId));
+  const newOrder = owner.supportOrder.filter((id) => id !== supportId);
+  const { [supportId]: _dropped, ...remainingSupports } = owner.supports;
+  const newPool = owner.diceInPool.filter((d) => !dieIds.has(d.instanceId));
+
+  const updated: PlayerState = {
+    ...owner,
+    supports: remainingSupports,
+    supportOrder: newOrder,
+    diceInPool: newPool,
+  };
+
+  return { ...state, players: { ...state.players, [ownerId]: updated } };
+}
+
+export function addSupportShields(
+  state: GameState,
+  ownerId: string,
+  supportId: string,
+  amount: number,
+  events: EngineEvent[],
+): GameState {
+  const player = state.players[ownerId];
+  if (!player) return state;
+  const s = player.supports[supportId];
+  if (!s) return state;
+  const added = Math.min(MAX_SHIELDS - s.shields, amount);
+  events.push({ type: 'shields.placed', payload: { characterId: supportId, amount: added } });
+  if (added <= 0) return state;
+  const updated: SupportState = { ...s, shields: s.shields + added };
+  return {
+    ...state,
+    players: {
+      ...state.players,
+      [ownerId]: { ...player, supports: { ...player.supports, [supportId]: updated } },
+    },
+  };
+}
+
+/**
+ * Reduce a support's stability by `amount`, applying shields first.
+ * At stability 0, immediately defeats the support.
+ */
+export function reduceSupportStability(
+  state: GameState,
+  ownerId: string,
+  supportId: string,
+  amount: number,
+  events: EngineEvent[],
+): GameState {
+  const player = state.players[ownerId];
+  if (!player) return state;
+  const s = player.supports[supportId];
+  if (!s) return state;
+
+  const shieldsUsed = Math.min(s.shields, amount);
+  const stabilityLost = amount - shieldsUsed;
+  const newShields = s.shields - shieldsUsed;
+  const newStability = Math.max(0, s.stability - stabilityLost);
+
+  if (shieldsUsed > 0) {
+    events.push({ type: 'shields.removed', payload: { characterId: supportId, amount: shieldsUsed } });
+  }
+  if (stabilityLost > 0) {
+    events.push({ type: 'stability.lost', payload: { playerId: ownerId, supportId, amount: stabilityLost } });
+  }
+
+  const updatedSupport: SupportState = { ...s, shields: newShields, stability: newStability };
+  let next: GameState = {
+    ...state,
+    players: {
+      ...state.players,
+      [ownerId]: { ...player, supports: { ...player.supports, [supportId]: updatedSupport } },
+    },
+  };
+
+  if (newStability === 0) {
+    next = defeatSupport(next, ownerId, supportId, events);
+  }
+  return next;
 }
