@@ -25,9 +25,17 @@ app.use(
 
 app.get('/health', (c) => c.json({ ok: true, service: 'api' }));
 
-// better-auth handles its own CORS for auth routes; Hono's global CORS
-// middleware runs first — that's fine, better-auth will override as needed.
-app.on(['GET', 'POST'], '/api/auth/**', (c) => auth.handler(c.req.raw));
+// Better Auth handles its own CORS for auth routes (based on trustedOrigins),
+// including OPTIONS preflights. Include OPTIONS here so Hono routes them to
+// Better Auth instead of returning 404, which would break the browser preflight.
+app.on(['GET', 'POST', 'OPTIONS'], '/api/auth/**', async (c) => {
+  try {
+    return await auth.handler(c.req.raw);
+  } catch (err) {
+    console.error('[auth] unhandled error in auth.handler:', err);
+    return c.json({ error: 'internal server error' }, 500);
+  }
+});
 
 app.all('/trpc/*', (c) =>
   fetchRequestHandler({
