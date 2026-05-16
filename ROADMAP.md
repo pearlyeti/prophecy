@@ -77,133 +77,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
-#### WEB-7 — Human-readable activity log
-**Why now.** The current event log renders raw JSON next to event type names — unreadable in play. Testers can't follow what happened or why a game state changed without decoding engine internals.
-
-**Scope.**
-- Write a `formatEvent` function (or grouped formatter) that maps each `EngineEvent` type to a human-readable string. Target strings:
-  - `character.activated` → "**{PlayerName}** activates **{CharacterName}** — rolls [Melee 3] [Shield 1]"
-  - `dice.resolved` + following `damage.dealt` → "**{PlayerName}** resolves [5 Melee] against **{CharacterName}** — deals 4 damage (1 blocked)"
-  - `dice.resolved` without `damage.dealt` → "**{PlayerName}** resolves [3 Resource] — gains 3 resources" / "disrupts" / "places 2 shields on **{CharacterName}**"
-  - `shields.placed` standalone (setup) → "**{PlayerName}** places a shield on **{CharacterName}**"
-  - `card.played` → "**{PlayerName}** plays **{CardName}** (cost {N})"
-  - `dice.rerolled` → "**{PlayerName}** rerolls {N} dice (discards **{CardName}**)"
-  - `character.defeated` → "**{CharacterName}** is defeated"
-  - `battlefield.claimed` → "**{PlayerName}** claims the battlefield"
-  - `round.begin` → "— Round {N} —" (centered divider, not a bullet)
-  - `game.ended` → "**{WinnerName}** wins ({reason})"
-  - `player.passed` with `automatic: true` → skip
-  - `player.passed` explicit → "**{PlayerName}** passes"
-  - `upkeep.player` → "**{PlayerName}** draws {N} and gains {R} resources" (only if N > 0 or R > 0)
-  - All other events (trigger lifecycle, setup roll-off, `turn.advanced`, upkeep begin/end) → skip silently
-- **Die chip component:** small inline badge `[Symbol Value]`, color-coded by symbol.
-- **Event grouping:** `dice.resolved` immediately followed by `damage.dealt` / `shields.placed` / `resources.gained` / `shields.removed` merges into one entry.
-- **Updated EventLog component:** styled `<ol>`, up to 30 entries, scrollable, `round.begin` as a centered divider. Collapsed by default on mobile.
-- **Name resolution:** display names from lobby for player IDs; character/card names from `game.cardCatalogIds` + catalog; fall back to instance-ID suffix if catalog not loaded.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (EventLog component)
-- `packages/game-engine/src/events.ts`
-- `apps/web/src/store.ts` (`recentEvents` shape)
-
-**Out of scope.** Animated event feed. Sound effects. Filtering by player. Exporting the log.
-
-**Done when.** Typecheck clean. Manual smoke: play a full turn (activate → resolve → pass) and confirm the log reads naturally in plain English with die chips; damage events are merged with their resolve; round dividers appear; automatic passes and upkeep noise are hidden; log is scrollable past 10 entries.
-
----
-
-#### API-1 — Apply first DB migration against real Postgres
-**Why now.** Schema is generated but never executed. Until the migration actually runs against a live Postgres, the `db:seed` path and any future API endpoints are blocked.
-
-**Scope.**
-- Run `docker compose -f infra/docker-compose.yml up -d postgres` and confirm it's healthy.
-- Run `pnpm db:migrate`. Capture any drift or errors; resolve them.
-- Smoke-check from psql that the seven tables and five enums exist.
-- Document any one-time setup steps in the README's Local Development section if anything was missing.
-
-**Context to load.**
-- `infra/docker-compose.yml`
-- `packages/db/drizzle.config.ts`
-- `packages/db/migrations/0000_*.sql`
-- `README.md#local-development`
-
-**Out of scope.** New schema. Seed data import.
-
-**Done when.** Migration applies without errors. `psql` confirms tables exist. README's setup instructions are accurate.
-
----
-
-#### API-2 — Persist completed games on game-end
-**Why now.** The engine emits a full event log per game but nothing is ever written to Postgres. Without this the README's "rebuild any completed game from its seed + events" claim isn't true and the schema is dormant.
-
-**Scope.**
-- On `game.ended`, write one row to `game_sessions` (players, winner, duration, seed, summary) and one row per emitted `EngineEvent` to `game_events` (`session_id`, `sequence_number`, `event_type`, `payload jsonb`, `occurred_at`).
-- New `apps/game-server/src/persistence.ts` exposes a `GameWriter` that subscribes to a room's event stream and flushes at game-end in a single Drizzle transaction.
-- Index `game_events(session_id, sequence_number)` for replay reads.
-- One end-to-end test: spin up Postgres via the existing compose stack, play a deterministic concede game, assert both rows land.
-
-**Context to load.**
-- `apps/game-server/src/rooms.ts`
-- `packages/db/src/schema.ts`
-- `packages/game-engine/src/events.ts`
-
-**Out of scope.** Incremental writes during the game (API-3). Replay UI. Anti-cheat post-processing.
-
-**Depends on.** API-1.
-
-**Done when.** Typecheck clean. Concede a game; `select count(*) from game_events where session_id = ?` returns the expected event count; `game_sessions` row has winner, duration, seed.
-
----
-
-#### API-3 — Incremental event-log writes for in-flight durability
-**Why now.** If a game-server process crashes mid-match, the only durable copy of the event log is in-memory. This card closes that gap.
-
-**Scope.**
-- Replace the buffer-until-game-end approach from API-2 with a streaming write: after each engine event is broadcast to clients, append a `game_events` row.
-- Open `game_sessions` at game-start with `status='active'`, seed, and players; update `status='completed'` (or `abandoned`) on `game.ended`.
-- Per-room background write queue (in-process initially; switch to BullMQ if it becomes a bottleneck).
-- On game-server boot, scan `game_sessions where status = 'active'`: if the room is still alive in Redis, leave it; if not, mark `abandoned`.
-
-**Context to load.**
-- `apps/game-server/src/rooms.ts`
-- `apps/game-server/src/persistence.ts` (from API-2)
-- `packages/db/src/schema.ts`
-
-**Out of scope.** Cross-server resume. Live snapshots to Redis.
-
-**Depends on.** API-2.
-
-**Done when.** Typecheck clean. Kill the game-server mid-match and restart; `game_events` for that session contains every event up to the crash; the session is marked `abandoned` on the next boot.
-
----
-
-#### AUTH-1 — Sessions + Google/Discord OAuth via better-auth
-**Why now.** Nothing persistent works without identity: collection, ladder, deck saves, storefront, ranked all need it. Today the only "player" is a transient lobby UUID in localStorage.
-
-**Scope.**
-- Wire `better-auth` in `apps/api` with the Drizzle adapter pointed at our Postgres.
-- Add a `sessions` table to `packages/db/src/schema.ts` if not already present; confirm `users.oauth_provider`, `users.oauth_subject` columns match the README schema overview.
-- Configure Google + Discord OAuth providers (env-var driven: `GOOGLE_CLIENT_ID/SECRET`, `DISCORD_CLIENT_ID/SECRET`).
-- Expose `auth.session` on the tRPC router plus REST `/auth/*` for the OAuth callbacks.
-- `apps/web`: SessionProvider reads from tRPC on boot. Splash gains "Sign in with Google / Discord" buttons; the anonymous lobby flow is gated behind a session.
-- `apps/game-server`: socket handshake reads the session cookie via better-auth's `verifyRequest`; reject connections without a session. Replace transient client UUIDs with `userId` everywhere downstream.
-- Document the new env vars in `README.md` Local Development.
-
-**Context to load.**
-- `apps/api/src/*`
-- `packages/db/src/schema.ts`
-- `apps/web/src/App.tsx`, `apps/web/src/splash.tsx`
-- `apps/game-server/src/index.ts`
-- `packages/protocol/src/*`
-
-**Out of scope.** 2FA, email/password sign-up, account merge, profile editing, role-assignment UI, email verification.
-
-**Depends on.** API-1.
-
-**Done when.** Typecheck clean. Sign in with Google, sign in with Discord, refresh → still signed in, sign out → splash gates. Game-server socket rejects connections without a session.
-
----
-
 #### OPS-2 — Sentry + OpenTelemetry exporter wiring
 **Why now.** We're past the toy-project stage but flying blind. Sentry lets us see every error in test/prod; OTel exporters add tracing across the api ↔ game-server ↔ engine boundary.
 
@@ -222,28 +95,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 **Out of scope.** Backend collector setup (Honeycomb/Tempo). Real-user monitoring (RUM). Performance budgets / alerting rules.
 
 **Done when.** Typecheck clean. Manually throw an error in each service; it surfaces in Sentry. Local dev with a stub collector: spans emitted for one Find Match → game-end round-trip.
-
----
-
-#### OPS-3 — Game-server graceful shutdown on deploy
-**Why now.** Every deploy currently kills active matches. Pairs with SERVER-1 to give players a transparent experience across deploys. Pre-launch requirement.
-
-**Scope.**
-- On `SIGTERM`: stop accepting new connections and refuse new room creation.
-- Existing rooms keep running; the server waits up to a configurable drain timeout (default 5 min) for natural game-end.
-- Broadcast a "server will restart, your game is safe" event so the client can show a banner.
-- After timeout (or all rooms ended), exit cleanly. Railway routes new connections to the fresh instance.
-- The fresh instance picks up nothing — active games stay on the draining instance until SERVER-1's reconnect window handles drops.
-
-**Context to load.**
-- `apps/game-server/src/index.ts`
-- `apps/game-server/src/rooms.ts`
-
-**Out of scope.** Sticky-room ownership coordinator (Redis lock — separate card). Cross-region failover.
-
-**Depends on.** SERVER-1 ✅.
-
-**Done when.** Typecheck clean. `kill -TERM` on a running game-server: new connections refused, an in-flight match plays to completion, then the process exits within the drain window.
 
 ---
 
@@ -268,6 +119,26 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### SERVER-3 — Session-gate designer write routes
+**Why now.** The designer PUT endpoints (`/designer/cards`, `/designer/decks`, `/designer/attributes`, `/designer/card-art/:cardId`) on the deployed game-server are completely unauthenticated — any request can overwrite the card catalog. AUTH-1 shipped real session auth; using it here is a one-session fix.
+
+**Scope.**
+- In `apps/game-server/src/index.ts`, extract a `requireSession(req, res): Promise<string | null>` helper that calls `{API_URL}/api/auth/get-session` with the incoming cookies and returns `userId` or writes a `401` and returns `null`. (Same pattern as the socket middleware.)
+- Call `requireSession` at the top of each PUT route handler: if it returns `null`, return early — the 401 is already sent.
+- GET routes (`GET /designer/cards`, etc.) remain open (read-only, no secrets at stake).
+- No role check needed: any authenticated session can use the designer (it's a dev tool, not publicly linked).
+
+**Context to load.**
+- `apps/game-server/src/index.ts` (designer HTTP routes + socket session-verify middleware)
+
+**Out of scope.** Role-based access control. Admin-only restriction. Rate limiting. Protecting GET routes.
+
+**Depends on.** AUTH-1 ✅.
+
+**Done when.** Typecheck clean. `curl -X PUT /designer/cards` without a valid session cookie → 401. Sign in, replay the request with the session cookie → succeeds.
+
+---
+
 ## Backlog
 
 Rough ideas and deferred work. Not yet specced, not yet claimable. When an item is ready to work on, spec it out, move it to **Up next**, and create a GitHub Issue. See [CLAUDE.md — Promoting a backlog item](CLAUDE.md#promoting-a-backlog-item-to-a-task-card).
@@ -275,12 +146,10 @@ Rough ideas and deferred work. Not yet specced, not yet claimable. When an item 
 #### Engine
 - Replacement-effect interceptor framework — "instead" / "would be" effects that fire before the original event, prevent it being considered to have happened, and disqualify any abilities that would have triggered off it. Likely 2–3 cards once sized.
 - Battlefield controller tiebreak across simultaneous abilities.
-- Keyword resolvers: Ambush (extra-turn plumbing), Guardian (redirect damage), Modify (modifier-die routing), Redeploy (upgrades move on defeat).
-- Special-ability registry with inherent-die semantics (S face).
+- Keyword resolvers: Modify (modifier-die routing), Redeploy (upgrades move on defeat).
 - Ability AST resolver dispatch — full coverage of the op status table below.
 - Replay reconstruction from seed + event log.
 - "After setup" trigger pass.
-- Plots / battlefield abilities (Claim).
 
 #### Services
 - Deck builder API + validator (CRUD to save user decks to DB).
