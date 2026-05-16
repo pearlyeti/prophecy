@@ -66,6 +66,17 @@ export const auth = betterAuth({
   trustedOrigins: webOrigin
     ? [webOrigin]
     : ['http://localhost:5173', 'http://localhost:4173'],
+  // Web app (Vercel) and API (Railway) are on different domains. The browser
+  // treats the API as a third party when the web app fetches sign-in/social,
+  // so Set-Cookie is only honoured if the cookie carries SameSite=None;Secure.
+  // Without this the state cookie is dropped and the OAuth callback fails with
+  // state_mismatch. Only apply in production — localhost dev uses HTTP and
+  // SameSite=None requires Secure (HTTPS).
+  advanced: {
+    defaultCookieAttributes: process.env.NODE_ENV === 'production'
+      ? { sameSite: 'none', secure: true }
+      : {},
+  },
 });
 
 export type Auth = typeof auth;
