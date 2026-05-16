@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { isError } from '@prophecy/protocol';
 import { useEffect, useRef, useState } from 'react';
 
+import { authClient } from './lib/auth-client.js';
 import { ErrorBoundary } from './lib/ErrorBoundary.js';
 import { clearCachedLobby, loadCachedLobby, saveCachedLobby } from './lib/lobbyCache.js';
 import { Designer } from './routes/designer/index.js';
@@ -152,7 +153,19 @@ function SocketBridge() {
     socket.on('game.preview', onPreview);
     socket.on('error', onError);
     socket.on('lobby.matchFound', onMatchFound);
-    if (socket.connected) onConnect();
+
+    if (socket.connected) {
+      onConnect();
+    } else {
+      // Session cookies for the API domain are not sent cross-origin to the game
+      // server. Fetch the session token and pass it as a bearer token so the
+      // game server can validate the session via the API.
+      authClient.getSession().then(({ data }) => {
+        const token = data?.session?.token;
+        if (token) socket.auth = { token };
+        socket.connect();
+      }).catch(() => socket.connect());
+    }
 
     return () => {
       socket.off('connect', onConnect);

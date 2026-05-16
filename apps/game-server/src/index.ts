@@ -390,17 +390,18 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<never, 
 });
 
 // ── Auth middleware ──────────────────────────────────────────────────────────
-// Verify the session cookie on every new connection. Sockets without a valid
-// session are rejected before any game logic runs.
+// Verify the session on every new connection using a bearer token passed in
+// socket.handshake.auth.token. Cookie forwarding doesn't work here because the
+// session cookie is scoped to the API domain, not the game-server domain.
 
 const AUTH_API_URL = process.env.API_URL ?? 'http://localhost:3000';
 
 io.use(async (socket, next) => {
-  const cookie = socket.handshake.headers.cookie;
-  if (!cookie) return next(new Error('unauthorized'));
+  const token = (socket.handshake.auth as { token?: string }).token;
+  if (!token) return next(new Error('unauthorized'));
   try {
     const resp = await fetch(`${AUTH_API_URL}/api/auth/get-session`, {
-      headers: { cookie },
+      headers: { authorization: `Bearer ${token}` },
     });
     if (!resp.ok) return next(new Error('unauthorized'));
     const data = (await resp.json()) as { user?: { id: string } } | null;
