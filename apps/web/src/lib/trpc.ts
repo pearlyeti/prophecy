@@ -3,7 +3,10 @@ import { createTRPCReact, httpBatchLink, type CreateTRPCReact } from '@trpc/reac
 
 export const trpc: CreateTRPCReact<AppRouter, unknown> = createTRPCReact<AppRouter>();
 
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+// In prod the web app proxies /api/auth/* and /trpc/* through Vercel rewrites
+// to the Railway API, so same-origin requests carry first-party cookies. In
+// dev, hit the API directly on localhost:3000.
+const apiUrl = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
 export const trpcClient = trpc.createClient({
   links: [
