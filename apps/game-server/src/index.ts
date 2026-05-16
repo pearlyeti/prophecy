@@ -450,7 +450,7 @@ io.on('connection', (socket) => {
 
         // Unicast to both — they're now in the socket.io room.
         io.to(room.id).emit('lobby.matchFound', payload);
-        console.log(`[game-server] matched ${waiting.playerId} + ${req.playerId} → room ${room.id}`);
+        console.log(`[game-server] matched ${waiting.playerId} + ${userId} → room ${room.id}`);
       } else {
         // No one waiting — add to queue.
         matchmakingQueue.set(userId, {
