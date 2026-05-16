@@ -252,6 +252,40 @@ const modifyDieValueEffect = z.object({
   optional: z.boolean().default(false),
 });
 
+// ENGINE-DS1: deck search schema.
+const searchDispositionSchema = z.enum([
+  'toHand',
+  'toTopOfDeck',
+  'toBottomOfDeck',
+  'shuffleIntoDeck',
+  'discard',
+]);
+
+const searchFilterSchema = z.object({
+  type: cardTypeSchema.optional(),
+  color: colorSchema.optional(),
+});
+
+const searchChoiceSchema = z.object({
+  count: z.number().int().min(1),
+  filter: searchFilterSchema.optional(),
+  disposition: searchDispositionSchema,
+});
+
+const searchDeckEffect = z.object({
+  op: z.literal('searchDeck'),
+  source: z.enum(['ownDeck', 'opponentDeck']),
+  revealCount: z.union([z.number().int().min(1), z.literal('all')]),
+  revealUntil: z.object({
+    type: cardTypeSchema.optional(),
+    color: colorSchema.optional(),
+    count: z.number().int().min(1),
+  }).optional(),
+  choices: z.array(searchChoiceSchema),
+  defaultDisposition: searchDispositionSchema,
+  optional: z.boolean().default(false),
+});
+
 // Stub helper: op name + optional flag + any additional fields.
 function stub(op: string) {
   return z.object({ op: z.literal(op), optional: z.boolean().default(false) }).passthrough();
@@ -292,7 +326,7 @@ export const effectSchema: z.ZodType<Effect> = z.discriminatedUnion('op', [
   stub('discardFromDeck'),
   stub('lookAtCards'),
   stub('revealTopCard'),
-  stub('searchDeck'),
+  searchDeckEffect,
   stub('playCard'),
   stub('returnToHand'),
   stub('takeBattlefieldControl'),
@@ -324,6 +358,7 @@ export const KNOWN_OPS = [
   'removeDie',
   'turnDie',
   'modifyDieValue',
+  'searchDeck',
 ] as const;
 export type KnownOp = (typeof KNOWN_OPS)[number];
 

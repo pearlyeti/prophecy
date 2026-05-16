@@ -16,4 +16,7 @@ export type {
   PlayCondition,
   TargetSpec,
   TriggerEvent,
+  SearchDeckEffect,
+  SearchDisposition,
+  SearchChoice,
 } from '@prophecy/game-engine';

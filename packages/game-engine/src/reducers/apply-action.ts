@@ -1,4 +1,5 @@
 import { applyActivate } from '../actions/activate.js';
+import { applyResolveSearch } from '../actions/resolve-search.js';
 import { applyGuardianIntercept } from '../actions/guardian-intercept.js';
 import { applyOrderTriggersAction } from '../actions/order-triggers.js';
 import { applyClaim } from '../actions/claim.js';
@@ -77,5 +78,7 @@ export function applyAction(state: GameState, action: Action, options?: ApplyOpt
       return applyGuardianIntercept(state, action.playerId, action.dieInstanceId);
     case 'order-triggers':
       return applyOrderTriggersAction(state, action.playerId, action.order);
+    case 'resolve-search':
+      return applyResolveSearch(state, action.playerId, action.selections);
   }
 }

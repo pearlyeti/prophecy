@@ -42,7 +42,10 @@ export type EngineEvent =
   | { readonly type: 'stability.lost'; readonly payload: StabilityLostPayload }
   | { readonly type: 'die.removed'; readonly payload: DieRemovedPayload }
   | { readonly type: 'die.turned'; readonly payload: DieTurnedPayload }
-  | { readonly type: 'die.value-modified'; readonly payload: DieValueModifiedPayload };
+  | { readonly type: 'die.value-modified'; readonly payload: DieValueModifiedPayload }
+  | { readonly type: 'deck.searched'; readonly payload: DeckSearchedPayload }
+  | { readonly type: 'cards.revealed'; readonly payload: CardsRevealedPayload }
+  | { readonly type: 'search.resolved'; readonly payload: SearchResolvedPayload };
 
 export type EngineEventType = EngineEvent['type'];
 
@@ -232,4 +235,23 @@ export interface DieValueModifiedPayload {
   readonly dieInstanceId: string;
   readonly delta: number;
   readonly newValue: number;
+}
+
+export interface DeckSearchedPayload {
+  readonly playerId: string;
+  readonly source: 'ownDeck' | 'opponentDeck';
+  /** Total number of cards drawn into the revealed set. */
+  readonly revealedCount: number;
+}
+
+export interface CardsRevealedPayload {
+  readonly playerId: string;
+  /** Ordered card instance ids in the revealed set. Sent only to the revealing player. */
+  readonly cardIds: readonly string[];
+}
+
+export interface SearchResolvedPayload {
+  readonly playerId: string;
+  /** Counts only — no card ids exposed to the opponent. */
+  readonly selections: readonly { readonly disposition: string; readonly count: number }[];
 }

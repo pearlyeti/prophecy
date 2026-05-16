@@ -230,6 +230,40 @@ export type ModifyDieValueEffect = {
   optional?: boolean;
 };
 
+// ENGINE-DS1: deck search / reveal op.
+
+/** Where a revealed card ends up after a search resolves. */
+export type SearchDisposition = 'toHand' | 'toTopOfDeck' | 'toBottomOfDeck' | 'shuffleIntoDeck' | 'discard';
+
+/**
+ * One pick the searching player makes from the revealed set.
+ * `count` is the maximum number of cards they may take with this disposition.
+ * `filter` optionally restricts which revealed cards qualify for this pick.
+ */
+export interface SearchChoice {
+  readonly count: number;
+  readonly filter?: { readonly type?: string; readonly color?: string };
+  readonly disposition: SearchDisposition;
+}
+
+export type SearchDeckEffect = {
+  op: 'searchDeck';
+  /** Which player's deck to draw from. */
+  source: 'ownDeck' | 'opponentDeck';
+  /** How many cards to reveal from the top. 'all' picks up the whole deck. */
+  revealCount: number | 'all';
+  /**
+   * Stop early once this many cards matching the filter are among the revealed
+   * set (even if revealCount is higher). e.g. "reveal until you find 3 upgrades".
+   */
+  revealUntil?: { readonly type?: string; readonly color?: string; readonly count: number };
+  /** Ordered pick choices the player must resolve. */
+  choices: readonly SearchChoice[];
+  /** Disposition for any revealed cards not covered by a selection. */
+  defaultDisposition: SearchDisposition;
+  optional?: boolean;
+};
+
 // Stub ops: schema-defined, dispatcher throws NotImplementedError.
 // Index signature lets card authors add fields before the op ships.
 type StubEffect<Op extends string> = { op: Op; optional?: boolean; [k: string]: unknown };
@@ -247,6 +281,7 @@ export type Effect =
   | RemoveDieEffect
   | TurnDieEffect
   | ModifyDieValueEffect
+  | SearchDeckEffect
   | StubEffect<'rerollDice'>
   | StubEffect<'resolveDie'>
   | StubEffect<'resolveWithoutRemoving'>
@@ -260,7 +295,6 @@ export type Effect =
   | StubEffect<'discardFromDeck'>
   | StubEffect<'lookAtCards'>
   | StubEffect<'revealTopCard'>
-  | StubEffect<'searchDeck'>
   | StubEffect<'playCard'>
   | StubEffect<'returnToHand'>
   | StubEffect<'takeBattlefieldControl'>

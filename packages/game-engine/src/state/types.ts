@@ -1,5 +1,5 @@
 // Core type definitions for the rules engine.
-import type { Ability } from '../abilities/types.js';
+import type { Ability, Effect, SearchChoice, SearchDisposition } from '../abilities/types.js';
 import type { Queue, PendingTriggers } from '../queue/types.js';
 // These mirror the abstract game system in docs/rules-reference.md.
 // Implementation comes incrementally; this file exists so dependent
@@ -198,6 +198,27 @@ export interface SetupContext {
   readonly shieldRecipientId: string | null;
 }
 
+/**
+ * Mid-action pause state set while a searchDeck effect is waiting for the
+ * player to select cards from the revealed set. All other actions are blocked
+ * for the waiting player until resolve-search is submitted.
+ */
+export interface PendingSearch {
+  readonly waitingForPlayerId: string;
+  /** Cards drawn from the source deck and presented to the player, in draw order. */
+  readonly revealedCardIds: readonly string[];
+  readonly source: 'ownDeck' | 'opponentDeck';
+  readonly choices: readonly SearchChoice[];
+  readonly defaultDisposition: SearchDisposition;
+  /**
+   * Effects remaining in the ability sequence after the searchDeck op.
+   * Applied automatically after resolve-search completes.
+   */
+  readonly remainingEffects: readonly Effect[];
+  /** Player running the ability — used to resume remaining effects. */
+  readonly resumePlayerId: string;
+}
+
 export interface GameState {
   readonly seed: string;
   readonly turnIndex: number;
@@ -300,6 +321,12 @@ export interface GameState {
     readonly activatingCharacterId: string;
     readonly activatingPlayerId: string;
   } | null;
+  /**
+   * Non-null while a searchDeck effect is waiting for the player's picks.
+   * While set, only `resolve-search` (+ concede) is legal for the waiting
+   * player. The opponent may only concede.
+   */
+  readonly pendingSearch: PendingSearch | null;
   /**
    * Lightweight card metadata for targeting criteria resolution, keyed by
    * card instance id. Populated by newGameFromDecks; tests inject it via

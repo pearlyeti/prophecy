@@ -74,4 +74,15 @@ export type Action =
       type: 'order-triggers';
       playerId: string;
       order: readonly string[];
+    }
+  | {
+      /**
+       * Resolve a pending searchDeck effect. The player chooses which
+       * revealed cards to keep (per each SearchChoice) and the engine
+       * applies dispositions to all revealed cards then resumes the
+       * ability sequence.
+       */
+      type: 'resolve-search';
+      playerId: string;
+      selections: readonly { readonly choiceIndex: number; readonly cardIds: readonly string[] }[];
     };
