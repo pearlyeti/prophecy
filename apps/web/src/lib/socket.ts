@@ -18,8 +18,11 @@ export function getSocket(): GameSocket {
   // Default transports (polling → upgrade to websocket). Forcing
   // 'websocket' only made iOS Safari hang at CONNECTING when WS
   // couldn't open — polling fallback restores connectivity.
+  // autoConnect: false — SocketBridge sets socket.auth.token before connecting
+  // because session cookies for the API domain are not sent cross-origin to
+  // the game server; bearer token auth is used instead.
   cached = io(url, {
-    autoConnect: true,
+    autoConnect: false,
     timeout: 8000,
   });
 

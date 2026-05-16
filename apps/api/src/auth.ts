@@ -1,12 +1,16 @@
 import { createDb, schema } from '@prophecy/db';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { bearer } from 'better-auth/plugins';
 
 const DB_URL =
   process.env.DATABASE_URL ?? 'postgres://prophecy:prophecy@localhost:5432/prophecy';
 
 const BETTER_AUTH_URL = process.env.API_PUBLIC_URL ?? 'http://localhost:3000';
 const BETTER_AUTH_SECRET = process.env.AUTH_SECRET ?? 'dev-secret-replace-me';
+
+// Strip trailing slash so origin comparisons don't fail on a mismatch.
+const webOrigin = process.env.WEB_PUBLIC_URL?.replace(/\/+$/, '');
 
 export const auth = betterAuth({
   baseURL: BETTER_AUTH_URL,
@@ -20,20 +24,31 @@ export const auth = betterAuth({
       verification: schema.authVerifications,
     },
   }),
+  // bearer plugin lets the game server validate session tokens via
+  // Authorization: Bearer <token> instead of forwarding cookies cross-domain.
+  plugins: [bearer()],
   socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-      enabled: !!process.env.GOOGLE_CLIENT_ID,
-    },
-    discord: {
-      clientId: process.env.DISCORD_CLIENT_ID ?? '',
-      clientSecret: process.env.DISCORD_CLIENT_SECRET ?? '',
-      enabled: !!process.env.DISCORD_CLIENT_ID,
-    },
+    // Only register a provider when both credentials are present; an empty
+    // clientId with enabled:false can cause Better Auth to throw a 500.
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : {}),
+    ...(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
+      ? {
+          discord: {
+            clientId: process.env.DISCORD_CLIENT_ID,
+            clientSecret: process.env.DISCORD_CLIENT_SECRET,
+          },
+        }
+      : {}),
   },
-  trustedOrigins: process.env.WEB_PUBLIC_URL
-    ? [process.env.WEB_PUBLIC_URL]
+  trustedOrigins: webOrigin
+    ? [webOrigin]
     : ['http://localhost:5173', 'http://localhost:4173'],
 });
 

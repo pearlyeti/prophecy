@@ -12,11 +12,11 @@ import { startWorkers } from './workers/index.js';
 const app = new Hono();
 
 app.use('*', logger());
-// Dev-friendly CORS: reflect any origin. Server-authoritative engine
-// means CORS isn't a security boundary for us. Lock down via
-// WEB_PUBLIC_URL in prod.
+// Apply CORS only to tRPC routes. Better Auth handles its own CORS
+// (including preflight) for /api/auth/**; adding Hono CORS there
+// causes duplicate headers and pre-empts Better Auth's preflight logic.
 app.use(
-  '*',
+  '/trpc/*',
   cors({
     origin: process.env.WEB_PUBLIC_URL ?? ((origin) => origin ?? '*'),
     credentials: true,
