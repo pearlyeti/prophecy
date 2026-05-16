@@ -12,23 +12,19 @@ import { startWorkers } from './workers/index.js';
 const app = new Hono();
 
 app.use('*', logger());
-// Apply CORS only to tRPC routes. Better Auth handles its own CORS
-// (including preflight) for /api/auth/**; adding Hono CORS there
-// causes duplicate headers and pre-empts Better Auth's preflight logic.
-app.use(
-  '/trpc/*',
-  cors({
-    origin: process.env.WEB_PUBLIC_URL ?? ((origin) => origin ?? '*'),
-    credentials: true,
-  }),
-);
+
+// Shared CORS config. Better Auth does not respond to OPTIONS preflights on
+// its own, so Hono must handle them for /api/auth/** as well as /trpc/*.
+const corsMiddleware = cors({
+  origin: process.env.WEB_PUBLIC_URL ?? ((origin) => origin ?? '*'),
+  credentials: true,
+});
+app.use('/api/auth/*', corsMiddleware);
+app.use('/trpc/*', corsMiddleware);
 
 app.get('/health', (c) => c.json({ ok: true, service: 'api' }));
 
-// Better Auth handles its own CORS for auth routes (based on trustedOrigins),
-// including OPTIONS preflights. Include OPTIONS here so Hono routes them to
-// Better Auth instead of returning 404, which would break the browser preflight.
-app.on(['GET', 'POST', 'OPTIONS'], '/api/auth/**', async (c) => {
+app.on(['GET', 'POST'], '/api/auth/**', async (c) => {
   try {
     return await auth.handler(c.req.raw);
   } catch (err) {
