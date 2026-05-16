@@ -1,9 +1,11 @@
 // Shared die face texture generator used by the board dice (DicePool3D).
 // Produces a 512×512 CanvasTexture with the die's value and symbol on the card's base color.
 //
-// UV layout notes: with DIE_RADIUS=0.16 on a 0.8-unit die, the chamfered edges
-// consume ~20% of UV space on each side. Keep all text within canvas y=[15%, 75%]
-// to stay on the flat face and avoid the curved edges.
+// UV orientation: RoundedBoxGeometry maps canvas_y → die horizontal axis and
+// canvas_x → die vertical axis (as seen from the overhead camera). All text is
+// therefore drawn at canvas_y = S/2 (die center horizontally) and at varying
+// canvas_x positions (die vertical placement), rotated 90° CW so characters
+// appear upright when the UV axes are applied.
 
 import * as THREE from 'three';
 
@@ -34,7 +36,6 @@ export function symLabel(s: string): string {
   }
 }
 
-// Full words for the 3D die face texture.
 function faceWord(s: string): string {
   switch (s) {
     case 'melee':    return 'Melee';
@@ -51,7 +52,8 @@ function faceWord(s: string): string {
   }
 }
 
-// Sets ctx.font and returns the size that fits text within maxWidth.
+// Measures text at startSize and scales down to fit maxWidth; returns the used size.
+// ctx.font is set to the returned size before returning.
 function fittedSize(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -62,7 +64,26 @@ function fittedSize(
   ctx.font = `${weight} ${startSize}px ui-sans-serif, sans-serif`;
   const w = ctx.measureText(text).width;
   if (w <= maxWidth) return startSize;
-  return Math.floor(startSize * (maxWidth / w));
+  const size = Math.floor(startSize * (maxWidth / w));
+  ctx.font = `${weight} ${size}px ui-sans-serif, sans-serif`;
+  return size;
+}
+
+// Draws text centered at (cx, cy) rotated 90° CW — compensates for the
+// RoundedBoxGeometry UV rotation so the text appears upright on the die face.
+function drawRotated(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
 }
 
 export function makeFaceTexture(
@@ -72,7 +93,6 @@ export function makeFaceTexture(
   baseColor: string,
   textColor: string,
 ): THREE.CanvasTexture {
-  // 512×512 gives enough mipmap headroom to stay legible at small on-screen sizes.
   const S = 512;
   const c = document.createElement('canvas');
   c.width = S; c.height = S;
@@ -88,17 +108,17 @@ export function makeFaceTexture(
   ctx.fillRect(0, 0, S, S);
 
   ctx.fillStyle = textColor;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
 
-  // Safe content zone: canvas y = [15%, 75%] avoids the chamfered edge UV regions.
-  // The pair is centered on CENTER_Y; GAP separates the two baselines.
-  const CENTER_Y = Math.round(S * 0.44);
-  const maxW     = Math.round(S * 0.80);
-  const GAP      = Math.round(S * 0.04);
-  // Value is 1.5× the label: 0.30 / 0.20 = 1.5
-  const V_MAX    = Math.round(S * 0.30); // ~154 px
-  const L_MAX    = Math.round(S * 0.20); // ~102 px
+  // UV axis mapping:
+  //   canvas_y = S/2  → die center horizontally
+  //   canvas_x        → die vertical position (canvas_x/S = fraction from die top)
+  // Safe canvas_x zone for the flat face: [~15%, ~75%] of S = [77, 384]
+  // Safe canvas_y zone (text width along die horizontal): [~20%, ~80%] of S → maxW = 0.60*S
+
+  const maxW   = Math.round(S * 0.60); // max text extent along die horizontal
+  const V_MAX  = Math.round(S * 0.28); // max value font (sets die-vertical height of value)
+  const L_MAX  = Math.round(S * 0.18); // max label font
+  const GAP    = Math.round(S * 0.04); // gap between value and label on die vertical axis
 
   if (symbol === 'blank') {
     // intentionally empty
@@ -106,7 +126,7 @@ export function makeFaceTexture(
   } else if (symbol === 'special') {
     const size = fittedSize(ctx, 'Special', maxW, Math.round(S * 0.22), 'bold');
     ctx.font = `bold ${size}px ui-sans-serif, sans-serif`;
-    ctx.fillText('Special', S / 2, CENTER_Y);
+    drawRotated(ctx, 'Special', S / 2, S / 2);
 
   } else {
     const valueStr = modifier ? `+${value}` : (value > 0 ? `${value}` : '');
@@ -116,30 +136,28 @@ export function makeFaceTexture(
       const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
       const lSize = fittedSize(ctx, label,    maxW, L_MAX, '');
 
-      // yValue / yLabel derived so the pair is centered on CENTER_Y:
-      //   block top    = yValue − vSize/2
-      //   block bottom = yLabel + lSize/2
-      //   center       = CENTER_Y  (proof: cancels identically)
-      const yValue = CENTER_Y - GAP / 2 - lSize / 2;
-      const yLabel = CENTER_Y + GAP / 2 + vSize / 2;
+      // Center the value+label block on die vertical axis (canvas_x = S/2 = die center).
+      // Block visual top  = vCX - vSize/2
+      // Block visual bot  = lCX + lSize/2
+      // Center            = (top + bot)/2 = S/2  ← verified algebraically
+      const vCX = S / 2 - GAP / 2 - lSize / 2;
+      const lCX = S / 2 + GAP / 2 + vSize / 2;
 
       ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
-      ctx.fillText(valueStr, S / 2, yValue);
+      drawRotated(ctx, valueStr, vCX, S / 2);
 
       ctx.globalAlpha = 0.85;
       ctx.font = `${lSize}px ui-sans-serif, sans-serif`;
-      ctx.fillText(label, S / 2, yLabel);
+      drawRotated(ctx, label, lCX, S / 2);
       ctx.globalAlpha = 1;
 
     } else if (valueStr) {
-      const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
-      ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
-      ctx.fillText(valueStr, S / 2, CENTER_Y);
+      fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
+      drawRotated(ctx, valueStr, S / 2, S / 2);
 
     } else if (label) {
-      const lSize = fittedSize(ctx, label, maxW, L_MAX, '');
-      ctx.font = `${lSize}px ui-sans-serif, sans-serif`;
-      ctx.fillText(label, S / 2, CENTER_Y);
+      fittedSize(ctx, label, maxW, L_MAX, '');
+      drawRotated(ctx, label, S / 2, S / 2);
     }
   }
 
