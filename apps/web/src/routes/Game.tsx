@@ -1865,7 +1865,8 @@ function BattlefieldRow({
   selectionMode,
   activatableIds,
   resolvableSymbols,
-  isEligibleForAbility,
+  actionableIds,
+  powerActionableIds,
   onDetailTap,
   onUpgradeTap,
 }: {
@@ -1880,8 +1881,10 @@ function BattlefieldRow({
   selectionMode: SelectionMode | null;
   activatableIds: readonly string[];
   resolvableSymbols: readonly string[];
-  /** True when it's this player's turn, action phase, and no active flow — badges can go green. */
-  isEligibleForAbility?: boolean;
+  /** Character IDs with at least one usable Action ability. From engine's LegalActions. */
+  actionableIds: readonly string[];
+  /** Character IDs with at least one usable Power Action ability. From engine's LegalActions. */
+  powerActionableIds: readonly string[];
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -1932,11 +1935,10 @@ function BattlefieldRow({
         const abilityBadges = (charCard?.abilities ?? [])
           .map((ab, i) => ({ abilityIndex: i, kind: ab.kind as 'action' | 'powerAction', eligible: false }))
           .filter((b) => b.kind === 'action' || b.kind === 'powerAction')
-          .map((b) => {
-            // Power action eligibility reads from authoritative engine state — never tracked client-side.
-            const notUsed = b.kind !== 'powerAction' || !char.powerActionUsedThisRound;
-            return { ...b, eligible: !!(isEligibleForAbility && notUsed) };
-          });
+          .map((b) => ({
+            ...b,
+            eligible: b.kind === 'action' ? actionableIds.includes(cid) : powerActionableIds.includes(cid),
+          }));
 
         const handleTap = () => {
           if (targetRing && activeFlow?.kind === 'resolve') {
@@ -2101,6 +2103,8 @@ function OpponentZone({
           selectionMode={selectionMode}
           activatableIds={[]}
           resolvableSymbols={[]}
+          actionableIds={[]}
+          powerActionableIds={[]}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -2146,7 +2150,8 @@ function PlayerZone({
   );
   const activatableIds = legalActions?.activatableCharacterIds ?? [];
   const resolvableSymbols = legalActions?.resolvableSymbols ?? [];
-  const isEligibleForAbility = isMyTurn && inActionPhase && activeFlow === null;
+  const actionableIds = legalActions?.actionableCardIds ?? [];
+  const powerActionableIds = legalActions?.powerActionableCardIds ?? [];
 
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1 flex-col justify-start gap-2 overflow-hidden pt-1">
@@ -2164,7 +2169,8 @@ function PlayerZone({
           selectionMode={selectionMode}
           activatableIds={activatableIds}
           resolvableSymbols={resolvableSymbols}
-          isEligibleForAbility={isEligibleForAbility}
+          actionableIds={actionableIds}
+          powerActionableIds={powerActionableIds}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />

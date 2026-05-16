@@ -12,6 +12,38 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### ENGINE-K1 — Guardian keyword
+**Why now.** Guardian is a keyword already defined in the `Keyword` type and described in the rules reference, and the before-trigger infrastructure (ENGINE-7) is in place. Implementing it now validates the mid-action pause pattern needed for all optional "before" abilities and unlocks Guardian cards in the card pool.
+
+**Scope.**
+1. Add `cardKeywords: Readonly<Record<string, readonly Keyword[]>>` to `GameState` in `packages/game-engine/src/state/types.ts` if it does not already exist. Populate it from the catalog in the same place `cardAbilities`, `cardTypes`, and `cardDieFaces` are populated (likely `newGame` or the game factory).
+2. Add `pendingGuardian: { activatingCharacterId: string; activatingPlayerId: string } | null` to `GameState`. Initialize to `null`.
+3. Add a new action type `guardian.intercept` to the action discriminated union: `{ kind: 'guardian.intercept'; playerId: string; dieInstanceId: string | null }` — `null` means the Guardian owner skips the optional intercept.
+4. In `applyActivate` (`packages/game-engine/src/actions/activate.ts`): after validating the activation, check whether the character has the `'guardian'` keyword (via `state.cardKeywords`) AND the opponent has at least one die showing `'melee'`, `'ranged'`, or `'indirect'` in their dice pool. If so, set `pendingGuardian` and return early — do NOT roll dice yet.
+5. Add `applyGuardianIntercept` handler (new file `packages/game-engine/src/actions/guardian-intercept.ts`): validate `pendingGuardian` is set and the acting player matches `activatingPlayerId`. If `dieInstanceId` is non-null, remove that die from the opponent's pool and deal damage equal to the die's face value to the Guardian character (respecting shields-block-first, and checking defeat). Clear `pendingGuardian`. Then proceed with the dice roll and turn-rotation logic (reuse or extract the tail of `applyActivate`).
+6. Update `getLegalActions` (`packages/game-engine/src/state/legal-actions.ts`): when `pendingGuardian` is set and `playerId` matches `activatingPlayerId`, expose `guardianInterceptableDieIds: readonly string[]` (the IDs of opponent melee/ranged/indirect dice) and `canSkipGuardian: true`. All other actions should be blocked while `pendingGuardian` is non-null (same pattern as `pendingTriggers`).
+7. Wire `applyGuardianIntercept` into the `applyAction` dispatch table.
+8. Add tests covering: activation of a Guardian character with opponent damage dice sets `pendingGuardian` and does not roll yet; `guardian.intercept` with a chosen die removes it from the opponent's pool and deals its value as damage to the Guardian; `guardian.intercept` with `null` skips and proceeds to roll; defeat of the Guardian character by its own intercept damage triggers defeat handling; Guardian character with no opponent damage dice activates normally (no pause).
+
+**Context to load.**
+- `packages/game-engine/src/state/types.ts`
+- `packages/game-engine/src/state/legal-actions.ts`
+- `packages/game-engine/src/actions/activate.ts`
+- `packages/game-engine/src/actions/apply-action.ts`
+- `packages/game-engine/src/abilities/types.ts`
+- `docs/rules-reference.md` (Guardian keyword section and "before" ability rules)
+
+**Out of scope.** Ambush, Modify, Redeploy keywords. Guardian granted dynamically at runtime by an ability effect (`grantKeyword` op). UI affordance for the `guardian.intercept` prompt (separate WEB card). Any Guardian on a support card (Guardian only appears on characters per current card pool).
+
+**Done when.**
+- Typecheck clean across the workspace (`pnpm typecheck`).
+- All existing engine tests still pass.
+- New tests (≥ 5) covering the scenarios in Scope §8 all pass.
+- `pendingGuardian` is `null` in a normal (non-Guardian) activation flow — no regression.
+- A Guardian character with opponent damage dice in the pool: `getLegalActions` returns non-empty `guardianInterceptableDieIds` and `canSkipGuardian: true`; no `activatableCharacterIds` or other actions are available while the intercept is pending.
+
+---
+
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
