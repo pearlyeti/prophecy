@@ -6,17 +6,18 @@ import { useEffect, useState } from 'react';
 
 import { AttributesTab } from './AttributesTab.js';
 import { CardsTab } from './CardsTab.js';
+import { ChangesTab } from './ChangesTab.js';
 import { DecksTab } from './DecksTab.js';
-import { PendingPanel } from './PendingPanel.js';
 import { fetchAttributes, fetchCards, fetchCommitted, fetchDecks } from './api.js';
 
-type Tab = 'cards' | 'decks' | 'attributes';
+type Tab = 'cards' | 'decks' | 'attributes' | 'changes';
 
 export function Designer() {
   const [tab, setTab] = useState<Tab>(() => {
     const p = window.location.pathname;
     if (p.endsWith('/decks')) return 'decks';
     if (p.endsWith('/attributes')) return 'attributes';
+    if (p.endsWith('/changes')) return 'changes';
     return 'cards';
   });
   const [cards, setCards] = useState<readonly Card[] | null>(null);
@@ -24,6 +25,7 @@ export function Designer() {
   const [attributes, setAttributes] = useState<AttributeCatalog | null>(null);
   const [committedCards, setCommittedCards] = useState<readonly Card[] | null>(null);
   const [committedDecks, setCommittedDecks] = useState<readonly Deck[] | null>(null);
+  const [committedAttributes, setCommittedAttributes] = useState<AttributeCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = async () => {
@@ -40,6 +42,7 @@ export function Designer() {
       if (committed?.enabled) {
         setCommittedCards(committed.cards);
         setCommittedDecks(committed.decks);
+        setCommittedAttributes(committed.attributes);
       }
       setError(null);
     } catch (e) {
@@ -58,7 +61,11 @@ export function Designer() {
 
   const setTabAndUrl = (next: Tab) => {
     setTab(next);
-    const path = next === 'cards' ? '/designer/cards' : next === 'decks' ? '/designer/decks' : '/designer/attributes';
+    const path =
+      next === 'cards' ? '/designer/cards' :
+      next === 'decks' ? '/designer/decks' :
+      next === 'attributes' ? '/designer/attributes' :
+      '/designer/changes';
     if (window.location.pathname !== path) {
       window.history.replaceState(null, '', path);
     }
@@ -81,6 +88,7 @@ export function Designer() {
         <TabButton active={tab === 'cards'} onClick={() => setTabAndUrl('cards')}>Cards</TabButton>
         <TabButton active={tab === 'decks'} onClick={() => setTabAndUrl('decks')}>Decks</TabButton>
         <TabButton active={tab === 'attributes'} onClick={() => setTabAndUrl('attributes')}>Attributes</TabButton>
+        <TabButton active={tab === 'changes'} onClick={() => setTabAndUrl('changes')}>Changes</TabButton>
       </nav>
 
       {error && (
@@ -95,11 +103,20 @@ export function Designer() {
         <CardsTab cards={cards} attributes={attributes} committedCards={committedCards ?? undefined} onReload={reload} />
       ) : tab === 'decks' ? (
         <DecksTab cards={cards} decks={decks} committedDecks={committedDecks ?? undefined} onReload={reload} />
-      ) : (
+      ) : tab === 'attributes' ? (
         <AttributesTab attributes={attributes} onReload={reload} />
+      ) : (
+        <ChangesTab
+          cards={cards}
+          decks={decks}
+          attributes={attributes}
+          committedCards={committedCards ?? undefined}
+          committedDecks={committedDecks ?? undefined}
+          committedAttributes={committedAttributes ?? undefined}
+          onReload={reload}
+        />
       )}
     </main>
-    <PendingPanel onCommitSuccess={reload} />
     </>
   );
 }

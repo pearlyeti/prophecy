@@ -239,7 +239,7 @@ const httpServer = createServer(async (req, res) => {
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ enabled: true, cards: snap.cards, decks: snap.decks }));
+    res.end(JSON.stringify({ enabled: true, cards: snap.cards, decks: snap.decks, attributes: snap.attributes }));
     return;
   }
 
@@ -263,7 +263,10 @@ const httpServer = createServer(async (req, res) => {
     }
     try {
       const body = await readJsonBody(req);
-      const { message } = body as { message?: string };
+      const { message, selection } = body as {
+        message?: string;
+        selection?: { cardIds?: string[]; deckIds?: string[]; includeAttributes?: boolean };
+      };
       if (!message || typeof message !== 'string' || message.trim().length === 0) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'message is required' }));
@@ -274,7 +277,7 @@ const httpServer = createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'message must be 500 characters or fewer' }));
         return;
       }
-      const result = await commitCatalog(message.trim());
+      const result = await commitCatalog(message.trim(), selection);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, ...result }));
     } catch (e) {

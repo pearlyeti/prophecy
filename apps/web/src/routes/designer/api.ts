@@ -92,6 +92,7 @@ export interface CommittedCatalog {
   enabled: boolean;
   cards: Card[];
   decks: Deck[];
+  attributes: AttributeCatalog;
 }
 
 export async function fetchCommitted(): Promise<CommittedCatalog> {
@@ -121,11 +122,20 @@ export async function fetchPending(): Promise<PendingChanges> {
   return (await r.json()) as PendingChanges;
 }
 
-export async function commitChanges(message: string): Promise<{ sha: string; url: string }> {
+export interface CommitSelection {
+  cardIds?: string[];
+  deckIds?: string[];
+  includeAttributes?: boolean;
+}
+
+export async function commitChanges(
+  message: string,
+  selection?: CommitSelection,
+): Promise<{ sha: string; url: string }> {
   const r = await fetch(`${serverUrl()}/designer/commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(selection ? { message, selection } : { message }),
   });
   if (!r.ok) {
     const body = (await r.json().catch(() => ({ error: r.statusText }))) as { error?: string };

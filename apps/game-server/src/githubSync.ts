@@ -214,7 +214,17 @@ export function getPendingChanges(): PendingChanges {
   };
 }
 
-export async function commitCatalog(message: string): Promise<{ sha: string; url: string }> {
+/** Optional filter for partial commits — omit a field to include all pending changes of that type. */
+export interface CommitSelection {
+  cardIds?: string[];
+  deckIds?: string[];
+  includeAttributes?: boolean;
+}
+
+export async function commitCatalog(
+  message: string,
+  selection?: CommitSelection,
+): Promise<{ sha: string; url: string }> {
   if (!committedSnapshot) throw new Error('GitHub sync snapshot not loaded — restart the server');
 
   const pending = getPendingChanges();
@@ -222,12 +232,31 @@ export async function commitCatalog(message: string): Promise<{ sha: string; url
   const currentDecks = getDecks();
   const currentAttrs = getAttributes();
 
+  // Apply selection filter (undefined = include all)
+  const sel = {
+    cardIds: selection?.cardIds ?? null,
+    deckIds: selection?.deckIds ?? null,
+    includeAttributes: selection?.includeAttributes ?? null,
+  };
+  const filterCards = (ids: string[]) => (sel.cardIds ? ids.filter((id) => sel.cardIds!.includes(id)) : ids);
+  const filterDecks = (ids: string[]) => (sel.deckIds ? ids.filter((id) => sel.deckIds!.includes(id)) : ids);
+
+  const cardAdded = filterCards(pending.cards.added);
+  const cardModified = filterCards(pending.cards.modified);
+  const cardDeleted = filterCards(pending.cards.deleted);
+
+  const deckAdded = filterDecks(pending.decks.added);
+  const deckModified = filterDecks(pending.decks.modified);
+  const deckDeleted = filterDecks(pending.decks.deleted);
+
+  const includeAttrs = sel.includeAttributes !== null ? sel.includeAttributes : pending.attributes.modified;
+
   type TreeEntry = { path: string; mode: string; type: string; content?: string; sha?: null };
   const treeEntries: TreeEntry[] = [];
 
-  // Card file changes (per-card files)
+  // Card file changes (per-card files — each card is its own file so partial commit is exact)
   const currentCardMap = new Map(currentCards.map((c) => [c.id, c]));
-  for (const id of [...pending.cards.added, ...pending.cards.modified]) {
+  for (const id of [...cardAdded, ...cardModified]) {
     treeEntries.push({
       path: `packages/db/seed/cards/${id}.json`,
       mode: '100644',
@@ -235,24 +264,30 @@ export async function commitCatalog(message: string): Promise<{ sha: string; url
       content: JSON.stringify(currentCardMap.get(id), null, 2) + '\n',
     });
   }
-  for (const id of pending.cards.deleted) {
+  for (const id of cardDeleted) {
     treeEntries.push({ path: `packages/db/seed/cards/${id}.json`, mode: '100644', type: 'blob', sha: null });
   }
 
-  // Decks (single file, committed whole)
-  const hasDecksChanges =
-    pending.decks.added.length > 0 || pending.decks.modified.length > 0 || pending.decks.deleted.length > 0;
+  // Decks (single file — partial commit merges selected changes onto the committed base)
+  const hasDecksChanges = deckAdded.length > 0 || deckModified.length > 0 || deckDeleted.length > 0;
   if (hasDecksChanges) {
+    const currentDeckMap = new Map(currentDecks.map((d) => [d.id, d]));
+    const deletedSet = new Set(deckDeleted);
+    const modifiedSet = new Set(deckModified);
+    const mergedDecks = committedSnapshot.decks
+      .filter((d) => !deletedSet.has(d.id))
+      .map((d) => (modifiedSet.has(d.id) ? currentDeckMap.get(d.id)! : d));
+    for (const id of deckAdded) mergedDecks.push(currentDeckMap.get(id)!);
     treeEntries.push({
       path: 'packages/db/seed/decks.json',
       mode: '100644',
       type: 'blob',
-      content: JSON.stringify({ decks: [...currentDecks] }, null, 2) + '\n',
+      content: JSON.stringify({ decks: mergedDecks }, null, 2) + '\n',
     });
   }
 
-  // Attributes (single file, committed whole)
-  if (pending.attributes.modified) {
+  // Attributes (single file)
+  if (includeAttrs) {
     treeEntries.push({
       path: 'packages/db/seed/attributes.json',
       mode: '100644',
