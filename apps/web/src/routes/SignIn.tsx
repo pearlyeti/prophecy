@@ -1,37 +1,128 @@
+import { useState } from 'react';
 import { authClient } from '../lib/auth-client.js';
 
 export function SignIn() {
-  const signIn = (provider: 'google' | 'discord') =>
+  const [mode, setMode] = useState<'oauth' | 'email'>('oauth');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const signInSocial = (provider: 'google' | 'discord') =>
     authClient.signIn.social({ provider, callbackURL: window.location.origin + '/' });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const result = isSignUp
+        ? await authClient.signUp.email({ email, password, name: email, callbackURL: '/' })
+        : await authClient.signIn.email({ email, password, callbackURL: '/' });
+      if (result.error) setError(result.error.message ?? 'Something went wrong.');
+    } catch {
+      setError('Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-dvh flex flex-col items-center justify-center gap-10 px-6 py-12 text-center">
       <header className="space-y-3">
         <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">Prophecy</h1>
-        <p className="max-w-md text-balance text-neutral-400">
-          Sign in to play.
-        </p>
+        <p className="max-w-md text-balance text-neutral-400">Sign in to play.</p>
       </header>
 
-      <div className="w-full max-w-sm space-y-3">
-        <button
-          type="button"
-          onClick={() => signIn('google')}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-base font-medium text-neutral-100 transition hover:border-neutral-500 min-h-[44px]"
-        >
-          <GoogleIcon />
-          Sign in with Google
-        </button>
+      {mode === 'oauth' ? (
+        <div className="w-full max-w-sm space-y-3">
+          <button
+            type="button"
+            onClick={() => signInSocial('google')}
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-base font-medium text-neutral-100 transition hover:border-neutral-500 min-h-[44px]"
+          >
+            <GoogleIcon />
+            Sign in with Google
+          </button>
 
-        <button
-          type="button"
-          onClick={() => signIn('discord')}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-base font-medium text-neutral-100 transition hover:border-neutral-500 min-h-[44px]"
-        >
-          <DiscordIcon />
-          Sign in with Discord
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => signInSocial('discord')}
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-base font-medium text-neutral-100 transition hover:border-neutral-500 min-h-[44px]"
+          >
+            <DiscordIcon />
+            Sign in with Discord
+          </button>
+
+          <div className="flex items-center gap-3 py-1">
+            <div className="h-px flex-1 bg-neutral-800" />
+            <span className="text-xs text-neutral-600">or</span>
+            <div className="h-px flex-1 bg-neutral-800" />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMode('email')}
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-base font-medium text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-100 min-h-[44px]"
+          >
+            Continue with email
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-3">
+          <div className="text-left text-sm font-medium text-neutral-300">
+            {isSignUp ? 'Create an account' : 'Sign in with email'}
+          </div>
+
+          <input
+            type="email"
+            required
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-base text-neutral-100 placeholder-neutral-500 outline-none transition focus:border-neutral-400 min-h-[44px]"
+          />
+
+          <input
+            type="password"
+            required
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-base text-neutral-100 placeholder-neutral-500 outline-none transition focus:border-neutral-400 min-h-[44px]"
+          />
+
+          {error && (
+            <p className="text-left text-sm text-red-400">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg border border-neutral-600 bg-neutral-800 px-4 py-3 text-base font-medium text-neutral-100 transition hover:border-neutral-400 disabled:opacity-50 min-h-[44px]"
+          >
+            {loading ? '…' : isSignUp ? 'Create account' : 'Sign in'}
+          </button>
+
+          <div className="flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={() => { setIsSignUp((v) => !v); setError(null); }}
+              className="text-neutral-400 hover:text-neutral-100 transition min-h-[44px]"
+            >
+              {isSignUp ? 'Already have an account?' : 'No account yet?'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('oauth'); setError(null); }}
+              className="text-neutral-400 hover:text-neutral-100 transition min-h-[44px]"
+            >
+              ← Back
+            </button>
+          </div>
+        </form>
+      )}
     </main>
   );
 }
