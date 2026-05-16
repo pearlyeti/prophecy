@@ -11,6 +11,7 @@ interface Props {
   committedDecks?: readonly Deck[];
   committedAttributes?: AttributeCatalog;
   onReload: () => void;
+  onViewCommit?: (sha: string) => void;
 }
 
 export function ChangesTab({
@@ -20,6 +21,7 @@ export function ChangesTab({
   committedDecks,
   committedAttributes,
   onReload,
+  onViewCommit,
 }: Props) {
   const [pending, setPending] = useState<PendingChanges | null>(null);
   const [loading, setLoading] = useState(false);
@@ -391,9 +393,19 @@ export function ChangesTab({
             {commitResult && (
               <div className="rounded border border-emerald-800 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-300">
                 Committed{' '}
-                <a href={commitResult.url} target="_blank" rel="noreferrer" className="underline">
-                  {commitResult.sha}
-                </a>{' '}
+                {onViewCommit ? (
+                  <button
+                    type="button"
+                    onClick={() => onViewCommit(commitResult.sha)}
+                    className="underline hover:text-emerald-200"
+                  >
+                    {commitResult.sha}
+                  </button>
+                ) : (
+                  <a href={commitResult.url} target="_blank" rel="noreferrer" className="underline">
+                    {commitResult.sha}
+                  </a>
+                )}{' '}
                 to main.
               </div>
             )}

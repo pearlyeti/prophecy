@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { AttributesTab } from './AttributesTab.js';
 import { CardsTab } from './CardsTab.js';
 import { ChangesTab } from './ChangesTab.js';
+import { CommitReportModal } from './CommitReportModal.js';
 import { DecksTab } from './DecksTab.js';
 import { fetchAttributes, fetchCards, fetchCommitted, fetchDecks, fetchPending } from './api.js';
 
@@ -28,6 +29,7 @@ export function Designer() {
   const [committedAttributes, setCommittedAttributes] = useState<AttributeCatalog | null>(null);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [commitReportSha, setCommitReportSha] = useState<string | null>(null);
 
   const reload = async () => {
     try {
@@ -85,6 +87,7 @@ export function Designer() {
   };
 
   return (
+    <>
     <main className="min-h-dvh bg-neutral-950 px-4 py-6 sm:px-6">
       <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold text-neutral-100">Prophecy Designer</h1>
@@ -119,7 +122,7 @@ export function Designer() {
       {cards === null || decks === null || attributes === null ? (
         <div className="text-base text-neutral-500">Loading catalog…</div>
       ) : tab === 'cards' ? (
-        <CardsTab cards={cards} attributes={attributes} committedCards={committedCards ?? undefined} onReload={reload} />
+        <CardsTab cards={cards} attributes={attributes} committedCards={committedCards ?? undefined} onReload={reload} onViewCommit={setCommitReportSha} />
       ) : tab === 'decks' ? (
         <DecksTab cards={cards} decks={decks} committedDecks={committedDecks ?? undefined} onReload={reload} />
       ) : tab === 'attributes' ? (
@@ -132,9 +135,21 @@ export function Designer() {
           committedDecks={committedDecks ?? undefined}
           committedAttributes={committedAttributes ?? undefined}
           onReload={reload}
+          onViewCommit={setCommitReportSha}
         />
       )}
     </main>
+    {commitReportSha && cards && (
+      <CommitReportModal
+        sha={commitReportSha}
+        cards={cards}
+        onClose={() => setCommitReportSha(null)}
+        onNavigateToCard={(_id) => { setCommitReportSha(null); setTabAndUrl('cards'); }}
+        onNavigateToDecks={() => { setCommitReportSha(null); setTabAndUrl('decks'); }}
+        onNavigateToAttributes={() => { setCommitReportSha(null); setTabAndUrl('attributes'); }}
+      />
+    )}
+    </>
   );
 }
 

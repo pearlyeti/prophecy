@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { AbilityBuilder } from './AbilityBuilder.js';
 import { DiceEditor, defaultDiceFaces } from './DiceEditor.js';
+import { HistoryPanel } from './HistoryPanel.js';
 import { saveCards, uploadCardArt } from './api.js';
 
 type SixFaces = [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
@@ -93,15 +94,18 @@ export function CardsTab({
   attributes,
   committedCards,
   onReload,
+  onViewCommit,
 }: {
   cards: readonly Card[];
   attributes: AttributeCatalog;
   committedCards?: readonly Card[];
   onReload: () => void;
+  onViewCommit?: (sha: string) => void;
 }) {
   const [tabs, setTabs] = useState<CardTab[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [historyCard, setHistoryCard] = useState<Card | null>(null);
   const [filter, setFilter] = useState<string>('');
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const newMenuRef = useRef<HTMLDivElement>(null);
@@ -219,6 +223,16 @@ export function CardsTab({
     } finally {
       setSaving(false);
     }
+  };
+
+  const restoreFromHistory = (historical: Card) => {
+    if (!activeTabKey) return;
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.key === activeTabKey ? { ...t, draft: structuredClone(historical), savedAt: null } : t,
+      ),
+    );
+    setHistoryCard(null);
   };
 
   return (
@@ -637,6 +651,16 @@ export function CardsTab({
               >
                 Revert
               </button>
+              {selectedId !== null && committedCards !== undefined && onViewCommit && (
+                <button
+                  type="button"
+                  onClick={() => draft && setHistoryCard(structuredClone(draft))}
+                  disabled={saving}
+                  className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-base hover:border-neutral-500 disabled:opacity-50"
+                >
+                  History
+                </button>
+              )}
               {activeTab?.savedAt && (
                 <span className="self-center text-sm text-emerald-400">
                   Saved {new Date(activeTab.savedAt).toLocaleTimeString()}
@@ -647,6 +671,14 @@ export function CardsTab({
         )}
         </div>
       </section>
+      {historyCard && onViewCommit && (
+        <HistoryPanel
+          card={historyCard}
+          onClose={() => setHistoryCard(null)}
+          onRestore={restoreFromHistory}
+          onViewCommit={onViewCommit}
+        />
+      )}
     </div>
   );
 }
