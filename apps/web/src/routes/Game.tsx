@@ -760,10 +760,46 @@ function buildLogEntries(
 
       case 'card.played': {
         const { playerId, cardId, costPaid } = e.payload;
-        out.push({
-          kind: 'entry', key,
-          node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid})</>,
-        });
+        const next = events[i + 1];
+        const catId = game.cardCatalogIds[cardId];
+        const playedCard = catId ? catalogById.get(catId) : undefined;
+
+        if (next?.type === 'damage.dealt') {
+          const { characterId, amount, shieldsBlocked } = next.payload;
+          const damageType = playedCard?.abilities
+            .flatMap((ab) => 'effects' in ab ? ab.effects : [])
+            .find((fx): fx is { op: 'dealDamage'; damageType?: string } => (fx as { op?: string }).op === 'dealDamage')
+            ?.damageType;
+          out.push({
+            kind: 'entry', key,
+            node: (
+              <>
+                {pn(playerId)} plays {inn(cardId)} (cost {costPaid}) against {cn(characterId)} — deals {amount} {damageType ?? 'damage'}
+                {shieldsBlocked > 0 && ` (${shieldsBlocked} blocked)`}
+              </>
+            ),
+          });
+          i++;
+        } else if (next?.type === 'shields.placed') {
+          const { characterId, amount } = next.payload;
+          out.push({
+            kind: 'entry', key,
+            node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — gives {amount} shield{amount !== 1 ? 's' : ''} to {cn(characterId)}</>,
+          });
+          i++;
+        } else if (next?.type === 'damage.healed') {
+          const { characterId, amount } = next.payload;
+          out.push({
+            kind: 'entry', key,
+            node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — heals {amount} from {cn(characterId)}</>,
+          });
+          i++;
+        } else {
+          out.push({
+            kind: 'entry', key,
+            node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid})</>,
+          });
+        }
         break;
       }
 

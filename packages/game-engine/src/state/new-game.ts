@@ -337,6 +337,7 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
   const cardStability: Record<string, number> = {};
   const cardDieFaces: Record<string, readonly import('./types.js').DieFace[]> = {};
   const cardMeta: Record<string, CardMeta> = {};
+  const cardAbilities: Record<string, readonly Ability[]> = {};
 
   for (const a of assignments) {
     const team: CharacterInput[] = [];
@@ -357,6 +358,7 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
         subtypes: card.subtypes as readonly string[],
         isUnique: card.isUnique,
       };
+      if (card.abilities.length > 0) cardAbilities[instanceId] = card.abilities as unknown as readonly Ability[];
       team.push({
         id: instanceId,
         cardId: dc.cardId,
@@ -399,6 +401,7 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
           subtypes: card.subtypes as readonly string[],
           isUnique: card.isUnique,
         };
+        if (card.abilities.length > 0) cardAbilities[instanceId] = card.abilities as unknown as readonly Ability[];
       }
     });
   }
@@ -414,6 +417,7 @@ export function newGameFromDecks(input: NewGameFromDecksInput): GameState {
     cardStability,
     cardDieFaces,
     cardMeta,
+    cardAbilities,
   });
 }
 
