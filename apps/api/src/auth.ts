@@ -89,6 +89,8 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     ...(webOrigin ? [webOrigin] : ['http://localhost:5173', 'http://localhost:4173']),
+    // Covers all Vercel preview deployments for this project without per-PR setup.
+    'https://*-eagleandcrown.vercel.app',
     ...extraOrigins,
   ],
   // Web app (Vercel) and API (Railway) are on different domains. The browser
