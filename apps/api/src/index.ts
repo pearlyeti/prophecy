@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 
+import { auth } from './auth.js';
 import { createContext } from './context.js';
 import { startWorkers } from './workers/index.js';
 
@@ -23,6 +24,10 @@ app.use(
 );
 
 app.get('/health', (c) => c.json({ ok: true, service: 'api' }));
+
+// better-auth handles its own CORS for auth routes; Hono's global CORS
+// middleware runs first — that's fine, better-auth will override as needed.
+app.on(['GET', 'POST'], '/api/auth/**', (c) => auth.handler(c.req.raw));
 
 app.all('/trpc/*', (c) =>
   fetchRequestHandler({

@@ -1,6 +1,9 @@
 import type { Context as TrpcContext } from '@prophecy/protocol';
+import type { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 
-// Build the per-request context for tRPC. Auth wiring lands with better-auth.
-export function createContext(): TrpcContext {
-  return { userId: null };
+import { auth } from './auth.js';
+
+export async function createContext({ req }: FetchCreateContextFnOptions): Promise<TrpcContext> {
+  const session = await auth.api.getSession({ headers: req.headers }).catch(() => null);
+  return { userId: session?.user.id ?? null };
 }
