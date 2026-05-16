@@ -1,4 +1,5 @@
 import { applyActivate } from '../actions/activate.js';
+import { applyGuardianIntercept } from '../actions/guardian-intercept.js';
 import { applyOrderTriggersAction } from '../actions/order-triggers.js';
 import { applyClaim } from '../actions/claim.js';
 import { applyConcede } from '../actions/concede.js';
@@ -72,6 +73,8 @@ export function applyAction(state: GameState, action: Action, options?: ApplyOpt
       );
     case 'use-card-action':
       return applyUseCardAction(state, action.playerId, action.cardId, action.abilityIndex, action.targetCharacterIds);
+    case 'guardian.intercept':
+      return applyGuardianIntercept(state, action.playerId, action.dieInstanceId);
     case 'order-triggers':
       return applyOrderTriggersAction(state, action.playerId, action.order);
   }

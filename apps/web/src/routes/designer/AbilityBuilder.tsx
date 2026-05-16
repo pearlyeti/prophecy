@@ -32,12 +32,12 @@ const ABILITY_KINDS = [
 type AbilityKind = (typeof ABILITY_KINDS)[number];
 
 const STUB_OPS = [
-  'removeDie', 'rerollDice', 'turnDie', 'resolveDie', 'resolveWithoutRemoving',
+  'rerollDice', 'resolveDie', 'resolveWithoutRemoving',
   'rollDie', 'activateCharacter', 'exhaustCard', 'readyCard',
   'moveDamage', 'moveShields', 'discardCards', 'discardFromDeck', 'lookAtCards',
   'revealTopCard', 'searchDeck', 'playCard', 'returnToHand', 'takeBattlefieldControl',
   'claimBattlefield', 'endActionPhase', 'takeAdditionalActions', 'forceActivate',
-  'grantKeyword', 'modifyDieValue', 'setAsideDie', 'placeDamageOnCard',
+  'grantKeyword', 'setAsideDie', 'placeDamageOnCard',
   'placeResourceOnCard', 'returnDefeatedCharacter', 'choice',
 ] as const;
 
@@ -94,6 +94,9 @@ function defaultEffect(op: OpKind): Effect {
     case 'healDamage': return { op: 'healDamage', amount: 1, target: { kind: 'ownCharacter' } };
     case 'rollEventDie': return { op: 'rollEventDie' };
     case 'rollCardDie': return { op: 'rollCardDie', cardId: '' };
+    case 'removeDie': return { op: 'removeDie', from: 'opponentPool', count: 1 };
+    case 'turnDie': return { op: 'turnDie', from: 'opponentPool', toSymbol: 'blank', count: 1 };
+    case 'modifyDieValue': return { op: 'modifyDieValue', from: 'ownPool', delta: 1, count: 1 };
     case 'new': return { op: 'new', workingName: '', notes: '' };
     default: return { op, optional: false } as Effect;
   }
@@ -736,6 +739,56 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
           onChange={(v) => onChange({ ...effect, cardId: v } as Effect)}
         />
       );
+    case 'removeDie': {
+      const e = effect as { op: 'removeDie'; from: string; symbol?: string; count?: number };
+      return (
+        <div className="flex flex-wrap gap-2">
+          <SelectField label="From" value={e.from}
+            options={[{ value: 'opponentPool', label: "Opponent's pool" }, { value: 'ownPool', label: 'Own pool' }]}
+            onChange={(v) => onChange({ ...e, from: v } as Effect)} />
+          <SelectField label="Symbol filter" value={e.symbol ?? ''}
+            options={[{ value: '', label: 'Any' }, ...DIE_SYMBOLS.map((s) => ({ value: s, label: s }))]}
+            onChange={(v) => onChange({ ...e, symbol: v || undefined } as Effect)} />
+          <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
+            onChange={(count) => onChange({ ...e, count } as Effect)} />
+        </div>
+      );
+    }
+    case 'turnDie': {
+      const e = effect as { op: 'turnDie'; from: string; toSymbol: string; fromSymbol?: string; count?: number };
+      return (
+        <div className="flex flex-wrap gap-2">
+          <SelectField label="From" value={e.from}
+            options={[{ value: 'opponentPool', label: "Opponent's pool" }, { value: 'ownPool', label: 'Own pool' }]}
+            onChange={(v) => onChange({ ...e, from: v } as Effect)} />
+          <SelectField label="Turn to symbol" value={e.toSymbol}
+            options={DIE_SYMBOLS.map((s) => ({ value: s, label: s }))}
+            onChange={(v) => onChange({ ...e, toSymbol: v } as Effect)} />
+          <SelectField label="Only if showing" value={e.fromSymbol ?? ''}
+            options={[{ value: '', label: 'Any' }, ...DIE_SYMBOLS.map((s) => ({ value: s, label: s }))]}
+            onChange={(v) => onChange({ ...e, fromSymbol: v || undefined } as Effect)} />
+          <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
+            onChange={(count) => onChange({ ...e, count } as Effect)} />
+        </div>
+      );
+    }
+    case 'modifyDieValue': {
+      const e = effect as { op: 'modifyDieValue'; from: string; delta: number; symbol?: string; count?: number };
+      return (
+        <div className="flex flex-wrap gap-2">
+          <SelectField label="From" value={e.from}
+            options={[{ value: 'ownPool', label: 'Own pool' }, { value: 'opponentPool', label: "Opponent's pool" }]}
+            onChange={(v) => onChange({ ...e, from: v } as Effect)} />
+          <NumberField label="Delta (±)" value={e.delta} min={-20} max={20}
+            onChange={(delta) => onChange({ ...e, delta } as Effect)} />
+          <SelectField label="Symbol filter" value={e.symbol ?? ''}
+            options={[{ value: '', label: 'Any' }, ...DIE_SYMBOLS.map((s) => ({ value: s, label: s }))]}
+            onChange={(v) => onChange({ ...e, symbol: v || undefined } as Effect)} />
+          <NumberField label="Count" value={e.count ?? 1} min={1} max={20}
+            onChange={(count) => onChange({ ...e, count } as Effect)} />
+        </div>
+      );
+    }
     case 'new':
       return (
         <div className="space-y-2">

@@ -3,16 +3,22 @@ import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
 import { createRng } from '../rng/seeded-rng.js';
-import { endTurn } from '../state/turn.js';
+import { endTurn, grantExtraTurn } from '../state/turn.js';
 import { guardCanAct, runUpkeepAndStartRound } from './pass.js';
 import type { ApplyResult } from './pass.js';
 import type { CharacterState, DieFace, DieInPool, GameState, PlayerState, SupportState } from '../state/types.js';
 import { IllegalActionError } from './illegal.js';
 
+const GUARDIAN_DAMAGE_SYMBOLS = new Set(['melee', 'ranged', 'indirect'] as const);
+
 /**
  * Activate action.
  *
  * Trigger interception:
+ * - Guardian keyword: checked first, before-triggers. If the activating
+ *   character has Guardian and the opponent has damage dice, sets
+ *   pendingGuardian and returns early — the player must send
+ *   'guardian.intercept' before activation continues.
  * - Before: 'beforeActivate' triggers run inline before exhausting + rolling.
  * - After: 'afterActivateCharacter' triggers enter the queue (or pendingTriggers
  *   for simultaneous ordering), then the queue drains.
@@ -41,16 +47,41 @@ export function applyActivate(
     throw new IllegalActionError(`character ${characterId} is exhausted`);
   }
 
-  // ── Before triggers ──────────────────────────────────────────────
-  let working: GameState = state;
-  const allEvents: EngineEvent[] = [];
+  // ── Guardian keyword check (fires before before-triggers) ────────
+  const keywords = state.cardKeywords[characterId] ?? [];
+  if (keywords.includes('guardian')) {
+    const oppId = state.playerOrder.find((id) => id !== playerId);
+    const oppPool = oppId ? (state.players[oppId]?.diceInPool ?? []) : [];
+    const hasDamageDie = oppPool.some((d) => GUARDIAN_DAMAGE_SYMBOLS.has(d.face.symbol as any));
+    if (hasDamageDie) {
+      return {
+        state: { ...state, pendingGuardian: { activatingCharacterId: characterId, activatingPlayerId: playerId } },
+        events: [],
+      };
+    }
+  }
 
+  return performCharacterActivation(state, playerId, characterId);
+}
+
+/**
+ * The core activation logic shared by applyActivate (no-guardian path)
+ * and applyGuardianIntercept (post-intercept path).
+ */
+export function performCharacterActivation(
+  state: GameState,
+  playerId: string,
+  characterId: string,
+): ApplyResult {
+  const allEvents: EngineEvent[] = [];
+  let working: GameState = state;
+
+  // ── Before triggers ──────────────────────────────────────────────
   const beforeCandidates = collectBeforeTriggers(state, 'beforeActivate', {
     activatingPlayerId: playerId,
     activatingCharacterId: characterId,
   });
 
-  // Deterministic auto-order for before-triggers (by source card id).
   const sorted = [...beforeCandidates].sort((a, b) =>
     a.sourceCardInstanceId.localeCompare(b.sourceCardInstanceId),
   );
@@ -119,6 +150,18 @@ export function applyActivate(
 
   if (stateAfterActivate.winnerId !== null) {
     return { state: stateAfterActivate, events: allEvents };
+  }
+
+  // ── Ambush keyword ───────────────────────────────────────────────
+  // Grant one extra turn if the activated character has Ambush and the
+  // per-turn gate hasn't already fired. endTurn consumes the extra turn
+  // (keeping activePlayerId the same) and clears ambushGrantedThisTurn.
+  const ambushKeywords = stateAfterActivate.cardKeywords[characterId] ?? [];
+  if (ambushKeywords.includes('ambush') && !stateAfterActivate.ambushGrantedThisTurn) {
+    stateAfterActivate = {
+      ...grantExtraTurn(stateAfterActivate, playerId),
+      ambushGrantedThisTurn: true,
+    };
   }
 
   const rotated = endTurn(stateAfterActivate, playerId, allEvents);

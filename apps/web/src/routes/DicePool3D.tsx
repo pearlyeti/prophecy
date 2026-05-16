@@ -218,6 +218,12 @@ export interface DicePool3DProps {
   tumblingCharId?: string | null;
   /** Face overrides for focus-pick preview: maps die instanceId → chosen face. */
   faceOverrides?: Record<string, { faceIndex: number; face: DieFace }>;
+  /** Preview: opponent's currently selected dice (glow green). */
+  previewSelectedDieIds?: readonly string[];
+  /** Preview: opponent's spent dice in pendingTargets (dimmed). */
+  previewSpentDieIds?: readonly string[];
+  /** Preview: opponent's reroll-picked dice (amber). */
+  previewRerollDieIds?: readonly string[];
 }
 
 export default function DicePool3D({
@@ -228,6 +234,9 @@ export default function DicePool3D({
   cardColor,
   tumblingCharId,
   faceOverrides,
+  previewSelectedDieIds,
+  previewSpentDieIds,
+  previewRerollDieIds,
 }: DicePool3DProps) {
   const activeFlow    = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
@@ -392,6 +401,12 @@ export default function DicePool3D({
             else dieState = 'dimmed';
           } else if (eligibleSymbols?.includes(d.face.symbol) && !d.face.modifier) {
             dieState = 'eligible';
+          } else if (previewRerollDieIds?.includes(d.instanceId)) {
+            dieState = 'selected-reroll';
+          } else if (previewSelectedDieIds?.includes(d.instanceId)) {
+            dieState = 'selected-resolve';
+          } else if (previewSpentDieIds?.includes(d.instanceId)) {
+            dieState = 'dimmed';
           }
 
           const override = faceOverrides?.[d.instanceId];

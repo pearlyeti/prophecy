@@ -112,12 +112,23 @@ export interface MatchFoundPayload {
   readonly game: GameState | null;
 }
 
+/** Live preview of the active player's in-progress action (fire-and-forget, no validation). */
+export interface GamePreviewPayload {
+  readonly roomId: string;
+  /** Player whose ActiveFlow is being broadcast. */
+  readonly playerId: string;
+  /** Opaque ActiveFlow — defined in the web client; cast on receipt. null = flow cleared. */
+  readonly flow: Record<string, unknown> | null;
+}
+
 export interface ClientToServerEvents {
   'lobby.create': (req: LobbyCreateReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'lobby.join': (req: LobbyJoinReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'lobby.rejoin': (req: LobbyRejoinReq, ack: (resp: RejoinResp | ErrorPayload) => void) => void;
   'lobby.start': (req: LobbyStartReq, ack: (resp: LobbyState | ErrorPayload) => void) => void;
   'game.action': (req: GameActionReq, ack: (resp: { ok: true } | ErrorPayload) => void) => void;
+  /** Broadcast active flow to opponent. Fire-and-forget — server relays to room peers. */
+  'game.preview': (req: GamePreviewPayload) => void;
   /** Join the matchmaking queue. Ack fires immediately; match arrives via lobby.matchFound. */
   'lobby.findMatch': (req: LobbyFindMatchReq, ack: (resp: { queued: true } | ErrorPayload) => void) => void;
   /** Leave the matchmaking queue. Fire-and-forget — no ack needed. */
@@ -128,6 +139,7 @@ export interface ServerToClientEvents {
   'lobby.state': (state: LobbyState) => void;
   'game.state': (payload: GameStatePayload) => void;
   'game.events': (payload: GameEventsPayload) => void;
+  'game.preview': (payload: GamePreviewPayload) => void;
   'error': (payload: ErrorPayload) => void;
   /** Unicast to both matched players when the pair is found and the game has started. */
   'lobby.matchFound': (payload: MatchFoundPayload) => void;

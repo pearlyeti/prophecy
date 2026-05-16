@@ -313,7 +313,7 @@ describe('stub ops', () => {
   it('throws NotImplementedError for unimplemented ops', () => {
     const state = makeGame();
     expect(() =>
-      applyEffect(state, ctx(state), { op: 'removeDie' } as Parameters<typeof applyEffect>[2]),
+      applyEffect(state, ctx(state), { op: 'rerollDice' } as Parameters<typeof applyEffect>[2]),
     ).toThrow(NotImplementedError);
   });
 

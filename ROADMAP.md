@@ -12,35 +12,46 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
-#### ENGINE-K1 — Guardian keyword
-**Why now.** Guardian is a keyword already defined in the `Keyword` type and described in the rules reference, and the before-trigger infrastructure (ENGINE-7) is in place. Implementing it now validates the mid-action pause pattern needed for all optional "before" abilities and unlocks Guardian cards in the card pool.
+#### WEB-S1 — Support cards on the battlefield
+**Why now.** ENGINE-S1 delivers `SupportState`; players can play support cards to the board but nothing renders them.
 
 **Scope.**
-1. Add `cardKeywords: Readonly<Record<string, readonly Keyword[]>>` to `GameState` in `packages/game-engine/src/state/types.ts` if it does not already exist. Populate it from the catalog in the same place `cardAbilities`, `cardTypes`, and `cardDieFaces` are populated (likely `newGame` or the game factory).
-2. Add `pendingGuardian: { activatingCharacterId: string; activatingPlayerId: string } | null` to `GameState`. Initialize to `null`.
-3. Add a new action type `guardian.intercept` to the action discriminated union: `{ kind: 'guardian.intercept'; playerId: string; dieInstanceId: string | null }` — `null` means the Guardian owner skips the optional intercept.
-4. In `applyActivate` (`packages/game-engine/src/actions/activate.ts`): after validating the activation, check whether the character has the `'guardian'` keyword (via `state.cardKeywords`) AND the opponent has at least one die showing `'melee'`, `'ranged'`, or `'indirect'` in their dice pool. If so, set `pendingGuardian` and return early — do NOT roll dice yet.
-5. Add `applyGuardianIntercept` handler (new file `packages/game-engine/src/actions/guardian-intercept.ts`): validate `pendingGuardian` is set and the acting player matches `activatingPlayerId`. If `dieInstanceId` is non-null, remove that die from the opponent's pool and deal damage equal to the die's face value to the Guardian character (respecting shields-block-first, and checking defeat). Clear `pendingGuardian`. Then proceed with the dice roll and turn-rotation logic (reuse or extract the tail of `applyActivate`).
-6. Update `getLegalActions` (`packages/game-engine/src/state/legal-actions.ts`): when `pendingGuardian` is set and `playerId` matches `activatingPlayerId`, expose `guardianInterceptableDieIds: readonly string[]` (the IDs of opponent melee/ranged/indirect dice) and `canSkipGuardian: true`. All other actions should be blocked while `pendingGuardian` is non-null (same pattern as `pendingTriggers`).
-7. Wire `applyGuardianIntercept` into the `applyAction` dispatch table.
-8. Add tests covering: activation of a Guardian character with opponent damage dice sets `pendingGuardian` and does not roll yet; `guardian.intercept` with a chosen die removes it from the opponent's pool and deals its value as damage to the Guardian; `guardian.intercept` with `null` skips and proceeds to roll; defeat of the Guardian character by its own intercept damage triggers defeat handling; Guardian character with no opponent damage dice activates normally (no pause).
+- Render support cards in `PlayerZone` and `OpponentZone` alongside characters in the same flex layout. Support cards render at ~75% the width of character cards.
+- Stability badge (display-only): read `SupportState.stability` / `maxStability`; show as `stability/maxStability` in a small badge.
+- Die-supports: tap → activate flow → Roll Dice dispatches `activate`. Exhausted tilt same as characters. Supports without a die show no activate ring and cannot enter the activate flow.
+- Dieless supports with `action`/`powerAction` abilities: show A/PA badge (same as WEB-18 for characters).
 
 **Context to load.**
-- `packages/game-engine/src/state/types.ts`
-- `packages/game-engine/src/state/legal-actions.ts`
-- `packages/game-engine/src/actions/activate.ts`
-- `packages/game-engine/src/actions/apply-action.ts`
-- `packages/game-engine/src/abilities/types.ts`
-- `docs/rules-reference.md` (Guardian keyword section and "before" ability rules)
+- `apps/web/src/routes/Game.tsx` (BattlefieldRow, PlayerZone, OpponentZone, CharacterCard)
+- `apps/web/src/store.ts` (ActiveFlow)
+- `packages/game-engine/src/state/types.ts` (SupportState from ENGINE-S1)
 
-**Out of scope.** Ambush, Modify, Redeploy keywords. Guardian granted dynamically at runtime by an ability effect (`grantKeyword` op). UI affordance for the `guardian.intercept` prompt (separate WEB card). Any Guardian on a support card (Guardian only appears on characters per current card pool).
+**Out of scope.** Disrupt/Discard targeting of supports. Upgrade badges on supports. Detail overlay. Support pagination (WEB-20).
 
-**Done when.**
-- Typecheck clean across the workspace (`pnpm typecheck`).
-- All existing engine tests still pass.
-- New tests (≥ 5) covering the scenarios in Scope §8 all pass.
-- `pendingGuardian` is `null` in a normal (non-Guardian) activation flow — no regression.
-- A Guardian character with opponent damage dice in the pool: `getLegalActions` returns non-empty `guardianInterceptableDieIds` and `canSkipGuardian: true`; no `activatableCharacterIds` or other actions are available while the intercept is pending.
+**Depends on.** ENGINE-S1.
+
+**Done when.** Typecheck clean. Play a support card → it appears on the board at ~75% character card size. Activate a die-support → dice roll into pool. Dieless support with action ability shows A badge. Exhausted support tilts.
+
+---
+
+#### WEB-20 — Per-player zone pagination
+**Why now.** Supports enter play mid-game and may not fit alongside characters; we need a way to navigate to them without disrupting the character view.
+
+**Scope.**
+- Each player's zone independently shows a character page and optionally a support page.
+- Support page only appears when at least one support cannot fit in the remaining column slots of the character view. When all supports fit, no pagination UI is shown.
+- Page indicator (arrow buttons + dot pip) appears at the zone edge when a support page exists. Swipe (touch) and arrow buttons (pointer) navigate between pages.
+- `activeFlow` — selected dice, `pendingTargets`, activate state — persists across page switches so cross-zone targeting works: select a support die on the support page, switch to the character page, tap a target.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (PlayerZone, OpponentZone, BattlefieldRow)
+- `apps/web/src/store.ts` (ActiveFlow)
+
+**Out of scope.** Animated slide transitions. Keyboard navigation.
+
+**Depends on.** WEB-S1.
+
+**Done when.** Typecheck clean. Play supports until they overflow the character page → support page indicator appears. Swipe navigates between pages. Select support die, switch to character page, tap target → resolve dispatches the full multi-target payload correctly.
 
 ---
 
@@ -271,9 +282,6 @@ Rough ideas and deferred work. Not yet specced, not yet claimable. When an item 
 - "After setup" trigger pass.
 - Plots / battlefield abilities (Claim).
 
-#### Supports & stability _(WEB-S1 blocked on ENGINE-S1)_
-- **WEB-S1** — Render support cards in `BattleZone` below characters. Stability badge instead of health badge. Activate flow same as characters. Upgrade badges on supports. Detail overlay with Stability, ability text, subtypes.
-
 #### Services
 - Deck builder API + validator (CRUD to save user decks to DB).
 - Card ownership logic (`card_collections` integration, opened packs).
@@ -301,6 +309,7 @@ Rough ideas and deferred work. Not yet specced, not yet claimable. When an item 
 - i18n scaffold (Paraglide); ship English first.
 - Screen-reader event narration in live match.
 - **Roll cam (revamp)** — removed 2026-05-15 (feel was too janky). Bring back when there's time to do it right: proper die geometry with six textured faces, weighty physics, clean camera-cut back to the board. `DicePool3D` and `FACE_CORRECT_Q` are good foundations.
+- **WEB-23 — Smart zone column packing** — Instead of a fixed column width, compute each card column's width from the maximum dice count for that card in the pool. Cards with large dice pools get wider columns; cards never needing more than 2 dice get narrower ones. Keeps the total zone width fixed while maximising use of available real estate. Depends on WEB-S1 (supports add columns of their own).
 
 #### Content & ops
 - First original Prophecy set: ~140 cards across factions/colors with 5 keywords represented.
@@ -331,22 +340,25 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 #### Ability kinds
 - [x] `immediate` — event plays, effects fire, card is discarded/set aside · _ENGINE-6_
 - [x] `triggered` — before/after a game event fires this automatically · _ENGINE-7_
-- [ ] `action` — player activates (exhaust/remove-die/spend cost)
-- [ ] `powerAction` — same, once per round
-- [ ] `special` — fires when this card's special die face is resolved
+- [x] `action` — player activates (exhaust/remove-die/spend cost) · _ENGINE-A1_
+- [x] `powerAction` — same, once per round · _ENGINE-A1_
+- [x] `special` — fires when this card's special die face is resolved · _ENGINE-K3_
 - [ ] `passive` — always-on predicate read by other engine paths; no dispatcher
-- [ ] `claim` — fires when this battlefield is claimed
+- [x] `claim` — fires when this battlefield is claimed · _ENGINE-C1_
 
 #### Effect ops
 **First-wave (ENGINE-6)**
 - [x] `dealDamage` · [x] `addShields` · [x] `removeShields` · [x] `drawCards` · [x] `gainResources` · [x] `loseResources` · [x] `healDamage`
 
 **Dice ops (ENGINE-6b)**
-- [ ] `rollEventDie` — roll the event card's own die into pool (transient)
-- [ ] `rollCardDie` — roll a named card's die into pool (transient; catalog lookup)
+- [x] `rollEventDie` — roll the event card's own die into pool (transient) · _ENGINE-6b_
+- [x] `rollCardDie` — roll a named card's die into pool (transient; catalog lookup) · _ENGINE-6b_
 
-**Dice manipulation**
-- [ ] `removeDie` · [ ] `rerollDice` · [ ] `turnDie` · [ ] `resolveDie` · [ ] `resolveWithoutRemoving` · [ ] `rollDie` · [ ] `setAsideDie` · [ ] `modifyDieValue`
+**Dice manipulation (ENGINE-D1)**
+- [x] `removeDie` — remove N dice from own or opponent pool, filtered by symbol · _ENGINE-D1_
+- [x] `turnDie` — turn a die to show a different symbol (keeps value/cost) · _ENGINE-D1_
+- [x] `modifyDieValue` — adjust die value up or down, clamped at 0 · _ENGINE-D1_
+- [ ] `rerollDice` · [ ] `resolveDie` · [ ] `resolveWithoutRemoving` · [ ] `rollDie` · [ ] `setAsideDie`
 
 **Card plays**
 - [ ] `playCard` · [ ] `returnToHand` · [ ] `searchDeck` · [ ] `discardCards` · [ ] `discardFromDeck` · [ ] `lookAtCards` · [ ] `revealTopCard` · [ ] `returnDefeatedCharacter`
@@ -361,6 +373,11 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 
 ## Done
 - **2026-05-16 — SERVER-2 — Designer server deployment + GitHub commit workflow.** Migrated card catalog from `packages/db/seed/cards.json` to per-card files (`cards/{id}.json`) so concurrent authors never conflict on a single file. New `githubSync.ts` module: fetches committed state at startup, diffs in-memory corpus vs committed, commits all pending card/deck/attribute changes atomically via the Git Data API. `GET /designer/pending` and `POST /designer/commit` routes added to game-server. `DESIGNER_SECRET` env-var guard on all mutating designer routes (AUTH-1 bridge). `PendingPanel` component added to designer shell: fixed bottom bar with change counts, commit message input, and "Commit to GitHub" button. Typecheck clean. (`e57949e`)
+- **2026-05-16 — ENGINE-D1 — Dice manipulation ops.** `removeDie`, `turnDie`, `modifyDieValue` implemented in `abilities/dispatch.ts`. Proper typed effects replace stubs in `abilities/types.ts`; Zod schemas added to `packages/protocol/src/catalog.ts`; all three added to `KNOWN_OPS`; `AbilityBuilder.tsx` updated with per-op form UI. Events: `die.removed`, `die.turned`, `die.value-modified`. 13 new tests; 226 engine tests green; full workspace typecheck clean. (`d785f6b`)
+- **2026-05-16 — ENGINE-C1 — Claim ability dispatcher.** `applyClaim` now fires all `claim`-kind abilities on the claimer's battlefield card via `applyEffects` before rotating the turn. `cardAbilities` keyed by `battlefieldCardId` — no new GameState fields required. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
+- **2026-05-16 — ENGINE-K3 — Special ability dispatcher.** `applyResolveDice` gains a `case 'special':` branch that looks up the die's owning card's `special` ability and fires it via `applyEffects`. Resolving a special die on a card with no special ability is a silent no-op. `'special'` added to `RESOLVABLE_SYMBOLS_V1`. Existing test updated to remove `special` from the "should throw" list. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
+- **2026-05-16 — ENGINE-K2 — Ambush keyword.** `performCharacterActivation` checks `cardKeywords[characterId]?.includes('ambush')` and `!ambushGrantedThisTurn` after after-triggers commit; if both hold, calls `grantExtraTurn` and sets `ambushGrantedThisTurn: true`. `endTurn` already consumes the extra turn and clears the flag — no other changes needed. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
+- **2026-05-16 — ENGINE-K1 — Guardian keyword.** `cardKeywords` map added to `GameState`; `pendingGuardian` state added. `applyActivate` checks Guardian keyword + opponent damage dice before before-triggers fire, setting `pendingGuardian` and returning early. New `applyGuardianIntercept` handler (`guardian-intercept.ts`) removes the chosen opponent die, deals its face value as damage to the Guardian (shields-first, defeat-checked), clears `pendingGuardian`, then delegates to extracted `performCharacterActivation` shared with the normal path. `getLegalActions` blocks all other actions while `pendingGuardian` is set, exposes `guardianInterceptableDieIds` and `canSkipGuardian`. 8 new tests; 201 engine tests green; workspace typecheck clean. (`8803396`)
 - **2026-05-16 — API-3 — Incremental event-log writes for in-flight durability.** Added `game_session_status` enum and `status` column to `game_sessions` (migration `0002_deep_bishop.sql`). Rewrote `GameWriter` with `open()`/`append()`/`close()` API: `open()` inserts the session row with `status='active'`; `append()` enqueues immediate per-room event writes via a promise chain; `close()` chains the final `status='completed'` update and awaits the queue. `markAbandonedSessions()` on boot updates any leftover `active` sessions to `abandoned`. 2 persistence tests (incremental write + boot scan); 185 engine tests green; workspace typecheck clean. (`199fea5`)
 - **2026-05-16 — OPS-3 — Game-server graceful shutdown on deploy.** On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green. (`d82e29f`) On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green.
 - **2026-05-16 — API-2 — Persist completed games on game-end.** New `game_sessions` and `game_events` tables added to Drizzle schema with migration `0001_opposite_iron_patriot.sql`. `GameWriter` in `apps/game-server/src/persistence.ts` buffers events per room and flushes both tables in a single transaction on `game.ended`. Wired into `lobby.start`, `lobby.findMatch`, `game.action`, and reconnect-timeout forfeit paths. Vitest config added for game-server; end-to-end test confirms session row (players, winner, seed, duration) and all event rows land after a concede. 185 engine tests + 1 persistence test green; workspace typecheck clean. (`8e30d41`)
@@ -370,6 +387,8 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - **2026-05-15 — ENGINE-6b — Event-owned dice + cross-card die roll mechanic.** `rollEventDie` rolls the event card's own dieFaces into the pool as a transient die; `rollCardDie` rolls any referenced catalog card's die by ID. `CatalogDieEntry` interface threaded through `applyPlayCard` → `applyAction` via `ApplyOptions`. Transient die cleanup on resolve-dice confirmed. Seed cards EVT_056 (Wild Strike) and EVT_057 (Call the Hound) added. `AbilityBuilder.tsx` forms added for both ops. 4 new tests; 175 engine tests green; workspace typecheck clean. (`04fb024`)
 - **2026-05-15 — ENGINE-8 — Multi-target resolve-dice action.** `resolve-dice` action gains `targets: readonly { dieInstanceIds; targetCharacterId? }[]`; resolution loop applies per-group damage/shields; backward-compat flat shape normalised in apply-action.ts; 3 new tests (2-melee split, shield split, legacy compat); all existing tests migrated to new shape; 171 engine tests green, typecheck clean. (`8a0c00e`)
 - **2026-05-15 — SERVER-1 — Reconnect window.** 60-second away timer starts on disconnect when game is in-progress; clears on `lobby.rejoin`. Timer expiry applies a `concede` on behalf of the disconnected player and broadcasts `game.events` + `game.state` + `lobby.state` to the room. Client-side rejoin was already fully wired (`SocketBridge` → `lobby.rejoin` on reconnect, `lobbyCache` for roomId persistence). Game-server typecheck clean; 168 engine tests green. (`5fae253`)
+- **2026-05-16 — WEB-22 — Adaptive zone sizing.** `OpponentZone` and `PlayerZone` containers replace `flex-1` with `flexGrow: Math.max(1, characterOrder.length)` (inline style + `shrink basis-0` Tailwind classes). Zones proportionally share vertical space based on live card count; minimum of 1 prevents collapse on empty zones. WEB-21 Done hash backfilled to `224105e`. Typecheck clean. (`eb2fb7f`)
+- **2026-05-16 — WEB-21 — Live opponent action preview.** `game.preview` socket event (debounced 50 ms) broadcasts `ActiveFlow` to opponent on every change while active. Game-server relays fire-and-forget. `opponentPreview` in Zustand; SocketBridge sets/clears it. `BattlefieldRow` renders: green selected / dimmed spent dice on opponent zone (resolve), amber dice on reroll pick, faint sky ring on opponent char being activated, pending counter badges on any targeted character (both zones). `DiceStack` + `DicePool3D` accept preview die-ID props. `CharacterCard` gains `previewActivate`. Typecheck + 175 engine tests green. (`224105e`)
 - **2026-05-15 — WEB-19 — Multi-target damage and shield resolution UI.** `ActiveFlow.resolve` gains `pendingTargets` (committed die groups) replacing `targetCharacterId`. Resolution loop: select dice → tap character to commit group → dice dim as spent → pending counter badge (−N red / +N blue) on target character. Tapping an already-assigned character replaces its group. Commit enabled when `pendingTargets.length > 0 && selectedDieIds.length === 0`. Dispatches `resolve-dice` with `targets` array. DicePool3D and DiceStack both updated. Resource/disrupt unchanged single-group path. Typecheck + 175 engine tests green. (`30e02ca`)
 - **2026-05-15 — WEB-7 — Human-readable activity log.** (`b508409`) Replaced raw JSON event dump with a formatted collapsible activity log in BattleZone. `buildLogEntries` maps all engine events to plain-English strings with bold player/character names and color-coded die chips (`DieChip`). `dice.resolved` is merged with follow-on `damage.dealt` / `shields.placed` / `resources.gained` / `resources.lost` into single entries. `round.begin` renders as a centered divider. Automatic passes, trigger lifecycle, and upkeep noise are suppressed. Log is collapsed by default via `<details>`, scrollable to 30 entries, `aria-live` for screen readers. Typecheck + 168 engine tests green.
 - **2026-05-15 — WEB-3D-3 — Die face picker (focus flow).** (`95c55e3`) Engine: focus path in `applyResolveDice` — focuser dice removed from pool, target dice stay with updated faces, self-targeting blocked, 6 new tests. `focus` added to `RESOLVABLE_SYMBOLS_V1`. `FacePickEvent` union + `face-pick` ActiveFlow in store. UI: tapping a focus die → resolve flow → commit transitions to face-pick; tapping target die opens `FacePickerPanel` (6 face tiles, current face highlighted); picking a face records a flip event and decrements budget; focus-face tap chains die as new focuser; Undo backs out one flip/chain at a time; End focus dispatches resolve-dice with ordered focusFlips. DicePool3D shows focuser as dimmed, open-picker die highlighted, flipped dice amber. Typecheck + 168 engine tests green.

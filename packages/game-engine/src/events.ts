@@ -39,7 +39,10 @@ export type EngineEvent =
   | { readonly type: 'triggers.ordering-required'; readonly payload: TriggersOrderingRequiredPayload }
   | { readonly type: 'support.activated'; readonly payload: SupportActivatedPayload }
   | { readonly type: 'support.discarded'; readonly payload: SupportDiscardedPayload }
-  | { readonly type: 'stability.lost'; readonly payload: StabilityLostPayload };
+  | { readonly type: 'stability.lost'; readonly payload: StabilityLostPayload }
+  | { readonly type: 'die.removed'; readonly payload: DieRemovedPayload }
+  | { readonly type: 'die.turned'; readonly payload: DieTurnedPayload }
+  | { readonly type: 'die.value-modified'; readonly payload: DieValueModifiedPayload };
 
 export type EngineEventType = EngineEvent['type'];
 
@@ -209,4 +212,24 @@ export interface StabilityLostPayload {
   readonly playerId: string;
   readonly supportId: string;
   readonly amount: number;
+}
+
+export interface DieRemovedPayload {
+  readonly playerId: string;
+  readonly dieInstanceId: string;
+  readonly face: DieFace;
+}
+
+export interface DieTurnedPayload {
+  readonly playerId: string;
+  readonly dieInstanceId: string;
+  readonly fromSymbol: string;
+  readonly toSymbol: string;
+}
+
+export interface DieValueModifiedPayload {
+  readonly playerId: string;
+  readonly dieInstanceId: string;
+  readonly delta: number;
+  readonly newValue: number;
 }

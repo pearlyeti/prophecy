@@ -116,14 +116,12 @@ describe('applyAction({ type: "resolve-dice" })', () => {
     ).toThrow(/modifier/);
   });
 
-  it('rejects blank, special, indirect, discard, draw (focus is now implemented)', () => {
+  it('rejects blank, indirect, draw (focus and special are now implemented)', () => {
     const initial = setup();
     const active = initial.activePlayerId!;
     for (const symbol of [
       'blank',
-      'special',
       'indirect',
-      'discard',
       'draw',
     ] as const) {
       const state = withPool(initial, active, [
