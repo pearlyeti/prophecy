@@ -268,6 +268,69 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### ENGINE-DS1 — Deck search / reveal effects
+**Why now.** A large class of card abilities require players to interact with their own (or their opponent's) deck mid-action: revealing cards until a condition is met, searching the whole deck for a card type, drawing a set aside and choosing which to keep. None of these can be expressed with existing ops. They all share a common mid-action pause pattern (player must see revealed cards and make picks before the effect resolves) that mirrors `pendingGuardian` / `pendingTriggers`.
+
+**Scope.**
+
+*State shape.*
+- Add `pendingSearch: PendingSearch | null` to `GameState`. Set to non-null while a search effect is waiting for the player's pick. While set, all other actions (including pass) are blocked for the waiting player.
+- `PendingSearch` fields: `waitingForPlayerId`, `revealedCardIds` (ordered as drawn), `source` (`'ownDeck' | 'opponentDeck'`), `choices` (ordered list of `SearchChoice`), `defaultDisposition`, and `effectContinuation` (opaque tag so the engine can resume the ability sequence after resolution).
+- `SearchChoice`: `{ count: number; filter?: { type?: CardType; color?: Color }; disposition: SearchDisposition }` where `SearchDisposition = 'toHand' | 'toTopOfDeck' | 'toBottomOfDeck' | 'shuffleIntoDeck' | 'discard'`.
+
+*New effect op: `searchDeck`.*
+- Fields: `source: 'ownDeck' | 'opponentDeck'`, `revealCount: number | 'all'`, `revealUntil?: { type?: CardType; color?: Color; count: number }` (stop early when N matching cards are found), `choices: SearchChoice[]`, `defaultDisposition: SearchDisposition`.
+- On dispatch: draw cards from source deck into `revealedCardIds` (up to `revealCount`, or until `revealUntil` condition met, or deck exhausted). Set `pendingSearch` and return — the action is suspended.
+- `revealCount: 'all'` covers "pick up your whole deck" patterns.
+- `revealUntil` covers "reveal until you find 3 upgrades" patterns (stops as soon as 3 type=upgrade cards are among the revealed set, even if `revealCount` is higher).
+
+*New action: `resolve-search`.*
+- Fields: `playerId`, `selections: Array<{ choiceIndex: number; cardIds: string[] }>`.
+- Validates: `pendingSearch` is set, `playerId` matches `waitingForPlayerId`, each `cardIds` array satisfies the corresponding `SearchChoice` count + filter, no card appears in two selections.
+- Applies each selection's disposition in order. Unchosen cards get `defaultDisposition`. For `toTopOfDeck`: returned in original reveal order. For `shuffleIntoDeck`: engine reseeds and shuffles (deterministic via `seed + 'search-shuffle:' + turnIndex`).
+- Clears `pendingSearch`, resumes the remaining effects in the ability sequence.
+
+*`getLegalActions` update.*
+- Add `canResolveSearch: boolean` — true when `pendingSearch.waitingForPlayerId === playerId`.
+- While `pendingSearch` is set: for the waiting player, only `resolve-search` is legal (+ concede). For the opponent, only concede.
+
+*Events.*
+- `deck.searched` — `{ playerId, source, revealedCount }` (not revealing card identities to the opponent).
+- `cards.revealed` — `{ playerId, cardIds }` (sent only to the revealing player via the game-server's private-event path; opponent sees only the count).
+- `search.resolved` — `{ playerId, selections: Array<{ disposition, count }> }` (counts only, no card IDs to opponent).
+
+**Context to load.**
+- `packages/game-engine/src/state/types.ts` — add `pendingSearch`
+- `packages/game-engine/src/state/new-game.ts` — initialise `pendingSearch: null`
+- `packages/game-engine/src/state/legal-actions.ts` — `canResolveSearch` + block logic
+- `packages/game-engine/src/abilities/types.ts` — `SearchDeckEffect`, promote from stub
+- `packages/game-engine/src/abilities/dispatch.ts` — `case 'searchDeck':`
+- `packages/game-engine/src/actions/types.ts` — `resolve-search` action
+- `packages/game-engine/src/actions/resolve-search.ts` — new file
+- `packages/game-engine/src/reducers/apply-action.ts` — wire new action
+- `packages/game-engine/src/events.ts` — three new events
+- `packages/protocol/src/catalog.ts` — Zod schema for `searchDeckEffect`
+- `apps/web/src/routes/designer/AbilityBuilder.tsx` — form UI for `searchDeck` op
+
+**Out of scope.**
+- `play` disposition (playing a card directly from the reveal; needs `playCard` op landed first — add as a follow-on ENGINE-DS2 once `playCard` ships).
+- Opponent-revealed-cards visibility on the client (game-server routing of private events is a SERVER card).
+- "Arrange returned cards in any order" (v1 always returns in original reveal order; a follow-on can add player-controlled ordering).
+- Deck-search during setup phase.
+
+**Depends on.** Nothing unmerged.
+
+**Done when.**
+- [ ] Typecheck clean across workspace.
+- [ ] All existing engine tests still pass.
+- [ ] New tests (≥ 10) covering: reveal-N from top, reveal-until condition, reveal whole deck, toHand disposition, toTopOfDeck, toBottomOfDeck, shuffleIntoDeck, discard, defaultDisposition for unchosen, deck-exhausted before revealUntil met.
+- [ ] `getLegalActions` blocks all non-search actions while `pendingSearch` is set.
+- [ ] `resolve-search` with out-of-range counts throws `IllegalActionError`.
+- [ ] After resolution, game state continues normally (turn advances, no dangling `pendingSearch`).
+- [ ] `searchDeck` op appears in `KNOWN_OPS`; AbilityBuilder has a proper form for it.
+
+---
+
 ## Backlog
 
 Rough ideas and deferred work. Not yet specced, not yet claimable. When an item is ready to work on, spec it out, move it to **Up next**, and create a GitHub Issue. See [CLAUDE.md — Promoting a backlog item](CLAUDE.md#promoting-a-backlog-item-to-a-task-card).
