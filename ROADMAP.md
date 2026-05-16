@@ -12,28 +12,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
-#### WEB-S1 — Support cards on the battlefield
-**Why now.** ENGINE-S1 delivers `SupportState`; players can play support cards to the board but nothing renders them.
-
-**Scope.**
-- Render support cards in `PlayerZone` and `OpponentZone` alongside characters in the same flex layout. Support cards render at ~75% the width of character cards.
-- Stability badge (display-only): read `SupportState.stability` / `maxStability`; show as `stability/maxStability` in a small badge.
-- Die-supports: tap → activate flow → Roll Dice dispatches `activate`. Exhausted tilt same as characters. Supports without a die show no activate ring and cannot enter the activate flow.
-- Dieless supports with `action`/`powerAction` abilities: show A/PA badge (same as WEB-18 for characters).
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (BattlefieldRow, PlayerZone, OpponentZone, CharacterCard)
-- `apps/web/src/store.ts` (ActiveFlow)
-- `packages/game-engine/src/state/types.ts` (SupportState from ENGINE-S1)
-
-**Out of scope.** Disrupt/Discard targeting of supports. Upgrade badges on supports. Detail overlay. Support pagination (WEB-20).
-
-**Depends on.** ENGINE-S1.
-
-**Done when.** Typecheck clean. Play a support card → it appears on the board at ~75% character card size. Activate a die-support → dice roll into pool. Dieless support with action ability shows A badge. Exhausted support tilts.
-
----
-
 #### WEB-20 — Per-player zone pagination
 **Why now.** Supports enter play mid-game and may not fit alongside characters; we need a way to navigate to them without disrupting the character view.
 
@@ -74,106 +52,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 **Depends on.** WEB-8 ✅. Engine card that adds `targetCharacterId` to `play-card` action.
 
 **Done when.** Typecheck clean. Manual smoke: drag an upgrade card onto an eligible character — it attaches. Drag a damage event onto an opponent character — damage is dealt. Drag onto an ineligible target — drag cancels with red feedback.
-
----
-
-#### WEB-7 — Human-readable activity log
-**Why now.** The current event log renders raw JSON next to event type names — unreadable in play. Testers can't follow what happened or why a game state changed without decoding engine internals.
-
-**Scope.**
-- Write a `formatEvent` function (or grouped formatter) that maps each `EngineEvent` type to a human-readable string. Target strings:
-  - `character.activated` → "**{PlayerName}** activates **{CharacterName}** — rolls [Melee 3] [Shield 1]"
-  - `dice.resolved` + following `damage.dealt` → "**{PlayerName}** resolves [5 Melee] against **{CharacterName}** — deals 4 damage (1 blocked)"
-  - `dice.resolved` without `damage.dealt` → "**{PlayerName}** resolves [3 Resource] — gains 3 resources" / "disrupts" / "places 2 shields on **{CharacterName}**"
-  - `shields.placed` standalone (setup) → "**{PlayerName}** places a shield on **{CharacterName}**"
-  - `card.played` → "**{PlayerName}** plays **{CardName}** (cost {N})"
-  - `dice.rerolled` → "**{PlayerName}** rerolls {N} dice (discards **{CardName}**)"
-  - `character.defeated` → "**{CharacterName}** is defeated"
-  - `battlefield.claimed` → "**{PlayerName}** claims the battlefield"
-  - `round.begin` → "— Round {N} —" (centered divider, not a bullet)
-  - `game.ended` → "**{WinnerName}** wins ({reason})"
-  - `player.passed` with `automatic: true` → skip
-  - `player.passed` explicit → "**{PlayerName}** passes"
-  - `upkeep.player` → "**{PlayerName}** draws {N} and gains {R} resources" (only if N > 0 or R > 0)
-  - All other events (trigger lifecycle, setup roll-off, `turn.advanced`, upkeep begin/end) → skip silently
-- **Die chip component:** small inline badge `[Symbol Value]`, color-coded by symbol.
-- **Event grouping:** `dice.resolved` immediately followed by `damage.dealt` / `shields.placed` / `resources.gained` / `shields.removed` merges into one entry.
-- **Updated EventLog component:** styled `<ol>`, up to 30 entries, scrollable, `round.begin` as a centered divider. Collapsed by default on mobile.
-- **Name resolution:** display names from lobby for player IDs; character/card names from `game.cardCatalogIds` + catalog; fall back to instance-ID suffix if catalog not loaded.
-
-**Context to load.**
-- `apps/web/src/routes/Game.tsx` (EventLog component)
-- `packages/game-engine/src/events.ts`
-- `apps/web/src/store.ts` (`recentEvents` shape)
-
-**Out of scope.** Animated event feed. Sound effects. Filtering by player. Exporting the log.
-
-**Done when.** Typecheck clean. Manual smoke: play a full turn (activate → resolve → pass) and confirm the log reads naturally in plain English with die chips; damage events are merged with their resolve; round dividers appear; automatic passes and upkeep noise are hidden; log is scrollable past 10 entries.
-
----
-
-#### API-1 — Apply first DB migration against real Postgres
-**Why now.** Schema is generated but never executed. Until the migration actually runs against a live Postgres, the `db:seed` path and any future API endpoints are blocked.
-
-**Scope.**
-- Run `docker compose -f infra/docker-compose.yml up -d postgres` and confirm it's healthy.
-- Run `pnpm db:migrate`. Capture any drift or errors; resolve them.
-- Smoke-check from psql that the seven tables and five enums exist.
-- Document any one-time setup steps in the README's Local Development section if anything was missing.
-
-**Context to load.**
-- `infra/docker-compose.yml`
-- `packages/db/drizzle.config.ts`
-- `packages/db/migrations/0000_*.sql`
-- `README.md#local-development`
-
-**Out of scope.** New schema. Seed data import.
-
-**Done when.** Migration applies without errors. `psql` confirms tables exist. README's setup instructions are accurate.
-
----
-
-#### API-2 — Persist completed games on game-end
-**Why now.** The engine emits a full event log per game but nothing is ever written to Postgres. Without this the README's "rebuild any completed game from its seed + events" claim isn't true and the schema is dormant.
-
-**Scope.**
-- On `game.ended`, write one row to `game_sessions` (players, winner, duration, seed, summary) and one row per emitted `EngineEvent` to `game_events` (`session_id`, `sequence_number`, `event_type`, `payload jsonb`, `occurred_at`).
-- New `apps/game-server/src/persistence.ts` exposes a `GameWriter` that subscribes to a room's event stream and flushes at game-end in a single Drizzle transaction.
-- Index `game_events(session_id, sequence_number)` for replay reads.
-- One end-to-end test: spin up Postgres via the existing compose stack, play a deterministic concede game, assert both rows land.
-
-**Context to load.**
-- `apps/game-server/src/rooms.ts`
-- `packages/db/src/schema.ts`
-- `packages/game-engine/src/events.ts`
-
-**Out of scope.** Incremental writes during the game (API-3). Replay UI. Anti-cheat post-processing.
-
-**Depends on.** API-1.
-
-**Done when.** Typecheck clean. Concede a game; `select count(*) from game_events where session_id = ?` returns the expected event count; `game_sessions` row has winner, duration, seed.
-
----
-
-#### API-3 — Incremental event-log writes for in-flight durability
-**Why now.** If a game-server process crashes mid-match, the only durable copy of the event log is in-memory. This card closes that gap.
-
-**Scope.**
-- Replace the buffer-until-game-end approach from API-2 with a streaming write: after each engine event is broadcast to clients, append a `game_events` row.
-- Open `game_sessions` at game-start with `status='active'`, seed, and players; update `status='completed'` (or `abandoned`) on `game.ended`.
-- Per-room background write queue (in-process initially; switch to BullMQ if it becomes a bottleneck).
-- On game-server boot, scan `game_sessions where status = 'active'`: if the room is still alive in Redis, leave it; if not, mark `abandoned`.
-
-**Context to load.**
-- `apps/game-server/src/rooms.ts`
-- `apps/game-server/src/persistence.ts` (from API-2)
-- `packages/db/src/schema.ts`
-
-**Out of scope.** Cross-server resume. Live snapshots to Redis.
-
-**Depends on.** API-2.
-
-**Done when.** Typecheck clean. Kill the game-server mid-match and restart; `game_events` for that session contains every event up to the crash; the session is marked `abandoned` on the next boot.
 
 ---
 
@@ -518,6 +396,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 ---
 
 ## Done
+- **2026-05-16 — WEB-S1 — Support cards on the battlefield.** `SupportCard` component renders stability/shields badges, activate ring, exhausted tilt, and A/PA ability badges at ~75% character column width (70px). `SupportStrip` renders the full `supportOrder` row with pool dice above (player) or below (opponent) the card. Wired into `OpponentZone` (top, non-interactive) and `PlayerZone` (bottom, uses `activatableSupportIds` from `getLegalActions`). `cardCount` flex-grow includes `supportOrder.length`. `SupportState` imported from engine. Also removes stale WEB-7/API-1/2/3 from Up next. Typecheck clean. (``)
 - **2026-05-16 — ENGINE-TF1 — Targeting criteria (dice and cards).** `DieCriteria` and `CardCriteria` composite predicate types added to `abilities/types.ts`. Die ops (`removeDie`, `turnDie`, `modifyDieValue`) upgraded: `symbol`/`fromSymbol` fields replaced by `criteria?: DieCriteria`. Character-targeting effects (`dealDamage`, `addShields`, `removeShields`, `healDamage`) gain `criteria?: CardCriteria`. `matchesDieCriteria` and `matchesCardCriteria` exported from `dispatch.ts`. Pre-selected targets throw on criteria mismatch; auto-targets (each*) silently skip non-matching characters. `cardMeta` on `GameState` provides type/color/subtypes/isUnique for criteria resolution. Zod schemas added to `packages/protocol`; `DieCriteriaEditor` and `CardCriteriaEditor` forms added to `AbilityBuilder.tsx`. 21 new tests; 247 engine tests green; full workspace typecheck clean.
 - **2026-05-16 — SERVER-2 — Designer server deployment + GitHub commit workflow.** Migrated card catalog from `packages/db/seed/cards.json` to per-card files (`cards/{id}.json`) so concurrent authors never conflict on a single file. New `githubSync.ts` module: fetches committed state at startup, diffs in-memory corpus vs committed, commits all pending card/deck/attribute changes atomically via the Git Data API. `GET /designer/pending` and `POST /designer/commit` routes added to game-server. `DESIGNER_SECRET` env-var guard on all mutating designer routes (AUTH-1 bridge). `PendingPanel` component added to designer shell: fixed bottom bar with change counts, commit message input, and "Commit to GitHub" button. Typecheck clean. (`e57949e`)
 - **2026-05-16 — ENGINE-D1 — Dice manipulation ops.** `removeDie`, `turnDie`, `modifyDieValue` implemented in `abilities/dispatch.ts`. Proper typed effects replace stubs in `abilities/types.ts`; Zod schemas added to `packages/protocol/src/catalog.ts`; all three added to `KNOWN_OPS`; `AbilityBuilder.tsx` updated with per-op form UI. Events: `die.removed`, `die.turned`, `die.value-modified`. 13 new tests; 226 engine tests green; full workspace typecheck clean. (`d785f6b`)
