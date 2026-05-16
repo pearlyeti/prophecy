@@ -12,38 +12,6 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
-#### ENGINE-K1 — Guardian keyword
-**Why now.** Guardian is a keyword already defined in the `Keyword` type and described in the rules reference, and the before-trigger infrastructure (ENGINE-7) is in place. Implementing it now validates the mid-action pause pattern needed for all optional "before" abilities and unlocks Guardian cards in the card pool.
-
-**Scope.**
-1. Add `cardKeywords: Readonly<Record<string, readonly Keyword[]>>` to `GameState` in `packages/game-engine/src/state/types.ts` if it does not already exist. Populate it from the catalog in the same place `cardAbilities`, `cardTypes`, and `cardDieFaces` are populated (likely `newGame` or the game factory).
-2. Add `pendingGuardian: { activatingCharacterId: string; activatingPlayerId: string } | null` to `GameState`. Initialize to `null`.
-3. Add a new action type `guardian.intercept` to the action discriminated union: `{ kind: 'guardian.intercept'; playerId: string; dieInstanceId: string | null }` — `null` means the Guardian owner skips the optional intercept.
-4. In `applyActivate` (`packages/game-engine/src/actions/activate.ts`): after validating the activation, check whether the character has the `'guardian'` keyword (via `state.cardKeywords`) AND the opponent has at least one die showing `'melee'`, `'ranged'`, or `'indirect'` in their dice pool. If so, set `pendingGuardian` and return early — do NOT roll dice yet.
-5. Add `applyGuardianIntercept` handler (new file `packages/game-engine/src/actions/guardian-intercept.ts`): validate `pendingGuardian` is set and the acting player matches `activatingPlayerId`. If `dieInstanceId` is non-null, remove that die from the opponent's pool and deal damage equal to the die's face value to the Guardian character (respecting shields-block-first, and checking defeat). Clear `pendingGuardian`. Then proceed with the dice roll and turn-rotation logic (reuse or extract the tail of `applyActivate`).
-6. Update `getLegalActions` (`packages/game-engine/src/state/legal-actions.ts`): when `pendingGuardian` is set and `playerId` matches `activatingPlayerId`, expose `guardianInterceptableDieIds: readonly string[]` (the IDs of opponent melee/ranged/indirect dice) and `canSkipGuardian: true`. All other actions should be blocked while `pendingGuardian` is non-null (same pattern as `pendingTriggers`).
-7. Wire `applyGuardianIntercept` into the `applyAction` dispatch table.
-8. Add tests covering: activation of a Guardian character with opponent damage dice sets `pendingGuardian` and does not roll yet; `guardian.intercept` with a chosen die removes it from the opponent's pool and deals its value as damage to the Guardian; `guardian.intercept` with `null` skips and proceeds to roll; defeat of the Guardian character by its own intercept damage triggers defeat handling; Guardian character with no opponent damage dice activates normally (no pause).
-
-**Context to load.**
-- `packages/game-engine/src/state/types.ts`
-- `packages/game-engine/src/state/legal-actions.ts`
-- `packages/game-engine/src/actions/activate.ts`
-- `packages/game-engine/src/actions/apply-action.ts`
-- `packages/game-engine/src/abilities/types.ts`
-- `docs/rules-reference.md` (Guardian keyword section and "before" ability rules)
-
-**Out of scope.** Ambush, Modify, Redeploy keywords. Guardian granted dynamically at runtime by an ability effect (`grantKeyword` op). UI affordance for the `guardian.intercept` prompt (separate WEB card). Any Guardian on a support card (Guardian only appears on characters per current card pool).
-
-**Done when.**
-- Typecheck clean across the workspace (`pnpm typecheck`).
-- All existing engine tests still pass.
-- New tests (≥ 5) covering the scenarios in Scope §8 all pass.
-- `pendingGuardian` is `null` in a normal (non-Guardian) activation flow — no regression.
-- A Guardian character with opponent damage dice in the pool: `getLegalActions` returns non-empty `guardianInterceptableDieIds` and `canSkipGuardian: true`; no `activatableCharacterIds` or other actions are available while the intercept is pending.
-
----
-
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
@@ -331,8 +299,8 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 #### Ability kinds
 - [x] `immediate` — event plays, effects fire, card is discarded/set aside · _ENGINE-6_
 - [x] `triggered` — before/after a game event fires this automatically · _ENGINE-7_
-- [ ] `action` — player activates (exhaust/remove-die/spend cost)
-- [ ] `powerAction` — same, once per round
+- [x] `action` — player activates (exhaust/remove-die/spend cost) · _ENGINE-A1_
+- [x] `powerAction` — same, once per round · _ENGINE-A1_
 - [ ] `special` — fires when this card's special die face is resolved
 - [ ] `passive` — always-on predicate read by other engine paths; no dispatcher
 - [ ] `claim` — fires when this battlefield is claimed
@@ -360,6 +328,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 ---
 
 ## Done
+- **2026-05-16 — ENGINE-K1 — Guardian keyword.** `cardKeywords` map added to `GameState`; `pendingGuardian` state added. `applyActivate` checks Guardian keyword + opponent damage dice before before-triggers fire, setting `pendingGuardian` and returning early. New `applyGuardianIntercept` handler (`guardian-intercept.ts`) removes the chosen opponent die, deals its face value as damage to the Guardian (shields-first, defeat-checked), clears `pendingGuardian`, then delegates to extracted `performCharacterActivation` shared with the normal path. `getLegalActions` blocks all other actions while `pendingGuardian` is set, exposes `guardianInterceptableDieIds` and `canSkipGuardian`. 8 new tests; 201 engine tests green; workspace typecheck clean.
 - **2026-05-16 — API-3 — Incremental event-log writes for in-flight durability.** Added `game_session_status` enum and `status` column to `game_sessions` (migration `0002_deep_bishop.sql`). Rewrote `GameWriter` with `open()`/`append()`/`close()` API: `open()` inserts the session row with `status='active'`; `append()` enqueues immediate per-room event writes via a promise chain; `close()` chains the final `status='completed'` update and awaits the queue. `markAbandonedSessions()` on boot updates any leftover `active` sessions to `abandoned`. 2 persistence tests (incremental write + boot scan); 185 engine tests green; workspace typecheck clean. (`199fea5`)
 - **2026-05-16 — OPS-3 — Game-server graceful shutdown on deploy.** On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green. (`d82e29f`) On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green.
 - **2026-05-16 — API-2 — Persist completed games on game-end.** New `game_sessions` and `game_events` tables added to Drizzle schema with migration `0001_opposite_iron_patriot.sql`. `GameWriter` in `apps/game-server/src/persistence.ts` buffers events per room and flushes both tables in a single transaction on `game.ended`. Wired into `lobby.start`, `lobby.findMatch`, `game.action`, and reconnect-timeout forfeit paths. Vitest config added for game-server; end-to-end test confirms session row (players, winner, seed, duration) and all event rows land after a concede. 185 engine tests + 1 persistence test green; workspace typecheck clean. (`8e30d41`)

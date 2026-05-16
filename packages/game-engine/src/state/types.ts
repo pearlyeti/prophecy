@@ -274,4 +274,18 @@ export interface GameState {
    * Populated by newGameFromDecks; keyed by card instance id.
    */
   readonly cardDieFaces: Readonly<Record<string, readonly DieFace[]>>;
+  /**
+   * Keywords per card instance id. Populated by newGameFromDecks (or set
+   * directly in tests via NewGameInput). Cards not listed have no keywords.
+   */
+  readonly cardKeywords: Readonly<Record<string, readonly Keyword[]>>;
+  /**
+   * Non-null while a Guardian character's owner is deciding whether to
+   * intercept an opponent damage die before the activation completes.
+   * Only the `guardian.intercept` action is legal while this is set.
+   */
+  readonly pendingGuardian: {
+    readonly activatingCharacterId: string;
+    readonly activatingPlayerId: string;
+  } | null;
 }

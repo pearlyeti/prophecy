@@ -74,6 +74,11 @@ export interface NewGameInput {
    * newGameFromDecks; tests set it directly.
    */
   readonly cardDieFaces?: Readonly<Record<string, readonly import('./types.js').DieFace[]>>;
+  /**
+   * Optional keywords per card instance id. Tests inject this directly to
+   * exercise Guardian/Ambush/etc. keyword logic.
+   */
+  readonly cardKeywords?: Readonly<Record<string, readonly import('./types.js').Keyword[]>>;
 }
 
 const DEFAULT_HAND_SIZE = 5;
@@ -121,6 +126,7 @@ export function newGame(input: NewGameInput): GameState {
     cardTypes,
     cardStability,
     cardDieFaces,
+    cardKeywords,
   } = input;
 
   for (const id of playerIds) {
@@ -220,6 +226,8 @@ export function newGame(input: NewGameInput): GameState {
     cardTypes: cardTypes ?? {},
     cardStability: cardStability ?? {},
     cardDieFaces: cardDieFaces ?? {},
+    cardKeywords: cardKeywords ?? {},
+    pendingGuardian: null,
     queue: emptyQueue,
     pendingTriggers: null,
     nextQueueEntryId: 0,
