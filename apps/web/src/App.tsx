@@ -48,6 +48,7 @@ function SocketBridge() {
   const appendEvents = useApp((s) => s.appendEvents);
   const setStatus = useApp((s) => s.setConnectionStatus);
   const setError = useApp((s) => s.setError);
+  const setOpponentPreview = useApp((s) => s.setOpponentPreview);
 
   // Avoid issuing duplicate rejoin attempts when the connect handler
   // fires multiple times for the same logical session (e.g., socket.io
@@ -101,6 +102,13 @@ function SocketBridge() {
     };
     const onGameState: Parameters<typeof socket.on<'game.state'>>[1] = ({ state }) => {
       setGame(state);
+      // Committed action arrived — clear stale preview.
+      setOpponentPreview(null);
+    };
+    const onPreview: Parameters<typeof socket.on<'game.preview'>>[1] = ({ flow }) => {
+      // flow is Record<string,unknown>|null from the wire; cast to ActiveFlow on the client.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setOpponentPreview(flow as any);
     };
     const onGameEvents: Parameters<typeof socket.on<'game.events'>>[1] = ({ events }) => {
       appendEvents(events);
@@ -120,6 +128,7 @@ function SocketBridge() {
     socket.on('lobby.state', onLobby);
     socket.on('game.state', onGameState);
     socket.on('game.events', onGameEvents);
+    socket.on('game.preview', onPreview);
     socket.on('error', onError);
     socket.on('lobby.matchFound', onMatchFound);
     if (socket.connected) onConnect();
@@ -131,10 +140,11 @@ function SocketBridge() {
       socket.off('lobby.state', onLobby);
       socket.off('game.state', onGameState);
       socket.off('game.events', onGameEvents);
+      socket.off('game.preview', onPreview);
       socket.off('error', onError);
       socket.off('lobby.matchFound', onMatchFound);
     };
-  }, [playerId, setLobby, setGame, appendEvents, setStatus, setError]);
+  }, [playerId, setLobby, setGame, appendEvents, setStatus, setError, setOpponentPreview]);
 
   return null;
 }

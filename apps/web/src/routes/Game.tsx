@@ -28,6 +28,7 @@ export function Game() {
   const exitSelectionMode = useApp((s) => s.exitSelectionMode);
   const enterRerollMode = useApp((s) => s.enterRerollMode);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
+  const activeFlow = useApp((s) => s.activeFlow);
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
@@ -62,6 +63,19 @@ export function Game() {
   useEffect(() => {
     if (!isMyTurn || !inActionPhase) setActionPanelOpen(false);
   }, [isMyTurn, inActionPhase]);
+
+  // Broadcast active flow to opponent (debounced 50 ms). Only when active.
+  useEffect(() => {
+    if (!isMyTurn || !inActionPhase || !lobby) return;
+    const timer = setTimeout(() => {
+      getSocket().emit('game.preview', {
+        roomId: lobby.roomId,
+        playerId,
+        flow: activeFlow as unknown as Record<string, unknown> | null,
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [activeFlow, isMyTurn, inActionPhase, playerId, lobby]);
 
 
   if (!lobby || !game) return null;
@@ -1670,6 +1684,7 @@ function BattleZone({
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
   const [upgradeDetailId, setUpgradeDetailId] = useState<{ ownerId: string; upgradeId: string } | null>(null);
 
+  const opponentPreview = useApp((s) => s.opponentPreview);
   const opponentId = game.playerOrder.find((id) => id !== playerId);
   const detailChar = detailId ? game.players[detailId.ownerId]?.characters[detailId.charId] : null;
   const upgradeDetailCatalogId = upgradeDetailId ? game.cardCatalogIds[upgradeDetailId.upgradeId] : undefined;
@@ -1686,6 +1701,7 @@ function BattleZone({
           game={game}
           playerId={playerId}
           catalogById={catalogById}
+          previewFlow={opponentPreview}
           onDetailTap={(charId) => opponentId && setDetailId({ ownerId: opponentId, charId })}
           onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
         />
@@ -1700,6 +1716,7 @@ function BattleZone({
           game={game}
           playerId={playerId}
           catalogById={catalogById}
+          previewFlow={opponentPreview}
           onDetailTap={(charId) => setDetailId({ ownerId: playerId, charId })}
           onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
         />
@@ -1867,6 +1884,7 @@ function BattlefieldRow({
   resolvableSymbols,
   actionableIds,
   powerActionableIds,
+  previewFlow,
   onDetailTap,
   onUpgradeTap,
 }: {
@@ -1885,6 +1903,8 @@ function BattlefieldRow({
   actionableIds: readonly string[];
   /** Character IDs with at least one usable Power Action ability. From engine's LegalActions. */
   powerActionableIds: readonly string[];
+  /** Opponent's live ActiveFlow for preview rendering (received via game.preview). */
+  previewFlow?: ActiveFlow | null;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -1926,6 +1946,39 @@ function BattlefieldRow({
               return sum + (d?.face.value ?? 0);
             }, 0);
             if (groupValue > 0) pendingCounter = { value: groupValue, kind: isDmg ? 'damage' : 'shield' };
+          }
+        }
+
+        // ── Preview highlights from opponent's live flow ──────────────────────
+        // Only rendered when the opponent (active player) is broadcasting.
+        let previewActivate = false;
+        let previewSelectedDieIds: readonly string[] = [];
+        let previewSpentDieIds: readonly string[] = [];
+        let previewRerollDieIds: readonly string[] = [];
+        if (previewFlow) {
+          if (previewFlow.kind === 'activate' && side === 'opponent') {
+            previewActivate = previewFlow.charId === cid;
+          }
+          if (previewFlow.kind === 'resolve' && side === 'opponent') {
+            previewSelectedDieIds = previewFlow.selectedDieIds;
+            previewSpentDieIds = previewFlow.pendingTargets.flatMap(t => [...t.dieInstanceIds]);
+          }
+          if (previewFlow.kind === 'reroll' && previewFlow.step === 'pick-dice' && side === 'opponent') {
+            previewRerollDieIds = previewFlow.selectedDieIds;
+          }
+          // Show pending counter badge from opponent's committed resolve groups targeting this char.
+          if (!pendingCounter && previewFlow.kind === 'resolve') {
+            const group = previewFlow.pendingTargets.find(t => t.targetCharacterId === cid);
+            if (group) {
+              const resolverPool = game.activePlayerId ? (game.players[game.activePlayerId]?.diceInPool ?? []) : [];
+              const groupValue = group.dieInstanceIds.reduce((sum: number, id) => {
+                const d = resolverPool.find((p) => p.instanceId === id);
+                return sum + (d?.face.value ?? 0);
+              }, 0);
+              const pSym = previewFlow.symbol;
+              const pIsDmg = pSym === 'melee' || pSym === 'ranged' || pSym === 'indirect';
+              if (groupValue > 0) pendingCounter = { value: groupValue, kind: pIsDmg ? 'damage' : 'shield' };
+            }
           }
         }
 
@@ -2011,6 +2064,7 @@ function BattlefieldRow({
               shields={char.shields}
               eligible={eligible}
               pendingExhaust={isActivating}
+              previewActivate={previewActivate}
               {...(targetRing ? { targetRing } : {})}
               {...(abilityBadges.length > 0 ? { abilityBadges } : {})}
               {...(pendingCounter ? { pendingCounter } : {})}
@@ -2025,6 +2079,9 @@ function BattlefieldRow({
                   diceInteractive={false}
                   selectionMode={selectionMode}
                   horizontal
+                  previewSelectedDieIds={previewSelectedDieIds}
+                  previewSpentDieIds={previewSpentDieIds}
+                  previewRerollDieIds={previewRerollDieIds}
                 />
               }>
                 <DicePool3D
@@ -2032,6 +2089,9 @@ function BattlefieldRow({
                   diceInteractive={false}
                   selectionMode={selectionMode}
                   cardColor={dieCardColor}
+                  previewSelectedDieIds={previewSelectedDieIds}
+                  previewSpentDieIds={previewSpentDieIds}
+                  previewRerollDieIds={previewRerollDieIds}
                 />
               </Suspense>
             )}
@@ -2067,12 +2127,14 @@ function OpponentZone({
   game,
   playerId,
   catalogById,
+  previewFlow,
   onDetailTap,
   onUpgradeTap,
 }: {
   game: GameState;
   playerId: string;
   catalogById: Map<string, Card>;
+  previewFlow?: ActiveFlow | null;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2105,6 +2167,7 @@ function OpponentZone({
           resolvableSymbols={[]}
           actionableIds={[]}
           powerActionableIds={[]}
+          previewFlow={previewFlow ?? null}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -2118,12 +2181,14 @@ function PlayerZone({
   game,
   playerId,
   catalogById,
+  previewFlow,
   onDetailTap,
   onUpgradeTap,
 }: {
   game: GameState;
   playerId: string;
   catalogById: Map<string, Card>;
+  previewFlow?: ActiveFlow | null;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2171,6 +2236,7 @@ function PlayerZone({
           resolvableSymbols={resolvableSymbols}
           actionableIds={actionableIds}
           powerActionableIds={powerActionableIds}
+          previewFlow={previewFlow ?? null}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -2539,6 +2605,7 @@ function CharacterCard({
   shields,
   eligible = false,
   pendingExhaust = false,
+  previewActivate = false,
   targetRing,
   pendingCounter,
   abilityBadges,
@@ -2555,6 +2622,8 @@ function CharacterCard({
   shields?: number;
   eligible?: boolean;
   pendingExhaust?: boolean;
+  /** Faint ring shown when opponent's preview shows they are activating this character. */
+  previewActivate?: boolean;
   /** 'damage' = red ring (opponent damage target), 'shield' = blue ring (shield target). */
   targetRing?: 'damage' | 'shield';
   /** Pending value from a committed multi-target resolve group (shown as a counter badge). */
@@ -2583,11 +2652,13 @@ function CharacterCard({
               ? 'border-blue-500 ring-2 ring-blue-500/60'
               : eligible
                 ? 'border-emerald-500 ring-2 ring-emerald-500/60'
-                : char.exhausted
-                  ? 'border-neutral-600 opacity-70'
-                  : pendingExhaust
-                    ? 'border-emerald-600'
-                    : 'border-neutral-700'
+                : previewActivate
+                  ? 'border-sky-500/50 ring-1 ring-sky-500/30'
+                  : char.exhausted
+                    ? 'border-neutral-600 opacity-70'
+                    : pendingExhaust
+                      ? 'border-emerald-600'
+                      : 'border-neutral-700'
         }`}
         style={{
           transform: showTilt ? exhaustedTransform : 'none',
@@ -2714,12 +2785,21 @@ function DiceStack({
   selectionMode,
   horizontal = false,
   eligibleSymbols,
+  previewSelectedDieIds,
+  previewSpentDieIds,
+  previewRerollDieIds,
 }: {
   dice: DieInPool[];
   diceInteractive: boolean;
   selectionMode: SelectionMode | null;
   horizontal?: boolean;
   eligibleSymbols?: readonly string[];
+  /** Preview: opponent's currently selected dice (glow green). */
+  previewSelectedDieIds?: readonly string[];
+  /** Preview: opponent's spent dice in pendingTargets (dimmed). */
+  previewSpentDieIds?: readonly string[];
+  /** Preview: opponent's reroll-picked dice (amber). */
+  previewRerollDieIds?: readonly string[];
 }) {
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
@@ -2815,6 +2895,12 @@ function DiceStack({
           else if (!canPick) { tileClass = 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-50'; disabled = true; }
         } else if (eligibleSymbols?.includes(d.face.symbol)) {
           tileClass = 'border-emerald-500 bg-neutral-900 text-neutral-300 ring-1 ring-emerald-500/50';
+        } else if (previewRerollDieIds?.includes(d.instanceId)) {
+          tileClass = 'border-amber-500/60 bg-amber-950/50 text-amber-200 ring-1 ring-amber-500/40';
+        } else if (previewSelectedDieIds?.includes(d.instanceId)) {
+          tileClass = 'border-emerald-500/60 bg-emerald-950/50 text-emerald-200 ring-1 ring-emerald-500/40';
+        } else if (previewSpentDieIds?.includes(d.instanceId)) {
+          tileClass = 'border-neutral-800 bg-neutral-950 text-neutral-600 opacity-30';
         }
 
         const interactive = diceInteractive || inRerollMode || inResolveFlow || inRerollPickDice;
