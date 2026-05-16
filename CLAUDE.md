@@ -29,7 +29,7 @@ Each package and app also has its own README covering how to run it locally, its
 | `packages/db` | Schema changes, migration workflow, enum drift |
 | `apps/game-server` | Room conventions, reconnect window, HTTP routes |
 | `apps/api` | What belongs here vs. game-server, tRPC procedure pattern |
-| `apps/web` | Zustand rules, socket event flow, touch-first requirements, designer pages |
+| `apps/web` | Zustand rules, socket event flow, touch-first requirements, designer pages, E2E test conventions (Playwright pattern, adding tests, skip-e2e label) |
 
 ## Promoting a backlog item to a task card
 
