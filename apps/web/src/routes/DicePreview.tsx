@@ -42,11 +42,10 @@ function FaceCanvas({ spec, bg, text }: { spec: FaceSpec; bg: string; text: stri
     texture.dispose();
   }, [spec, bg, text]);
 
-  // rotate 90° CW to match how the UV axes map the canvas onto the die face
   return (
     <canvas
       ref={ref}
-      style={{ width: 120, height: 120, borderRadius: 16, display: 'block', transform: 'rotate(90deg)' }}
+      style={{ width: 120, height: 120, borderRadius: 16, display: 'block' }}
     />
   );
 }
@@ -56,7 +55,7 @@ export function DicePreview() {
     <div style={{ background: '#111', minHeight: '100vh', padding: 32, fontFamily: 'sans-serif', color: '#eee' }}>
       <h1 style={{ marginBottom: 8, fontSize: 20 }}>Die face texture preview</h1>
       <p style={{ marginBottom: 32, fontSize: 13, color: '#888' }}>
-        This is the raw 512×512 canvas texture, scaled to 120px — the 3D die sees the same pixels.
+        Raw 512×512 canvas texture scaled to 120px. Text is drawn upright; FACE_CORRECT_Q handles UV rotation in 3D.
       </p>
       {COLORS.map(({ key, bg, text }) => (
         <div key={key} style={{ marginBottom: 40 }}>
