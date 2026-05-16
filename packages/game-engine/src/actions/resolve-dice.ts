@@ -75,7 +75,7 @@ export function applyResolveDice(
   if (symbol === 'blank') {
     throw new IllegalActionError('blank dice cannot be resolved');
   }
-  if (symbol === 'special' || symbol === 'indirect' || symbol === 'draw') {
+  if (symbol === 'indirect' || symbol === 'draw') {
     throw new IllegalActionError(`resolving "${symbol}" is not yet implemented`);
   }
   if (symbol === 'modifier') {
@@ -269,6 +269,22 @@ export function applyResolveDice(
         working = reduceSupportStability(working, ownerId, firstTarget.targetSupportId, totalValue, events);
       } else {
         throw new IllegalActionError('resolving "discard" against opponent hand is not yet implemented');
+      }
+      break;
+    }
+
+    case 'special': {
+      // For each resolved die, look up the owning card's special ability and fire it.
+      for (const die of nonModifiers) {
+        const ownerId = die.ownerInstanceId;
+        if (!ownerId) continue;
+        const abilities = working.cardAbilities[ownerId] ?? [];
+        const specialAbility = abilities.find((a) => a.kind === 'special');
+        if (!specialAbility || specialAbility.kind !== 'special') continue;
+        const ctx = { playerId, characterTargets: [] as string[], sourceCharacterId: ownerId };
+        const result = applyEffects(working, ctx, specialAbility.effects);
+        working = result.state;
+        events.push(...result.events);
       }
       break;
     }

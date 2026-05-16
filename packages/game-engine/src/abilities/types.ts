@@ -137,6 +137,45 @@ export type RollCardDieEffect = {
   optional?: boolean;
 };
 
+// ENGINE-D1: dice pool manipulation ops (fully typed, dispatched).
+
+/** Which player's pool an op targets. */
+export type DiePoolSide = 'ownPool' | 'opponentPool';
+
+export type RemoveDieEffect = {
+  op: 'removeDie';
+  from: DiePoolSide;
+  /** Filter by die symbol; if omitted, matches any non-blank die. */
+  symbol?: string;
+  /** Number of dice to remove (default 1). */
+  count?: number;
+  optional?: boolean;
+};
+
+export type TurnDieEffect = {
+  op: 'turnDie';
+  from: DiePoolSide;
+  /** Symbol to turn the matched die to (replaces face.symbol, keeps value/cost). */
+  toSymbol: string;
+  /** Only match dice currently showing this symbol; if omitted matches any. */
+  fromSymbol?: string;
+  /** Number of dice to turn (default 1). */
+  count?: number;
+  optional?: boolean;
+};
+
+export type ModifyDieValueEffect = {
+  op: 'modifyDieValue';
+  from: DiePoolSide;
+  /** Value delta (positive = increase, negative = decrease), clamped at 0. */
+  delta: number;
+  /** Filter by current symbol; if omitted matches any non-blank die. */
+  symbol?: string;
+  /** Number of dice to modify (default 1). */
+  count?: number;
+  optional?: boolean;
+};
+
 // Stub ops: schema-defined, dispatcher throws NotImplementedError.
 // Index signature lets card authors add fields before the op ships.
 type StubEffect<Op extends string> = { op: Op; optional?: boolean; [k: string]: unknown };
@@ -151,9 +190,10 @@ export type Effect =
   | HealDamageEffect
   | RollEventDieEffect
   | RollCardDieEffect
-  | StubEffect<'removeDie'>
+  | RemoveDieEffect
+  | TurnDieEffect
+  | ModifyDieValueEffect
   | StubEffect<'rerollDice'>
-  | StubEffect<'turnDie'>
   | StubEffect<'resolveDie'>
   | StubEffect<'resolveWithoutRemoving'>
   | StubEffect<'rollDie'>
@@ -175,7 +215,6 @@ export type Effect =
   | StubEffect<'takeAdditionalActions'>
   | StubEffect<'forceActivate'>
   | StubEffect<'grantKeyword'>
-  | StubEffect<'modifyDieValue'>
   | StubEffect<'setAsideDie'>
   | StubEffect<'placeDamageOnCard'>
   | StubEffect<'placeResourceOnCard'>

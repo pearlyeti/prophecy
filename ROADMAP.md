@@ -342,20 +342,23 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - [x] `triggered` — before/after a game event fires this automatically · _ENGINE-7_
 - [x] `action` — player activates (exhaust/remove-die/spend cost) · _ENGINE-A1_
 - [x] `powerAction` — same, once per round · _ENGINE-A1_
-- [ ] `special` — fires when this card's special die face is resolved
+- [x] `special` — fires when this card's special die face is resolved · _ENGINE-K3_
 - [ ] `passive` — always-on predicate read by other engine paths; no dispatcher
-- [ ] `claim` — fires when this battlefield is claimed
+- [x] `claim` — fires when this battlefield is claimed · _ENGINE-C1_
 
 #### Effect ops
 **First-wave (ENGINE-6)**
 - [x] `dealDamage` · [x] `addShields` · [x] `removeShields` · [x] `drawCards` · [x] `gainResources` · [x] `loseResources` · [x] `healDamage`
 
 **Dice ops (ENGINE-6b)**
-- [ ] `rollEventDie` — roll the event card's own die into pool (transient)
-- [ ] `rollCardDie` — roll a named card's die into pool (transient; catalog lookup)
+- [x] `rollEventDie` — roll the event card's own die into pool (transient) · _ENGINE-6b_
+- [x] `rollCardDie` — roll a named card's die into pool (transient; catalog lookup) · _ENGINE-6b_
 
-**Dice manipulation**
-- [ ] `removeDie` · [ ] `rerollDice` · [ ] `turnDie` · [ ] `resolveDie` · [ ] `resolveWithoutRemoving` · [ ] `rollDie` · [ ] `setAsideDie` · [ ] `modifyDieValue`
+**Dice manipulation (ENGINE-D1)**
+- [x] `removeDie` — remove N dice from own or opponent pool, filtered by symbol · _ENGINE-D1_
+- [x] `turnDie` — turn a die to show a different symbol (keeps value/cost) · _ENGINE-D1_
+- [x] `modifyDieValue` — adjust die value up or down, clamped at 0 · _ENGINE-D1_
+- [ ] `rerollDice` · [ ] `resolveDie` · [ ] `resolveWithoutRemoving` · [ ] `rollDie` · [ ] `setAsideDie`
 
 **Card plays**
 - [ ] `playCard` · [ ] `returnToHand` · [ ] `searchDeck` · [ ] `discardCards` · [ ] `discardFromDeck` · [ ] `lookAtCards` · [ ] `revealTopCard` · [ ] `returnDefeatedCharacter`
@@ -369,6 +372,10 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 ---
 
 ## Done
+- **2026-05-16 — ENGINE-D1 — Dice manipulation ops.** `removeDie`, `turnDie`, `modifyDieValue` implemented in `abilities/dispatch.ts`. Proper typed effects replace stubs in `abilities/types.ts`; Zod schemas added to `packages/protocol/src/catalog.ts`; all three added to `KNOWN_OPS`; `AbilityBuilder.tsx` updated with per-op form UI. Events: `die.removed`, `die.turned`, `die.value-modified`. 13 new tests; 226 engine tests green; full workspace typecheck clean. (`d785f6b`)
+- **2026-05-16 — ENGINE-C1 — Claim ability dispatcher.** `applyClaim` now fires all `claim`-kind abilities on the claimer's battlefield card via `applyEffects` before rotating the turn. `cardAbilities` keyed by `battlefieldCardId` — no new GameState fields required. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
+- **2026-05-16 — ENGINE-K3 — Special ability dispatcher.** `applyResolveDice` gains a `case 'special':` branch that looks up the die's owning card's `special` ability and fires it via `applyEffects`. Resolving a special die on a card with no special ability is a silent no-op. `'special'` added to `RESOLVABLE_SYMBOLS_V1`. Existing test updated to remove `special` from the "should throw" list. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
+- **2026-05-16 — ENGINE-K2 — Ambush keyword.** `performCharacterActivation` checks `cardKeywords[characterId]?.includes('ambush')` and `!ambushGrantedThisTurn` after after-triggers commit; if both hold, calls `grantExtraTurn` and sets `ambushGrantedThisTurn: true`. `endTurn` already consumes the extra turn and clears the flag — no other changes needed. 4 new tests; all engine tests green; workspace typecheck clean. (`ba94e38`)
 - **2026-05-16 — ENGINE-K1 — Guardian keyword.** `cardKeywords` map added to `GameState`; `pendingGuardian` state added. `applyActivate` checks Guardian keyword + opponent damage dice before before-triggers fire, setting `pendingGuardian` and returning early. New `applyGuardianIntercept` handler (`guardian-intercept.ts`) removes the chosen opponent die, deals its face value as damage to the Guardian (shields-first, defeat-checked), clears `pendingGuardian`, then delegates to extracted `performCharacterActivation` shared with the normal path. `getLegalActions` blocks all other actions while `pendingGuardian` is set, exposes `guardianInterceptableDieIds` and `canSkipGuardian`. 8 new tests; 201 engine tests green; workspace typecheck clean. (`8803396`)
 - **2026-05-16 — API-3 — Incremental event-log writes for in-flight durability.** Added `game_session_status` enum and `status` column to `game_sessions` (migration `0002_deep_bishop.sql`). Rewrote `GameWriter` with `open()`/`append()`/`close()` API: `open()` inserts the session row with `status='active'`; `append()` enqueues immediate per-room event writes via a promise chain; `close()` chains the final `status='completed'` update and awaits the queue. `markAbandonedSessions()` on boot updates any leftover `active` sessions to `abandoned`. 2 persistence tests (incremental write + boot scan); 185 engine tests green; workspace typecheck clean. (`199fea5`)
 - **2026-05-16 — OPS-3 — Game-server graceful shutdown on deploy.** On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green. (`d82e29f`) On `SIGTERM`: set `draining` flag, call `httpServer.close()` to stop new TCP connections, clear the matchmaking queue, broadcast `server.draining` (with `drainTimeoutMs`) to all connected clients, then poll via `checkDrainComplete()` — exits cleanly when `getActiveRoomCount() === 0`. Hard exit after `DRAIN_TIMEOUT_MS` (default 5 min, env-configurable). New-connection handlers (`lobby.create`, `lobby.findMatch`) reject with an error while draining. `server.draining` event added to protocol `ServerToClientEvents`. `getActiveRoomCount()` added to rooms module. Typecheck + 193 engine tests green.

@@ -99,6 +99,7 @@ const RESOLVABLE_SYMBOLS_V1: readonly DieSymbol[] = [
   'disrupt',
   'discard',
   'focus',
+  'special',
 ];
 
 const GUARDIAN_DAMAGE_SYMBOLS = new Set(['melee', 'ranged', 'indirect']);

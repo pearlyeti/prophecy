@@ -28,9 +28,12 @@ import type {
   GainResourcesEffect,
   HealDamageEffect,
   LoseResourcesEffect,
+  ModifyDieValueEffect,
+  RemoveDieEffect,
   RemoveShieldsEffect,
   RollCardDieEffect,
   TargetSpec,
+  TurnDieEffect,
 } from './types.js';
 
 /**
@@ -106,6 +109,12 @@ export function applyEffect(
       return applyRollEventDie(state, ctx);
     case 'rollCardDie':
       return applyRollCardDie(state, ctx, effect);
+    case 'removeDie':
+      return applyRemoveDie(state, ctx, effect);
+    case 'turnDie':
+      return applyTurnDie(state, ctx, effect);
+    case 'modifyDieValue':
+      return applyModifyDieValue(state, ctx, effect);
     default:
       throw new NotImplementedError(effect.op);
   }
@@ -316,6 +325,89 @@ function applyRollCardDie(state: GameState, ctx: DispatchContext, effect: RollCa
     players: { ...state.players, [ctx.playerId]: { ...player, diceInPool: [...player.diceInPool, newDie] } },
   };
   return { state: nextState, events: [], targetsConsumed: 0 };
+}
+
+function applyRemoveDie(state: GameState, ctx: DispatchContext, effect: RemoveDieEffect): EffectResult {
+  const targetPlayerId =
+    effect.from === 'ownPool' ? ctx.playerId : (opponentOf(state, ctx.playerId) ?? ctx.playerId);
+  const player = state.players[targetPlayerId]!;
+  const count = effect.count ?? 1;
+
+  const remaining: DieInPool[] = [];
+  const removed: DieInPool[] = [];
+  for (const die of player.diceInPool) {
+    if (removed.length < count && (effect.symbol == null || die.face.symbol === effect.symbol)) {
+      removed.push(die);
+    } else {
+      remaining.push(die);
+    }
+  }
+
+  const events: EngineEvent[] = removed.map((d) => ({
+    type: 'die.removed' as const,
+    payload: { playerId: targetPlayerId, dieInstanceId: d.instanceId, face: d.face },
+  }));
+
+  const next: GameState = {
+    ...state,
+    players: { ...state.players, [targetPlayerId]: { ...player, diceInPool: remaining } },
+  };
+  return { state: next, events, targetsConsumed: 0 };
+}
+
+function applyTurnDie(state: GameState, ctx: DispatchContext, effect: TurnDieEffect): EffectResult {
+  const targetPlayerId =
+    effect.from === 'ownPool' ? ctx.playerId : (opponentOf(state, ctx.playerId) ?? ctx.playerId);
+  const player = state.players[targetPlayerId]!;
+  const count = effect.count ?? 1;
+
+  let turned = 0;
+  const events: EngineEvent[] = [];
+  const newPool = player.diceInPool.map((die) => {
+    if (turned >= count) return die;
+    if (effect.fromSymbol != null && die.face.symbol !== effect.fromSymbol) return die;
+    turned++;
+    const fromSymbol = die.face.symbol;
+    events.push({
+      type: 'die.turned' as const,
+      payload: { playerId: targetPlayerId, dieInstanceId: die.instanceId, fromSymbol, toSymbol: effect.toSymbol },
+    });
+    return { ...die, faceIndex: -1, face: { ...die.face, symbol: effect.toSymbol as DieFace['symbol'] } };
+  });
+
+  const next: GameState = {
+    ...state,
+    players: { ...state.players, [targetPlayerId]: { ...player, diceInPool: newPool } },
+  };
+  return { state: next, events, targetsConsumed: 0 };
+}
+
+function applyModifyDieValue(state: GameState, ctx: DispatchContext, effect: ModifyDieValueEffect): EffectResult {
+  const targetPlayerId =
+    effect.from === 'ownPool' ? ctx.playerId : (opponentOf(state, ctx.playerId) ?? ctx.playerId);
+  const player = state.players[targetPlayerId]!;
+  const count = effect.count ?? 1;
+
+  let modified = 0;
+  const events: EngineEvent[] = [];
+  const newPool = player.diceInPool.map((die) => {
+    if (modified >= count) return die;
+    if (effect.symbol != null && die.face.symbol !== effect.symbol) return die;
+    if (die.face.symbol === 'blank') return die;
+    modified++;
+    const newValue = Math.max(0, die.face.value + effect.delta);
+    events.push({
+      type: 'die.value-modified' as const,
+      payload: { playerId: targetPlayerId, dieInstanceId: die.instanceId, delta: effect.delta, newValue },
+    });
+    return { ...die, face: { ...die.face, value: newValue } };
+  });
+
+  const next: GameState = {
+    ...state,
+    players: { ...state.players, [targetPlayerId]: { ...player, diceInPool: newPool } },
+  };
+  return { state: next, events, targetsConsumed: 0 };
 }
 
 // ────────────────────────────────────────────────────────────────────

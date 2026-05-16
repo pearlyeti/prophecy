@@ -1,3 +1,4 @@
+import { applyEffects } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { endTurn } from '../state/turn.js';
 import type { GameState } from '../state/types.js';
@@ -34,12 +35,26 @@ export function applyClaim(state: GameState, playerId: string): ApplyResult {
     },
   ];
 
-  const claimedState: GameState = {
+  let claimedState: GameState = {
     ...state,
     battlefieldControllerId: playerId,
     playerWhoClaimedThisRound: playerId,
     consecutivePasses: 0,
   };
+
+  // Fire any claim abilities on the claimer's battlefield card.
+  const player = claimedState.players[playerId];
+  const battlefieldId = player?.battlefieldCardId;
+  if (battlefieldId) {
+    const abilities = claimedState.cardAbilities[battlefieldId] ?? [];
+    for (const ability of abilities) {
+      if (ability.kind !== 'claim') continue;
+      const ctx = { playerId, characterTargets: [] as string[], sourceCharacterId: battlefieldId };
+      const result = applyEffects(claimedState, ctx, ability.effects);
+      claimedState = result.state;
+      events.push(...result.events);
+    }
+  }
 
   const rotated = endTurn(claimedState, playerId, events);
   if (rotated.allPlayersPassed) {
