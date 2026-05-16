@@ -268,6 +268,89 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### ENGINE-TF1 — Targeting filters (dice, characters, and cards)
+**Why now.** Targeting in the current ability AST is coarse: die effects accept only a single `symbol?: string` filter; character effects use broad target kinds (`opponentCharacter`, `eachOpponentCharacter`, etc.) with no further conditions. Real card abilities routinely say "remove one of your opponent's dice showing a melee or ranged symbol with value 3 or more", or "deal 2 damage to each opponent character with a subtype matching one of yours", or "add a shield to your non-unique character". Without composite filters, these abilities can't be expressed or validated.
+
+**Scope.**
+
+*New types.*
+
+`DieFilter` — composite predicate for matching dice in a pool:
+```typescript
+type DieFilter = {
+  symbol?: string | string[];       // face symbol is in this set
+  minValue?: number;                // face value ≥ N
+  maxValue?: number;                // face value ≤ N
+  modifier?: boolean;               // must (or must not) be a modifier face
+  ownerCardType?: string | string[]; // die's owning card has this type (character/support/upgrade)
+  ownerColor?: string | string[];   // die's owning card has this color
+  ownerSubtype?: string;            // die's owning card has this subtype
+};
+```
+
+`CardFilter` — composite predicate for matching characters, supports, or upgrades:
+```typescript
+type CardFilter = {
+  subtype?: string | string[];      // card has at least one of these subtypes
+  color?: string | string[];        // card color is in this set
+  unique?: boolean;                 // card isUnique flag
+  exhausted?: boolean;              // character/support is exhausted
+  hasUpgrade?: boolean;             // character has at least one upgrade attached
+  minHealth?: number;               // remaining health ≥ N (character only)
+  maxDamage?: number;               // current damage ≤ N (character only)
+};
+```
+
+*Changes to existing effect types.*
+- `RemoveDieEffect`, `TurnDieEffect`, `ModifyDieValueEffect`: replace `symbol?: string` with `filter?: DieFilter`. A plain `{ symbol: 'melee' }` filter is equivalent to the old `symbol: 'melee'`.
+- `DealDamageEffect`, `AddShieldsEffect`, `RemoveShieldsEffect`, `HealDamageEffect`: add `filter?: CardFilter` to all `TargetSpec` character variants (`ownCharacter`, `opponentCharacter`, `anyCharacter`, `eachOpponentCharacter`, `eachCharacter`). For pre-selected targets (own/opponent/any-character), the filter is validated at dispatch time — `IllegalActionError` if the submitted character doesn't meet the filter. For auto-targeted effects (each*), the filter silently skips non-matching characters.
+
+*State change.*
+Add `cardMeta: Readonly<Record<string, CardMeta>>` to `GameState` where `CardMeta = { type: string; color: string; subtypes: readonly string[]; isUnique: boolean }`. Populated by `newGame` from `NewGameInput` (same source as `cardCatalogIds`). Required so die filters can inspect owning-card metadata without needing the full catalog at dispatch time.
+
+*Dispatch changes.*
+- `applyRemoveDie`, `applyTurnDie`, `applyModifyDieValue`: replace the `symbol` equality check with a `matchesDieFilter(die, filter, state)` helper that evaluates all filter fields.
+- `resolveCharacterTargets`: after resolving the character ID, if the `TargetSpec` carries a `filter`, run `matchesCardFilter(characterState, cardMeta, filter)` and throw if it doesn't pass.
+- For `eachOpponentCharacter` / `eachCharacter`: collect only characters passing the filter.
+
+*`getLegalActions` — no change for now.* Filter validation is server-side only. The UI reads the ability definition from `cardAbilities` and computes valid targets client-side for highlighting; the engine rejects invalid submissions. This is the zero-trust pattern — presentation is advisory, enforcement is authoritative.
+
+*AbilityBuilder changes.*
+- Die-targeting effects (`removeDie`, `turnDie`, `modifyDieValue`): replace the single "Symbol filter" dropdown with a collapsible "Die filter" section covering all `DieFilter` fields.
+- Character-targeting effects (`dealDamage`, `addShields`, `removeShields`, `healDamage`): add a collapsible "Card filter" section next to the target picker covering all `CardFilter` fields.
+
+*Catalog / protocol changes.*
+- Add `dieFilterSchema` and `cardFilterSchema` Zod objects.
+- Update `removeDieEffect`, `turnDieEffect`, `modifyDieValueEffect` schemas to use `dieFilterSchema`.
+- Update character-targeting effect schemas to add `filter: cardFilterSchema.optional()` alongside `target`.
+
+**Context to load.**
+- `packages/game-engine/src/abilities/types.ts` — add `DieFilter`, `CardFilter`; update die-op types; update `TargetSpec`
+- `packages/game-engine/src/state/types.ts` — add `cardMeta` to `GameState`, add `CardMeta` type
+- `packages/game-engine/src/state/new-game.ts` — populate `cardMeta` from input
+- `packages/game-engine/src/abilities/dispatch.ts` — `matchesDieFilter`, `matchesCardFilter` helpers; update three die ops and `resolveCharacterTargets`
+- `packages/game-engine/src/__tests__/dice-manipulation.test.ts` — extend filter coverage
+- `packages/protocol/src/catalog.ts` — `dieFilterSchema`, `cardFilterSchema`, update effect schemas
+- `apps/web/src/routes/designer/AbilityBuilder.tsx` — filter form sections
+
+**Out of scope.**
+- Exposing valid target IDs through `getLegalActions` (deferred — requires knowing which ability is "active" mid-resolution; not modelled yet).
+- Filters on `TargetSpec` kinds `opponent`, `self`, `attachedCharacter`, `thisCharacter` (these are unambiguous; no filter needed).
+- Support/upgrade targeting filters (same `CardFilter` shape applies but `addShields`/`dealDamage` don't target supports yet; wire up when those effects gain support targets).
+- Value-reference filters (`minValue: { kind: 'dieValue' }` — dynamic comparisons); `minValue` and `maxValue` are literal integers for v1.
+
+**Depends on.** Nothing unmerged.
+
+**Done when.**
+- [ ] Typecheck clean across workspace.
+- [ ] All existing engine tests still pass (no regressions on dice-manipulation or dispatch tests).
+- [ ] New filter tests (≥ 8): die filter by symbol set, value range, modifier flag, ownerCardType, ownerColor; card filter by subtype, color, unique flag; each* auto-targeting with filter skips non-matching characters.
+- [ ] `matchesDieFilter` and `matchesCardFilter` are pure functions with their own unit tests.
+- [ ] AbilityBuilder renders filter fields for die ops and character-targeting effects.
+- [ ] Zod schemas validate filter fields in `catalog.ts`.
+
+---
+
 #### ENGINE-DS1 — Deck search / reveal effects
 **Why now.** A large class of card abilities require players to interact with their own (or their opponent's) deck mid-action: revealing cards until a condition is met, searching the whole deck for a card type, drawing a set aside and choosing which to keep. None of these can be expressed with existing ops. They all share a common mid-action pause pattern (player must see revealed cards and make picks before the effect resolves) that mirrors `pendingGuardian` / `pendingTriggers`.
 
