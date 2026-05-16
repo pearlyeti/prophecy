@@ -18,6 +18,9 @@ import { useApp } from './store.js';
 export function App() {
   const [queryClient] = useState(() => new QueryClient());
 
+  // Bypass all auth and network setup for dev preview routes.
+  if (window.location.pathname.startsWith('/dice-preview')) return <DicePreview />;
+
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
@@ -43,8 +46,6 @@ function Router() {
     if (session?.userId) setPlayerId(session.userId);
   }, [session?.userId, setPlayerId]);
 
-  // Standalone dev previews — no auth or game state needed.
-  if (window.location.pathname.startsWith('/dice-preview')) return <DicePreview />;
   if (window.location.pathname.startsWith('/designer')) return <Designer />;
 
   if (isLoading) {
