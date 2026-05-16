@@ -46,6 +46,15 @@ export const auth = betterAuth({
   // bearer plugin lets the game server validate session tokens via
   // Authorization: Bearer <token> instead of forwarding cookies cross-domain.
   plugins: [bearer()],
+  // The OAuth state cookie is set during a cross-origin fetch from the web
+  // app (Vercel) to the API (Railway). Chrome's third-party cookie blocking
+  // drops it even with SameSite=None;Secure, so the cookie isn't there on
+  // the callback and Better Auth returns state_mismatch. The state is also
+  // persisted in the `verification` table — that DB lookup is the real CSRF
+  // check, so skipping the cookie portion is safe for our setup.
+  account: {
+    skipStateCookieCheck: true,
+  },
   socialProviders: {
     // Only register a provider when both credentials are present; an empty
     // clientId with enabled:false can cause Better Auth to throw a 500.
