@@ -12,6 +12,8 @@ import type {
   Effect,
   ImmediateAbility,
   PlayCondition,
+  SearchChoice,
+  SearchDisposition,
   TargetSpec,
   TriggerEvent,
 } from '@prophecy/protocol';
@@ -37,7 +39,7 @@ const STUB_OPS = [
   'rerollDice', 'resolveDie', 'resolveWithoutRemoving',
   'rollDie', 'activateCharacter', 'exhaustCard', 'readyCard',
   'moveDamage', 'moveShields', 'discardCards', 'discardFromDeck', 'lookAtCards',
-  'revealTopCard', 'searchDeck', 'playCard', 'returnToHand', 'takeBattlefieldControl',
+  'revealTopCard', 'playCard', 'returnToHand', 'takeBattlefieldControl',
   'claimBattlefield', 'endActionPhase', 'takeAdditionalActions', 'forceActivate',
   'grantKeyword', 'setAsideDie', 'placeDamageOnCard',
   'placeResourceOnCard', 'returnDefeatedCharacter', 'choice',
@@ -99,6 +101,14 @@ function defaultEffect(op: OpKind): Effect {
     case 'removeDie': return { op: 'removeDie', from: 'opponentPool', count: 1 };
     case 'turnDie': return { op: 'turnDie', from: 'opponentPool', toSymbol: 'blank', count: 1 };
     case 'modifyDieValue': return { op: 'modifyDieValue', from: 'ownPool', delta: 1, count: 1 };
+    case 'searchDeck': return {
+      op: 'searchDeck',
+      source: 'ownDeck',
+      revealCount: 5,
+      choices: [],
+      defaultDisposition: 'shuffleIntoDeck',
+      optional: false,
+    };
     case 'new': return { op: 'new', workingName: '', notes: '' };
     default: return { op, optional: false } as Effect;
   }
@@ -800,6 +810,74 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               onChange={(count) => onChange({ ...e, count } as Effect)} />
           </div>
           <DieCriteriaEditor value={e.criteria} onChange={(c) => onChange(patchEffect(e, { criteria: c }))} />
+        </div>
+      );
+    }
+    case 'searchDeck': {
+      type SearchDeckRaw = {
+        op: 'searchDeck';
+        source: 'ownDeck' | 'opponentDeck';
+        revealCount: number | 'all';
+        choices: SearchChoice[];
+        defaultDisposition: SearchDisposition;
+        optional: boolean;
+      };
+      const e = effect as unknown as SearchDeckRaw;
+      const dispositionOptions: { value: SearchDisposition; label: string }[] = [
+        { value: 'toHand', label: 'To hand' },
+        { value: 'toTopOfDeck', label: 'Top of deck' },
+        { value: 'toBottomOfDeck', label: 'Bottom of deck' },
+        { value: 'shuffleIntoDeck', label: 'Shuffle in' },
+        { value: 'discard', label: 'Discard' },
+      ];
+      return (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <SelectField label="Source" value={e.source}
+              options={[{ value: 'ownDeck', label: 'Own deck' }, { value: 'opponentDeck', label: "Opponent's deck" }]}
+              onChange={(v) => onChange({ ...e, source: v } as Effect)} />
+            <SelectField label="Reveal count" value={e.revealCount === 'all' ? 'all' : String(e.revealCount)}
+              options={[
+                { value: 'all', label: 'All' },
+                ...([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ value: String(n), label: String(n) }))),
+              ]}
+              onChange={(v) => onChange({ ...e, revealCount: v === 'all' ? 'all' : Number(v) } as Effect)} />
+            <SelectField label="Default disposition" value={e.defaultDisposition}
+              options={dispositionOptions}
+              onChange={(v) => onChange({ ...e, defaultDisposition: v as SearchDisposition } as Effect)} />
+            <BoolField label="Optional" value={e.optional ?? false}
+              onChange={(v) => onChange({ ...e, optional: v } as Effect)} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide">Choices</p>
+            {e.choices.map((ch, i) => (
+              <div key={i} className="flex flex-wrap gap-2 rounded border border-neutral-700 p-2">
+                <NumberField label="Count" value={ch.count} min={1} max={20}
+                  onChange={(count) => {
+                    const choices = e.choices.map((c, j) => j === i ? { ...c, count } : c);
+                    onChange({ ...e, choices } as Effect);
+                  }} />
+                <SelectField label="Disposition" value={ch.disposition}
+                  options={dispositionOptions}
+                  onChange={(v) => {
+                    const choices = e.choices.map((c, j) => j === i ? { ...c, disposition: v as SearchDisposition } : c);
+                    onChange({ ...e, choices } as Effect);
+                  }} />
+                <button type="button" onClick={() => {
+                  const choices = e.choices.filter((_, j) => j !== i);
+                  onChange({ ...e, choices } as Effect);
+                }} className="self-end rounded bg-red-900/40 px-2 py-1 text-[11px] text-red-300 hover:bg-red-800/60">
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={() => {
+              const choices = [...e.choices, { count: 1, disposition: 'toHand' as SearchDisposition }];
+              onChange({ ...e, choices } as Effect);
+            }} className="rounded bg-neutral-700 px-2 py-1 text-[11px] hover:bg-neutral-600">
+              + Add choice
+            </button>
+          </div>
         </div>
       );
     }

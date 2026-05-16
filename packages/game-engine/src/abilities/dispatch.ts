@@ -19,7 +19,7 @@ import {
   ownerOf,
   removeShields,
 } from '../state/combat.js';
-import type { DieFace, GameState, DieInPool } from '../state/types.js';
+import type { DieFace, GameState, DieInPool, PendingSearch } from '../state/types.js';
 import type {
   AddShieldsEffect,
   CardCriteria,
@@ -34,6 +34,7 @@ import type {
   RemoveDieEffect,
   RemoveShieldsEffect,
   RollCardDieEffect,
+  SearchDeckEffect,
   TargetSpec,
   TurnDieEffect,
 } from './types.js';
@@ -117,6 +118,8 @@ export function applyEffect(
       return applyTurnDie(state, ctx, effect);
     case 'modifyDieValue':
       return applyModifyDieValue(state, ctx, effect);
+    case 'searchDeck':
+      return applySearchDeck(state, ctx, effect);
     default:
       throw new NotImplementedError(effect.op);
   }
@@ -132,11 +135,25 @@ export function applyEffects(
   const allEvents: EngineEvent[] = [];
   let targetOffset = 0;
 
-  for (const effect of effects) {
-    const result = applyEffect(current, ctx, effect, targetOffset);
+  for (let i = 0; i < effects.length; i++) {
+    const hadSearch = current.pendingSearch !== null;
+    const result = applyEffect(current, ctx, effects[i]!, targetOffset);
     current = result.state;
     allEvents.push(...result.events);
     targetOffset += result.targetsConsumed;
+
+    // If a searchDeck effect just set pendingSearch, stash the remaining
+    // effects into it and stop — execution resumes via resolve-search.
+    if (!hadSearch && current.pendingSearch !== null) {
+      current = {
+        ...current,
+        pendingSearch: {
+          ...current.pendingSearch,
+          remainingEffects: effects.slice(i + 1),
+        },
+      };
+      break;
+    }
   }
 
   return { state: current, events: allEvents };
@@ -485,6 +502,64 @@ function applyModifyDieValue(state: GameState, ctx: DispatchContext, effect: Mod
     players: { ...state.players, [targetPlayerId]: { ...player, diceInPool: newPool } },
   };
   return { state: next, events, targetsConsumed: 0 };
+}
+
+// ────────────────────────────────────────────────────────────────────
+// ENGINE-DS1: deck search / reveal
+// ────────────────────────────────────────────────────────────────────
+
+function applySearchDeck(state: GameState, ctx: DispatchContext, effect: SearchDeckEffect): EffectResult {
+  const sourcePlayerId =
+    effect.source === 'ownDeck'
+      ? ctx.playerId
+      : (state.playerOrder.find((id) => id !== ctx.playerId) ?? ctx.playerId);
+
+  const sourcePlayer = state.players[sourcePlayerId]!;
+  const sourceDeck = [...sourcePlayer.deck];
+
+  // Determine how many cards to reveal.
+  const maxReveal = effect.revealCount === 'all' ? sourceDeck.length : effect.revealCount;
+  const revealed: string[] = [];
+
+  for (let i = 0; i < maxReveal && i < sourceDeck.length; i++) {
+    revealed.push(sourceDeck[i]!);
+    // Check early-stop condition from revealUntil.
+    if (effect.revealUntil) {
+      const { type: filterType, color: filterColor, count: stopCount } = effect.revealUntil;
+      const matchCount = revealed.filter((cid) => {
+        if (filterType && state.cardTypes[cid] !== filterType) return false;
+        if (filterColor && state.cardMeta[cid]?.color !== filterColor) return false;
+        return true;
+      }).length;
+      if (matchCount >= stopCount) break;
+    }
+  }
+
+  // Remove revealed cards from the source deck.
+  const newSourceDeck = sourceDeck.slice(revealed.length);
+  const nextState: GameState = {
+    ...state,
+    players: {
+      ...state.players,
+      [sourcePlayerId]: { ...sourcePlayer, deck: newSourceDeck },
+    },
+    pendingSearch: {
+      waitingForPlayerId: ctx.playerId,
+      revealedCardIds: revealed,
+      source: effect.source,
+      choices: effect.choices,
+      defaultDisposition: effect.defaultDisposition,
+      remainingEffects: [], // populated by applyEffects after this returns
+      resumePlayerId: ctx.playerId,
+    } satisfies PendingSearch,
+  };
+
+  const events: EngineEvent[] = [
+    { type: 'deck.searched', payload: { playerId: ctx.playerId, source: effect.source, revealedCount: revealed.length } },
+    { type: 'cards.revealed', payload: { playerId: ctx.playerId, cardIds: revealed } },
+  ];
+
+  return { state: nextState, events, targetsConsumed: 0 };
 }
 
 // ────────────────────────────────────────────────────────────────────
