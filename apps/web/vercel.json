@@ -1,3 +1,13 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/api/auth/(.*)",
+      "destination": "https://api-production-b2596.up.railway.app/api/auth/$1"
+    },
+    {
+      "source": "/trpc/(.*)",
+      "destination": "https://api-production-b2596.up.railway.app/trpc/$1"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
