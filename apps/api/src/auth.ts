@@ -34,6 +34,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  accountLinking: {
+    enabled: true,
+    // Google and Discord verify email ownership, so auto-link on matching email.
+    trustedProviders: ['google', 'discord'],
+  },
   database: drizzleAdapter(createDb(DB_URL), {
     provider: 'pg',
     schema: {
