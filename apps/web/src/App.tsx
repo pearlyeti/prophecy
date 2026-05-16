@@ -83,8 +83,10 @@ function SocketBridge() {
     const attemptRejoin = () => {
       const cached = loadCachedLobby();
       if (!cached) return;
-      // If we already have this lobby in the store, no need to rejoin.
-      if (useApp.getState().lobby?.roomId === cached.roomId) return;
+      // Always call lobby.rejoin on (re)connect — the server tracks
+      // socket→room mapping fresh per connection. Skipping when local
+      // state has the lobby leaves the new socket unbound on the server
+      // after a forced reconnect.
       if (rejoinInFlightFor.current === cached.roomId) return;
 
       rejoinInFlightFor.current = cached.roomId;
@@ -112,6 +114,19 @@ function SocketBridge() {
     };
     const onDisconnect = () => setStatus('disconnected');
     const onReconnectAttempt = () => setStatus('reconnecting');
+
+    // Socket.IO's ping timeout is 20s by default, so it can take that long to
+    // notice a dropped connection. Drive disconnect/reconnect directly from
+    // the browser's online/offline events so the pill responds immediately
+    // and Socket.IO doesn't waste time waiting on a dead transport.
+    const onOffline = () => {
+      setStatus('disconnected');
+      if (socket.connected) socket.disconnect();
+    };
+    const onOnline = () => {
+      setStatus('reconnecting');
+      socket.connect();
+    };
 
     const onLobby: Parameters<typeof socket.on<'lobby.state'>>[1] = (state) => {
       setLobby(state);
@@ -153,6 +168,8 @@ function SocketBridge() {
     socket.on('game.preview', onPreview);
     socket.on('error', onError);
     socket.on('lobby.matchFound', onMatchFound);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
 
     if (socket.connected) {
       onConnect();
@@ -177,6 +194,8 @@ function SocketBridge() {
       socket.off('game.preview', onPreview);
       socket.off('error', onError);
       socket.off('lobby.matchFound', onMatchFound);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
     };
   }, [playerId, setLobby, setGame, appendEvents, setStatus, setError, setOpponentPreview]);
 
