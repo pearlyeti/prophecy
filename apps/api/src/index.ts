@@ -36,26 +36,27 @@ app.use('/trpc/*', corsMiddleware);
 
 app.get('/health', (c) => c.json({ ok: true, service: 'api' }));
 
-// better-auth doesn't register setPassword as an HTTP route (it's server-side
-// only). Expose it here before the catch-all so Hono matches this first.
-app.post('/api/auth/set-password', async (c) => {
-  try {
-    const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
-    const newPassword = body?.newPassword;
-    if (typeof newPassword !== 'string' || !newPassword) {
-      return c.json({ message: 'newPassword is required' }, 400);
-    }
-    await auth.api.setPassword({ body: { newPassword }, headers: c.req.raw.headers });
-    return c.json({ status: true });
-  } catch (err: unknown) {
-    const e = err as Record<string, unknown>;
-    const status = (e?.status ?? e?.statusCode ?? 400) as 400 | 401 | 403 | 500;
-    const message = (e?.message ?? 'Something went wrong') as string;
-    return c.json({ message }, status);
-  }
-});
-
 app.on(['GET', 'POST'], '/api/auth/**', async (c) => {
+  // better-auth doesn't register setPassword as an HTTP route (server-side
+  // only). Intercept it here rather than adding a separate app.post() route —
+  // a sibling specific route under /api/auth/ breaks Hono's ** wildcard tree
+  // and causes all other auth paths to return 404.
+  if (c.req.method === 'POST' && new URL(c.req.url).pathname === '/api/auth/set-password') {
+    try {
+      const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+      const newPassword = body?.newPassword;
+      if (typeof newPassword !== 'string' || !newPassword) {
+        return c.json({ message: 'newPassword is required' }, 400);
+      }
+      await auth.api.setPassword({ body: { newPassword }, headers: c.req.raw.headers });
+      return c.json({ status: true });
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>;
+      const status = (e?.status ?? e?.statusCode ?? 400) as 400 | 401 | 403 | 500;
+      const message = (e?.message ?? 'Something went wrong') as string;
+      return c.json({ message }, status);
+    }
+  }
   try {
     return await auth.handler(c.req.raw);
   } catch (err) {

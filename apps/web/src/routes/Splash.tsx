@@ -2,13 +2,13 @@ import { isError } from '@prophecy/protocol';
 import { useState } from 'react';
 
 import { authClient } from '../lib/auth-client.js';
-
-// Base path for direct auth API calls — mirrors auth-client.ts resolution.
-const authBase = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3000' : '');
 import { saveCachedLobby } from '../lib/lobbyCache.js';
 import { getSocket } from '../lib/socket.js';
 import { trpc } from '../lib/trpc.js';
 import { useApp } from '../store.js';
+
+// Base path for direct auth API calls — mirrors auth-client.ts resolution.
+const authBase = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
 function SetPasswordForm() {
   const [open, setOpen] = useState(false);
