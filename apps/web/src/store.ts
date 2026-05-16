@@ -82,8 +82,9 @@ interface AppStore {
   game: GameState | null;
   setGame: (g: GameState | null) => void;
 
-  recentEvents: readonly EngineEvent[];
-  appendEvents: (e: readonly EngineEvent[]) => void;
+  /** Each entry is the complete event output of one player action. */
+  recentBatches: readonly (readonly EngineEvent[])[];
+  appendBatch: (batch: readonly EngineEvent[]) => void;
 
   connectionStatus: ConnectionStatus;
   setConnectionStatus: (s: ConnectionStatus) => void;
@@ -124,9 +125,9 @@ export const useApp = create<AppStore>((set) => ({
   game: null,
   setGame: (g) => set({ game: g }),
 
-  recentEvents: [],
-  appendEvents: (events) =>
-    set((s) => ({ recentEvents: [...s.recentEvents, ...events].slice(-50) })),
+  recentBatches: [],
+  appendBatch: (batch) =>
+    set((s) => ({ recentBatches: [...s.recentBatches, batch].slice(-30) })),
 
   connectionStatus: 'connecting',
   setConnectionStatus: (s) => set({ connectionStatus: s }),
@@ -160,7 +161,7 @@ export const useApp = create<AppStore>((set) => ({
     set({
       lobby: null,
       game: null,
-      recentEvents: [],
+      recentBatches: [],
       lastError: null,
       selectionMode: null,
       activeFlow: null,
