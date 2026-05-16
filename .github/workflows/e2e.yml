@@ -65,6 +65,19 @@ jobs:
       - name: Run migrations
         run: pnpm db:migrate
 
+      - name: Write .env for dev server startup
+        run: |
+          printf '%s\n' \
+            "DATABASE_URL=${DATABASE_URL}" \
+            "REDIS_URL=${REDIS_URL}" \
+            "AUTH_SECRET=${AUTH_SECRET}" \
+            "API_PORT=${API_PORT}" \
+            "API_PUBLIC_URL=${API_PUBLIC_URL}" \
+            "API_URL=${API_URL}" \
+            "GAME_SERVER_PORT=${GAME_SERVER_PORT}" \
+            "NODE_ENV=${NODE_ENV}" \
+            > .env
+
       - name: Install Playwright browsers
         run: pnpm --filter @prophecy/web exec playwright install chromium --with-deps
 
