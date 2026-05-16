@@ -1,11 +1,9 @@
 // Shared die face texture generator used by the board dice (DicePool3D).
 // Produces a 512×512 CanvasTexture with the die's value and symbol on the card base color.
 //
-// UV orientation: RoundedBoxGeometry maps canvas_y → die horizontal axis and
-// canvas_x → die vertical axis (as seen from the overhead camera). All text is
-// therefore drawn at canvas_y = S/2 (die center horizontally) and at varying
-// canvas_x positions (die vertical placement), rotated 90° CW so characters
-// appear upright when the UV axes are applied.
+// Text is drawn UPRIGHT in normal canvas orientation. The RoundedBoxGeometry UV
+// rotation is already compensated by the _O = Ry(-π/2) term in FACE_CORRECT_Q
+// (DicePool3D.tsx) — do NOT add canvas rotation here or the corrections double up.
 
 import * as THREE from 'three';
 
@@ -69,23 +67,6 @@ function fittedSize(
   return size;
 }
 
-// Draws text centered at (cx, cy) rotated 90° CW — compensates for the
-// RoundedBoxGeometry UV rotation so the text appears upright on the die face.
-function drawRotated(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  cx: number,
-  cy: number,
-) {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, 0, 0);
-  ctx.restore();
-}
-
 export function makeFaceTexture(
   symbol: string,
   value: number,
@@ -108,28 +89,23 @@ export function makeFaceTexture(
   ctx.fillRect(0, 0, S, S);
 
   ctx.fillStyle = textColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
-  // UV axis mapping:
-  //   canvas_y = S/2  → die center horizontally
-  //   canvas_x        → die vertical position (canvas_x/S = fraction from die top)
-  // Safe canvas_x zone for the flat face: [~15%, ~75%] of S = [77, 384].
-  // Centering the block at S/2 keeps it symmetric within the top margin (179px
-  // from 256 to 77) but the bottom margin is only 128px (256 to 384), so the
-  // total block must stay ≤ 256px (GAP + V_MAX + L_MAX).
-  // Safe canvas_y zone (text width along die horizontal): [~20%, ~80%] → maxW = 0.60*S
-
-  const maxW   = Math.round(S * 0.60); // max text extent along die horizontal
-  const V_MAX  = Math.round(S * 0.29); // max value font
-  const L_MAX  = Math.round(S * 0.19); // max label font (bold)
-  const GAP    = Math.round(S * 0.02); // gap between value and label
+  // CTR: visual center of the flat face in canvas_y. Slightly above S/2 because
+  // the RoundedBoxGeometry UV maps the flat region upward in canvas space.
+  const CTR   = Math.round(S * 0.45);
+  const GAP   = Math.round(S * 0.04);
+  const V_MAX = Math.round(S * 0.35); // max value font size
+  const L_MAX = Math.round(S * 0.22); // max label font size
+  const maxW  = Math.round(S * 0.70); // max text width
 
   if (symbol === 'blank') {
     // intentionally empty
 
   } else if (symbol === 'special') {
-    const size = fittedSize(ctx, 'Special', maxW, Math.round(S * 0.22), 'bold');
-    ctx.font = `bold ${size}px ui-sans-serif, sans-serif`;
-    drawRotated(ctx, 'Special', S / 2, S / 2);
+    fittedSize(ctx, 'Special', maxW, L_MAX, 'bold');
+    ctx.fillText('Special', S / 2, CTR);
 
   } else {
     const valueStr = modifier ? `+${value}` : (value > 0 ? `${value}` : '');
@@ -137,26 +113,25 @@ export function makeFaceTexture(
 
     if (valueStr && label) {
       const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
-      const lSize = fittedSize(ctx, label,    maxW, L_MAX, 'bold');
+      const lSize = fittedSize(ctx, label,    maxW, L_MAX, '600');
 
-      // Center the block at S/2. Constraint: vSize + GAP + lSize ≤ 256.
-      const half = Math.round(GAP / 2);
-      const vCX = S / 2 - half - Math.round(lSize / 2);
-      const lCX = S / 2 + half + Math.round(vSize / 2);
+      // Center the pair at CTR: value above, label below, GAP between.
+      const yValue = CTR - Math.round((GAP + lSize) / 2);
+      const yLabel = CTR + Math.round((GAP + vSize) / 2);
 
       ctx.font = `bold ${vSize}px ui-sans-serif, sans-serif`;
-      drawRotated(ctx, valueStr, vCX, S / 2);
+      ctx.fillText(valueStr, S / 2, yValue);
 
-      ctx.font = `bold ${lSize}px ui-sans-serif, sans-serif`;
-      drawRotated(ctx, label, lCX, S / 2);
+      ctx.font = `600 ${lSize}px ui-sans-serif, sans-serif`;
+      ctx.fillText(label, S / 2, yLabel);
 
     } else if (valueStr) {
       fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
-      drawRotated(ctx, valueStr, S / 2, S / 2);
+      ctx.fillText(valueStr, S / 2, CTR);
 
     } else if (label) {
-      fittedSize(ctx, label, maxW, L_MAX, 'bold');
-      drawRotated(ctx, label, S / 2, S / 2);
+      fittedSize(ctx, label, maxW, L_MAX, '600');
+      ctx.fillText(label, S / 2, CTR);
     }
   }
 
