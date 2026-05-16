@@ -29,7 +29,6 @@ export function Game() {
   const enterRerollMode = useApp((s) => s.enterRerollMode);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
   const activeFlow = useApp((s) => s.activeFlow);
-  const opponentPreview = useApp((s) => s.opponentPreview);
 
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [handMode, setHandMode] = useState<HandMode | null>(null);
@@ -1685,6 +1684,7 @@ function BattleZone({
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
   const [upgradeDetailId, setUpgradeDetailId] = useState<{ ownerId: string; upgradeId: string } | null>(null);
 
+  const opponentPreview = useApp((s) => s.opponentPreview);
   const opponentId = game.playerOrder.find((id) => id !== playerId);
   const detailChar = detailId ? game.players[detailId.ownerId]?.characters[detailId.charId] : null;
   const upgradeDetailCatalogId = upgradeDetailId ? game.cardCatalogIds[upgradeDetailId.upgradeId] : undefined;
@@ -1970,9 +1970,9 @@ function BattlefieldRow({
           if (!pendingCounter && previewFlow.kind === 'resolve') {
             const group = previewFlow.pendingTargets.find(t => t.targetCharacterId === cid);
             if (group) {
-              const resolverPool = game.players[game.activePlayerId]?.diceInPool ?? [];
-              const groupValue = group.dieInstanceIds.reduce((sum, id) => {
-                const d = resolverPool.find(p => p.instanceId === id);
+              const resolverPool = game.activePlayerId ? (game.players[game.activePlayerId]?.diceInPool ?? []) : [];
+              const groupValue = group.dieInstanceIds.reduce((sum: number, id) => {
+                const d = resolverPool.find((p) => p.instanceId === id);
                 return sum + (d?.face.value ?? 0);
               }, 0);
               const pSym = previewFlow.symbol;
