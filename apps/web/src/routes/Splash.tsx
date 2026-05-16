@@ -2,6 +2,9 @@ import { isError } from '@prophecy/protocol';
 import { useState } from 'react';
 
 import { authClient } from '../lib/auth-client.js';
+
+// Base path for direct auth API calls — mirrors auth-client.ts resolution.
+const authBase = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3000' : '');
 import { saveCachedLobby } from '../lib/lobbyCache.js';
 import { getSocket } from '../lib/socket.js';
 import { trpc } from '../lib/trpc.js';
@@ -20,16 +23,24 @@ function SetPasswordForm() {
     if (pw !== confirm) { setError('Passwords do not match.'); return; }
     setBusy(true);
     setError(null);
-    const result = await authClient.$fetch('/set-password', {
-      method: 'POST',
-      body: { newPassword: pw },
-    });
-    setBusy(false);
-    if ((result as { error?: { message?: string } }).error) {
-      setError((result as { error?: { message?: string } }).error?.message ?? 'Something went wrong.');
-    } else {
-      setDone(true);
-      setOpen(false);
+    try {
+      const res = await fetch(`${authBase}/api/auth/set-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: pw }),
+        credentials: 'include',
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json?.message ?? `Error ${res.status}`);
+      } else {
+        setDone(true);
+        setOpen(false);
+      }
+    } catch {
+      setError('Network error — check your connection.');
+    } finally {
+      setBusy(false);
     }
   };
 
