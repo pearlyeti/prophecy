@@ -8,12 +8,13 @@
   "rarity": "common",
   "cost": 0,
   "health": null,
+  "stability": null,
   "pointValue": null,
   "elitePointValue": null,
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Deal 1 melee damage to an opponent's character.",
+  "displayText": "Deal 1 melee damage to an exhausted character.",
   "dieFaces": null,
   "abilities": [
     {
@@ -25,6 +26,9 @@
           "damageType": "melee",
           "target": {
             "kind": "opponentCharacter"
+          },
+          "criteria": {
+            "exhausted": true
           },
           "unblockable": false,
           "optional": false
