@@ -111,14 +111,19 @@ export function Game() {
 
   const dragEnabled = isMyTurn && inActionPhase && selectionMode === null && handMode === null;
   const drag = useDragToPlay(
-    (instanceId) => send({ type: 'play-card', playerId, cardId: instanceId }),
+    (instanceId, targetCharId) => send({
+      type: 'play-card',
+      playerId,
+      cardId: instanceId,
+      ...(targetCharId ? { characterTargets: [targetCharId] } : {}),
+    }),
     dragEnabled,
   );
 
   return (
     <main
       data-droptarget="play"
-      className={`flex h-dvh flex-col overflow-hidden ${drag.dragging && drag.overZone ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
+      className={`flex h-dvh flex-col overflow-hidden ${drag.dragging && drag.overZone && drag.dragging.charTargetSide === null ? 'outline outline-2 outline-emerald-500 outline-offset-[-4px]' : ''}`}
     >
       {/* ── Setup modal ──────────────────────────────────────────── */}
       {!ended && game.phase === 'setup' && (
@@ -165,6 +170,8 @@ export function Game() {
         onOpenActionPanel={() => setActionPanelOpen(true)}
         onOpenHand={openHand}
         getDragHandlers={drag.getHandlers}
+        dragCharTargetSide={drag.dragging?.charTargetSide ?? null}
+        dragOverCharId={drag.overCharTarget?.instanceId ?? null}
         className="min-h-0 flex-1"
       />
 
@@ -172,6 +179,7 @@ export function Game() {
         <DragArtifact
           card={drag.dragging}
           overZone={drag.overZone}
+          overCharTarget={drag.overCharTarget}
           artifactRef={drag.artifactRef}
         />
       )}
@@ -1079,6 +1087,8 @@ interface DragCardInfo {
   name: string;
   type: string;
   cost: number;
+  /** Which side of the board requires a character target: 'own', 'opponent', or null for no char target. */
+  charTargetSide: 'own' | 'opponent' | null;
   artUrl?: string | null | undefined;
   artFrameX?: number | null | undefined;
   artFrameY?: number | null | undefined;
@@ -1087,9 +1097,10 @@ interface DragCardInfo {
 
 type DragHandlers = Pick<React.HTMLAttributes<HTMLButtonElement>, 'onTouchStart' | 'onMouseDown'>;
 
-function useDragToPlay(onPlay: (id: string) => void, enabled: boolean) {
+function useDragToPlay(onPlay: (id: string, targetCharId?: string) => void, enabled: boolean) {
   const [dragging, setDragging] = useState<DragCardInfo | null>(null);
   const [overZone, setOverZone] = useState(false);
+  const [overCharTarget, setOverCharTarget] = useState<{ instanceId: string; valid: boolean } | null>(null);
 
   const artifactRef = useRef<HTMLDivElement>(null);
   const onPlayRef = useRef(onPlay);
@@ -1101,7 +1112,9 @@ function useDragToPlay(onPlay: (id: string) => void, enabled: boolean) {
   const s = useRef({
     active: false,
     instanceId: null as string | null,
+    charTargetSide: null as 'own' | 'opponent' | null,
     over: false,
+    overCharTarget: null as { instanceId: string; valid: boolean } | null,
     pending: null as null | {
       instanceId: string;
       info: DragCardInfo;
@@ -1124,17 +1137,43 @@ function useDragToPlay(onPlay: (id: string) => void, enabled: boolean) {
     setOverZone(over);
   };
 
+  const setOverChar = (target: { instanceId: string; valid: boolean } | null) => {
+    const cur = s.current.overCharTarget;
+    if (target?.instanceId === cur?.instanceId && target?.valid === cur?.valid) return;
+    s.current.overCharTarget = target;
+    setOverCharTarget(target);
+  };
+
   const hitTest = (x: number, y: number) => {
     // Hide artifact briefly so it doesn't block elementFromPoint.
     if (artifactRef.current) artifactRef.current.style.pointerEvents = 'none';
     const el = document.elementFromPoint(x, y);
     if (artifactRef.current) artifactRef.current.style.pointerEvents = '';
+
+    const closestTarget = el?.closest('[data-droptarget]') as HTMLElement | null;
+    if (closestTarget) {
+      const val = closestTarget.dataset.droptarget ?? '';
+      if (val.startsWith('character:')) {
+        const instanceId = val.slice('character:'.length);
+        const charSide = closestTarget.dataset.charSide;
+        const cts = s.current.charTargetSide;
+        const valid = cts !== null && (
+          (cts === 'own' && charSide === 'player') ||
+          (cts === 'opponent' && charSide === 'opponent')
+        );
+        setOverChar({ instanceId, valid });
+        setOver(false);
+        return;
+      }
+    }
+    setOverChar(null);
     setOver(!!el?.closest('[data-droptarget="play"]'));
   };
 
   const begin = (info: DragCardInfo, x: number, y: number) => {
     s.current.active = true;
     s.current.instanceId = info.instanceId;
+    s.current.charTargetSide = info.charTargetSide;
     setDragging(info);
     requestAnimationFrame(() => moveArtifact(x, y));
   };
@@ -1142,16 +1181,28 @@ function useDragToPlay(onPlay: (id: string) => void, enabled: boolean) {
   const finish = (commit: boolean, suppressClick = false) => {
     const id = s.current.instanceId;
     const over = s.current.over;
+    const overChar = s.current.overCharTarget;
+    const charTargetSide = s.current.charTargetSide;
     s.current.active = false;
     s.current.instanceId = null;
+    s.current.charTargetSide = null;
     setOver(false);
+    setOverChar(null);
     setDragging(null);
     if (suppressClick) {
       // Prevent the mouseup from also firing a click on the card button.
       const absorb = (e: Event) => { e.stopPropagation(); document.removeEventListener('click', absorb, true); };
       document.addEventListener('click', absorb, true);
     }
-    if (commit && over && id) onPlayRef.current(id);
+    if (commit && id) {
+      if (overChar?.valid) {
+        onPlayRef.current(id, overChar.instanceId);
+      } else if (over && charTargetSide === null) {
+        // Generic play zone — only for cards that don't require a char target.
+        onPlayRef.current(id);
+      }
+      // else: char target required but dropped on invalid target or generic zone → cancel
+    }
   };
 
   const clearPending = () => {
@@ -1238,26 +1289,29 @@ function useDragToPlay(onPlay: (id: string) => void, enabled: boolean) {
     },
   }), []); // stable — closes over refs only
 
-  return { dragging, overZone, artifactRef, getHandlers };
+  return { dragging, overZone, overCharTarget, artifactRef, getHandlers };
 }
 
 function DragArtifact({
   card,
   overZone,
+  overCharTarget,
   artifactRef,
 }: {
   card: DragCardInfo;
   overZone: boolean;
+  overCharTarget: { instanceId: string; valid: boolean } | null;
   artifactRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const borderClass = overCharTarget
+    ? overCharTarget.valid ? 'border-emerald-400' : 'border-red-400'
+    : overZone ? 'border-emerald-400' : 'border-neutral-500';
   return createPortal(
     <div
       ref={artifactRef}
       style={{ position: 'fixed', left: 0, top: 0, zIndex: 100, pointerEvents: 'none', willChange: 'transform' }}
     >
-      <div className={`relative flex h-[96px] w-[72px] overflow-hidden rounded-lg border shadow-2xl ${
-        overZone ? 'border-emerald-400' : 'border-neutral-500'
-      }`}>
+      <div className={`relative flex h-[96px] w-[72px] overflow-hidden rounded-lg border shadow-2xl ${borderClass}`}>
         <CardArtBg artUrl={card.artUrl} type={card.type} frameX={card.artFrameX} frameY={card.artFrameY} frameZoom={card.artFrameZoom} />
         <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">
           {card.cost}
@@ -1656,7 +1710,6 @@ function distributeToRows(charIds: readonly string[], maxPerRow = 4): string[][]
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Battle zone — mobile-first layout shell (WEB-11)
-// Five stacked regions: AvatarBar / OpponentZone / PlayerZone / HandStrip / ActionBar
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Top-to-bottom mobile-first game shell. */
@@ -1669,6 +1722,8 @@ function BattleZone({
   onOpenActionPanel,
   onOpenHand,
   getDragHandlers,
+  dragCharTargetSide,
+  dragOverCharId,
   className = '',
 }: {
   game: GameState;
@@ -1679,6 +1734,8 @@ function BattleZone({
   onOpenActionPanel: () => void;
   onOpenHand: (mode: HandMode, focusId?: string) => void;
   getDragHandlers: (info: DragCardInfo) => DragHandlers;
+  dragCharTargetSide: 'own' | 'opponent' | null;
+  dragOverCharId: string | null;
   className?: string;
 }) {
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
@@ -1696,12 +1753,14 @@ function BattleZone({
         {/* 1 ── Avatar bar */}
         <AvatarBar game={game} playerId={playerId} catalogById={catalogById} isMyTurn={isMyTurn} onOpenActionPanel={onOpenActionPanel} />
 
-        {/* 2 ── Opponent zone (placeholder — WEB-12 fills this in) */}
+        {/* 2 ── Opponent zone */}
         <OpponentZone
           game={game}
           playerId={playerId}
           catalogById={catalogById}
           previewFlow={opponentPreview}
+          dragCharTargetSide={dragCharTargetSide}
+          dragOverCharId={dragOverCharId}
           onDetailTap={(charId) => opponentId && setDetailId({ ownerId: opponentId, charId })}
           onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
         />
@@ -1717,6 +1776,8 @@ function BattleZone({
           playerId={playerId}
           catalogById={catalogById}
           previewFlow={opponentPreview}
+          dragCharTargetSide={dragCharTargetSide}
+          dragOverCharId={dragOverCharId}
           onDetailTap={(charId) => setDetailId({ ownerId: playerId, charId })}
           onUpgradeTap={(uid) => setUpgradeDetailId({ ownerId: playerId, upgradeId: uid })}
         />
@@ -1886,6 +1947,8 @@ function BattlefieldRow({
   actionableIds,
   powerActionableIds,
   previewFlow,
+  dragCharTargetSide,
+  dragOverCharId,
   onDetailTap,
   onUpgradeTap,
 }: {
@@ -1906,6 +1969,10 @@ function BattlefieldRow({
   powerActionableIds: readonly string[];
   /** Opponent's live ActiveFlow for preview rendering (received via game.preview). */
   previewFlow?: ActiveFlow | null;
+  /** Which side requires a character drop target (null = no char targeting active). */
+  dragCharTargetSide: 'own' | 'opponent' | null;
+  /** Character instance ID currently hovered during a targeted drag. */
+  dragOverCharId: string | null;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2032,6 +2099,18 @@ function BattlefieldRow({
           }
         }
 
+        // Drag-targeting ring: show validity feedback when dragging a char-targeted card.
+        let dragRing: 'drag-valid' | 'drag-invalid' | 'drag-hover-valid' | 'drag-hover-invalid' | undefined;
+        if (dragCharTargetSide !== null) {
+          const validSide = (dragCharTargetSide === 'own' && side === 'player') ||
+                            (dragCharTargetSide === 'opponent' && side === 'opponent');
+          if (cid === dragOverCharId) {
+            dragRing = validSide ? 'drag-hover-valid' : 'drag-hover-invalid';
+          } else {
+            dragRing = validSide ? 'drag-valid' : 'drag-invalid';
+          }
+        }
+
         return (
           <div key={cid} className="flex shrink-0 flex-col gap-3" style={{ width: CHAR_COL_WIDTH }}>
             {side === 'player' && (
@@ -2066,7 +2145,9 @@ function BattlefieldRow({
               eligible={eligible}
               pendingExhaust={isActivating}
               previewActivate={previewActivate}
+              charSide={side}
               {...(targetRing ? { targetRing } : {})}
+              {...(dragRing ? { dragRing } : {})}
               {...(abilityBadges.length > 0 ? { abilityBadges } : {})}
               {...(pendingCounter ? { pendingCounter } : {})}
               onAbilityBadgeTap={handleAbilityBadgeTap}
@@ -2129,6 +2210,8 @@ function OpponentZone({
   playerId,
   catalogById,
   previewFlow,
+  dragCharTargetSide,
+  dragOverCharId,
   onDetailTap,
   onUpgradeTap,
 }: {
@@ -2136,6 +2219,8 @@ function OpponentZone({
   playerId: string;
   catalogById: Map<string, Card>;
   previewFlow?: ActiveFlow | null;
+  dragCharTargetSide: 'own' | 'opponent' | null;
+  dragOverCharId: string | null;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2186,6 +2271,8 @@ function OpponentZone({
           actionableIds={[]}
           powerActionableIds={[]}
           previewFlow={previewFlow ?? null}
+          dragCharTargetSide={dragCharTargetSide}
+          dragOverCharId={dragOverCharId}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -2200,6 +2287,8 @@ function PlayerZone({
   playerId,
   catalogById,
   previewFlow,
+  dragCharTargetSide,
+  dragOverCharId,
   onDetailTap,
   onUpgradeTap,
 }: {
@@ -2207,6 +2296,8 @@ function PlayerZone({
   playerId: string;
   catalogById: Map<string, Card>;
   previewFlow?: ActiveFlow | null;
+  dragCharTargetSide: 'own' | 'opponent' | null;
+  dragOverCharId: string | null;
   onDetailTap: (charId: string) => void;
   onUpgradeTap: (upgradeId: string) => void;
 }) {
@@ -2256,6 +2347,8 @@ function PlayerZone({
           actionableIds={actionableIds}
           powerActionableIds={powerActionableIds}
           previewFlow={previewFlow ?? null}
+          dragCharTargetSide={dragCharTargetSide}
+          dragOverCharId={dragOverCharId}
           onDetailTap={onDetailTap}
           onUpgradeTap={onUpgradeTap}
         />
@@ -2342,7 +2435,7 @@ function InlineHandStrip({
             const card = catalogId ? catalogById.get(catalogId) : undefined;
             const isExpanded = expandedId === id;
             const dragHandlers = eligible
-              ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost, artUrl: card?.artUrl, artFrameX: card?.artFrameX, artFrameY: card?.artFrameY, artFrameZoom: card?.artFrameZoom })
+              ? getDragHandlers({ instanceId: id, name: card?.name ?? '—', type: card?.type ?? '', cost, charTargetSide: getCharTargetSide(card), artUrl: card?.artUrl, artFrameX: card?.artFrameX, artFrameY: card?.artFrameY, artFrameZoom: card?.artFrameZoom })
               : undefined;
 
             return (
@@ -2641,7 +2734,9 @@ function CharacterCard({
   eligible = false,
   pendingExhaust = false,
   previewActivate = false,
+  charSide,
   targetRing,
+  dragRing,
   pendingCounter,
   abilityBadges,
   onAbilityBadgeTap,
@@ -2659,8 +2754,12 @@ function CharacterCard({
   pendingExhaust?: boolean;
   /** Faint ring shown when opponent's preview shows they are activating this character. */
   previewActivate?: boolean;
+  /** Zone side — used as data attribute for drag-target hit testing. */
+  charSide?: 'player' | 'opponent';
   /** 'damage' = red ring (opponent damage target), 'shield' = blue ring (shield target). */
   targetRing?: 'damage' | 'shield';
+  /** Drag-targeting ring: validity feedback while dragging a char-targeted card. */
+  dragRing?: 'drag-valid' | 'drag-invalid' | 'drag-hover-valid' | 'drag-hover-invalid';
   /** Pending value from a committed multi-target resolve group (shown as a counter badge). */
   pendingCounter?: { value: number; kind: 'damage' | 'shield' };
   abilityBadges?: Array<{ abilityIndex: number; kind: 'action' | 'powerAction'; eligible: boolean }>;
@@ -2676,7 +2775,11 @@ function CharacterCard({
   const showTilt = char.exhausted || pendingExhaust;
 
   return (
-    <div className={`relative overflow-visible ${className}`} style={{ aspectRatio: '1' }}>
+    <div
+      className={`relative overflow-visible ${className}`}
+      style={{ aspectRatio: '1' }}
+      {...(charSide ? { 'data-droptarget': `character:${char.id}`, 'data-char-side': charSide } : {})}
+    >
       <button
         type="button"
         onClick={onTap}
@@ -2685,15 +2788,23 @@ function CharacterCard({
             ? 'border-red-500 ring-2 ring-red-500/60'
             : targetRing === 'shield'
               ? 'border-blue-500 ring-2 ring-blue-500/60'
-              : eligible
-                ? 'border-emerald-500 ring-2 ring-emerald-500/60'
-                : previewActivate
-                  ? 'border-sky-500/50 ring-1 ring-sky-500/30'
-                  : char.exhausted
-                    ? 'border-neutral-600 opacity-70'
-                    : pendingExhaust
-                      ? 'border-emerald-600'
-                      : 'border-neutral-700'
+              : dragRing === 'drag-hover-valid'
+                ? 'border-emerald-400 ring-2 ring-emerald-400/80 scale-105'
+                : dragRing === 'drag-valid'
+                  ? 'border-emerald-500/60 ring-1 ring-emerald-500/40'
+                  : dragRing === 'drag-hover-invalid'
+                    ? 'border-red-400 ring-2 ring-red-400/80'
+                    : dragRing === 'drag-invalid'
+                      ? 'border-neutral-700 opacity-40'
+                      : eligible
+                        ? 'border-emerald-500 ring-2 ring-emerald-500/60'
+                        : previewActivate
+                          ? 'border-sky-500/50 ring-1 ring-sky-500/30'
+                          : char.exhausted
+                            ? 'border-neutral-600 opacity-70'
+                            : pendingExhaust
+                              ? 'border-emerald-600'
+                              : 'border-neutral-700'
         }`}
         style={{
           transform: showTilt ? exhaustedTransform : 'none',
