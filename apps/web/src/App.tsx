@@ -67,7 +67,7 @@ function SocketBridge() {
   const playerId = useApp((s) => s.playerId);
   const setLobby = useApp((s) => s.setLobby);
   const setGame = useApp((s) => s.setGame);
-  const appendEvents = useApp((s) => s.appendEvents);
+  const appendBatch = useApp((s) => s.appendBatch);
   const setStatus = useApp((s) => s.setConnectionStatus);
   const setError = useApp((s) => s.setError);
   const setOpponentPreview = useApp((s) => s.setOpponentPreview);
@@ -134,7 +134,7 @@ function SocketBridge() {
       setOpponentPreview(flow as any);
     };
     const onGameEvents: Parameters<typeof socket.on<'game.events'>>[1] = ({ events }) => {
-      appendEvents(events);
+      appendBatch(events);
     };
     const onError: Parameters<typeof socket.on<'error'>>[1] = (e) => {
       if (isError(e)) setError(e.message);
@@ -179,7 +179,7 @@ function SocketBridge() {
       socket.off('error', onError);
       socket.off('lobby.matchFound', onMatchFound);
     };
-  }, [playerId, setLobby, setGame, appendEvents, setStatus, setError, setOpponentPreview]);
+  }, [playerId, setLobby, setGame, appendBatch, setStatus, setError, setOpponentPreview]);
 
   return null;
 }

@@ -22,7 +22,6 @@ export function Game() {
   const playerId = useApp((s) => s.playerId);
   const lobby = useApp((s) => s.lobby);
   const game = useApp((s) => s.game);
-  const events = useApp((s) => s.recentEvents);
   const setError = useApp((s) => s.setError);
   const selectionMode = useApp((s) => s.selectionMode);
   const exitSelectionMode = useApp((s) => s.exitSelectionMode);
@@ -633,8 +632,33 @@ type LogEntry =
   | { readonly kind: 'divider'; readonly key: string; readonly label: string }
   | { readonly kind: 'entry'; readonly key: string; readonly node: ReactNode };
 
+/** Narrow one event from a batch by type. */
+function fromBatch<T extends EngineEvent['type']>(
+  batch: readonly EngineEvent[],
+  type: T,
+): Extract<EngineEvent, { type: T }> | undefined {
+  return batch.find((e): e is Extract<EngineEvent, { type: T }> => e.type === type);
+}
+
+/** Collect all events of a given type from a batch. */
+function allFromBatch<T extends EngineEvent['type']>(
+  batch: readonly EngineEvent[],
+  type: T,
+): Extract<EngineEvent, { type: T }>[] {
+  return batch.filter((e): e is Extract<EngineEvent, { type: T }> => e.type === type);
+}
+
+/**
+ * Build activity-log entries from event batches.
+ *
+ * Each batch is the complete output of one player action — the server emits
+ * all events for an action atomically in a single `game.events` message.
+ * Processing per-batch (rather than a flat event array with peek-ahead)
+ * means we always have full context: the action header event, every result
+ * event, and the bookkeeping events all in one place. No index arithmetic.
+ */
 function buildLogEntries(
-  events: readonly EngineEvent[],
+  batches: readonly (readonly EngineEvent[])[],
   lobby: LobbyState | null,
   game: GameState,
   catalogById: Map<string, Card>,
@@ -656,226 +680,261 @@ function buildLogEntries(
   };
 
   const out: LogEntry[] = [];
-  let i = 0;
 
-  while (i < events.length) {
-    const e = events[i];
-    if (!e) { i++; continue; }
-    const key = `${i}:${e.type}`;
+  batches.forEach((batch, bi) => {
+    let k = 0;
+    const key = () => `${bi}:${k++}`;
 
-    switch (e.type) {
-      case 'round.begin':
-        out.push({ kind: 'divider', key, label: `Round ${e.payload.roundNumber}` });
-        break;
+    // ── action header events ─────────────────────────────────────
+    const played     = fromBatch(batch, 'card.played');
+    const activated  = fromBatch(batch, 'character.activated');
+    const supAct     = fromBatch(batch, 'support.activated');
+    const cardAction = fromBatch(batch, 'card.action-used');
+    const resolved   = fromBatch(batch, 'dice.resolved');
+    const rerolled   = fromBatch(batch, 'dice.rerolled');
+    const passed     = fromBatch(batch, 'player.passed');
+    const claimed    = fromBatch(batch, 'battlefield.claimed');
+    const roundBegin = fromBatch(batch, 'round.begin');
+    const gameEnded  = fromBatch(batch, 'game.ended');
 
-      case 'game.ended': {
-        const { winnerId, reason } = e.payload;
-        const why = reason === 'concede' ? 'concession'
-          : reason === 'all-characters-defeated' ? 'all characters defeated'
-          : 'deck exhausted';
-        out.push({ kind: 'entry', key, node: <>{winnerId ? pn(winnerId) : 'Nobody'} wins ({why})</> });
-        break;
-      }
+    // ── outcome events ───────────────────────────────────────────
+    const damages  = allFromBatch(batch, 'damage.dealt');
+    const shielded = allFromBatch(batch, 'shields.placed');
+    const healed   = allFromBatch(batch, 'damage.healed');
+    const defeated = allFromBatch(batch, 'character.defeated');
+    const upkeeps  = allFromBatch(batch, 'upkeep.player');
+    const resGained = fromBatch(batch, 'resources.gained');
+    const resLost   = fromBatch(batch, 'resources.lost');
 
-      case 'character.activated': {
-        const { playerId, characterId, rolledDice } = e.payload;
+    // ── card played ──────────────────────────────────────────────
+    if (played) {
+      const { playerId, cardId, costPaid } = played.payload;
+      const catId = game.cardCatalogIds[cardId];
+      const card  = catId ? catalogById.get(catId) : undefined;
+      const damageType = card?.abilities
+        .flatMap((ab) => ('effects' in ab ? ab.effects : []))
+        .find((fx): fx is { op: 'dealDamage'; damageType?: string } =>
+          (fx as { op?: string }).op === 'dealDamage'
+        )?.damageType;
+
+      if (damages.length === 1) {
+        const { characterId, amount, shieldsBlocked } = damages[0]!.payload;
+        const isDefeated = defeated.some((d) => d.payload.characterId === characterId);
         out.push({
-          kind: 'entry', key,
+          kind: 'entry', key: key(),
           node: (
             <>
-              {pn(playerId)} activates {cn(characterId)} — rolls{' '}
-              {rolledDice.map((d, di) => (
-                <span key={di}>
-                  <DieChip symbol={d.face.symbol} value={d.face.value} modifier={d.face.modifier} />{' '}
-                </span>
-              ))}
+              {pn(playerId)} plays {inn(cardId)} (cost {costPaid}) against {cn(characterId)} — deals {amount} {damageType ?? 'damage'}
+              {shieldsBlocked > 0 && ` (${shieldsBlocked} blocked)`}
+              {isDefeated && ' — defeated!'}
             </>
           ),
         });
-        break;
-      }
-
-      case 'dice.resolved': {
-        const { playerId, symbol, totalValue } = e.payload;
-        const resolveChip = <DieChip symbol={symbol} value={totalValue} modifier={false} />;
-        const next = events[i + 1];
-
-        if (next?.type === 'damage.dealt') {
-          const { characterId, amount, shieldsBlocked } = next.payload;
-          out.push({
-            kind: 'entry', key,
-            node: (
-              <>
-                {pn(playerId)} resolves {resolveChip} against {cn(characterId)} — deals {amount} damage
-                {shieldsBlocked > 0 && ` (${shieldsBlocked} blocked)`}
-              </>
-            ),
-          });
-          i++;
-        } else if (next?.type === 'shields.placed') {
-          const { characterId, amount } = next.payload;
-          out.push({
-            kind: 'entry', key,
-            node: (
-              <>
-                {pn(playerId)} resolves {resolveChip} — places {amount} shield{amount !== 1 && 's'} on {cn(characterId)}
-              </>
-            ),
-          });
-          i++;
-        } else if (next?.type === 'resources.gained') {
-          out.push({
-            kind: 'entry', key,
-            node: <>{pn(playerId)} resolves {resolveChip} — gains {next.payload.amount} resources</>,
-          });
-          i++;
-        } else if (next?.type === 'resources.lost') {
-          out.push({
-            kind: 'entry', key,
-            node: <>{pn(playerId)} resolves {resolveChip} — disrupts {next.payload.amount} resources</>,
-          });
-          i++;
-        } else {
-          out.push({ kind: 'entry', key, node: <>{pn(playerId)} resolves {resolveChip}</> });
-        }
-        break;
-      }
-
-      case 'shields.placed': {
-        const { characterId, amount } = e.payload;
+      } else if (damages.length > 1) {
         out.push({
-          kind: 'entry', key,
-          node: <>Places {amount} shield{amount !== 1 && 's'} on {cn(characterId)}</>,
-        });
-        break;
-      }
-
-      case 'character.defeated':
-        out.push({ kind: 'entry', key, node: <>{cn(e.payload.characterId)} is defeated</> });
-        break;
-
-      case 'battlefield.claimed':
-        out.push({ kind: 'entry', key, node: <>{pn(e.payload.playerId)} claims the battlefield</> });
-        break;
-
-      case 'card.played': {
-        const { playerId, cardId, costPaid } = e.payload;
-        const catId = game.cardCatalogIds[cardId];
-        const playedCard = catId ? catalogById.get(catId) : undefined;
-
-        // Scan ahead past intermediate effect events (draws, resource changes, die ops)
-        // until we find the primary result or hit an action boundary.
-        const ACTION_BOUNDARIES = new Set([
-          'turn.advanced', 'round.begin', 'card.played', 'character.activated',
-          'dice.resolved', 'dice.rerolled', 'battlefield.claimed', 'player.passed',
-        ]);
-        let j = i + 1;
-        let resultEvent: EngineEvent | undefined;
-        while (j < events.length) {
-          const ev = events[j];
-          if (!ev || ACTION_BOUNDARIES.has(ev.type)) break;
-          if (ev.type === 'damage.dealt' || ev.type === 'shields.placed' || ev.type === 'damage.healed') {
-            resultEvent = ev;
-            break;
-          }
-          j++;
-        }
-
-        if (resultEvent?.type === 'damage.dealt') {
-          const { characterId, amount, shieldsBlocked } = resultEvent.payload;
-          const damageType = playedCard?.abilities
-            .flatMap((ab) => 'effects' in ab ? ab.effects : [])
-            .find((fx): fx is { op: 'dealDamage'; damageType?: string } => (fx as { op?: string }).op === 'dealDamage')
-            ?.damageType;
-          out.push({
-            kind: 'entry', key,
-            node: (
-              <>
-                {pn(playerId)} plays {inn(cardId)} (cost {costPaid}) against {cn(characterId)} — deals {amount} {damageType ?? 'damage'}
-                {shieldsBlocked > 0 && ` (${shieldsBlocked} blocked)`}
-              </>
-            ),
-          });
-          i = j;
-        } else if (resultEvent?.type === 'shields.placed') {
-          const { characterId, amount } = resultEvent.payload;
-          out.push({
-            kind: 'entry', key,
-            node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — gives {amount} shield{amount !== 1 ? 's' : ''} to {cn(characterId)}</>,
-          });
-          i = j;
-        } else if (resultEvent?.type === 'damage.healed') {
-          const { characterId, amount } = resultEvent.payload;
-          out.push({
-            kind: 'entry', key,
-            node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — heals {amount} from {cn(characterId)}</>,
-          });
-          i = j;
-        } else {
-          out.push({
-            kind: 'entry', key,
-            node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid})</>,
-          });
-        }
-        break;
-      }
-
-      case 'dice.rerolled': {
-        const { playerId, discardCardId, rerolledDice } = e.payload;
-        const n = rerolledDice.length;
-        out.push({
-          kind: 'entry', key,
+          kind: 'entry', key: key(),
           node: (
             <>
-              {pn(playerId)} rerolls {n} {n === 1 ? 'die' : 'dice'} (discards {inn(discardCardId)})
-              {n > 0 && (
-                <> →{' '}
-                  {rerolledDice.map((d, di) => (
-                    <span key={di}>
-                      <DieChip symbol={d.face.symbol} value={d.face.value} modifier={d.face.modifier} />{' '}
-                    </span>
-                  ))}
-                </>
-              )}
+              {pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — {damageType ?? 'damage'} to {damages.length} characters
             </>
           ),
         });
-        break;
+      } else if (shielded.length >= 1) {
+        const { characterId, amount } = shielded[0]!.payload;
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — gives {amount} shield{amount !== 1 ? 's' : ''} to {cn(characterId)}</>,
+        });
+      } else if (healed.length >= 1) {
+        const { characterId, amount } = healed[0]!.payload;
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid}) — heals {amount} from {cn(characterId)}</>,
+        });
+      } else {
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} plays {inn(cardId)} (cost {costPaid})</>,
+        });
       }
-
-      case 'player.passed':
-        if (!e.payload.automatic) {
-          out.push({ kind: 'entry', key, node: <>{pn(e.payload.playerId)} passes</> });
-        }
-        break;
-
-      case 'upkeep.player': {
-        const { playerId, cardsDrawn, resourcesGained } = e.payload;
-        if (cardsDrawn > 0 || resourcesGained > 0) {
-          out.push({
-            kind: 'entry', key,
-            node: <>{pn(playerId)} draws {cardsDrawn} and gains {resourcesGained} resources</>,
-          });
-        }
-        break;
-      }
-
-      default:
-        break;
     }
 
-    i++;
-  }
+    // ── character activated ──────────────────────────────────────
+    if (activated) {
+      const { playerId, characterId, rolledDice } = activated.payload;
+      out.push({
+        kind: 'entry', key: key(),
+        node: (
+          <>
+            {pn(playerId)} activates {cn(characterId)} — rolls{' '}
+            {rolledDice.map((d, di) => (
+              <span key={di}>
+                <DieChip symbol={d.face.symbol} value={d.face.value} modifier={d.face.modifier} />{' '}
+              </span>
+            ))}
+          </>
+        ),
+      });
+    }
+
+    // ── support activated ────────────────────────────────────────
+    if (supAct) {
+      const { playerId, supportId, rolledDice } = supAct.payload;
+      out.push({
+        kind: 'entry', key: key(),
+        node: (
+          <>
+            {pn(playerId)} activates {inn(supportId)} — rolls{' '}
+            {rolledDice.map((d, di) => (
+              <span key={di}>
+                <DieChip symbol={d.face.symbol} value={d.face.value} modifier={d.face.modifier} />{' '}
+              </span>
+            ))}
+          </>
+        ),
+      });
+    }
+
+    // ── card action used ─────────────────────────────────────────
+    if (cardAction) {
+      const { playerId, cardId, abilityKind } = cardAction.payload;
+      const label = abilityKind === 'powerAction' ? 'power action' : 'action';
+      if (damages.length === 1) {
+        const { characterId, amount, shieldsBlocked } = damages[0]!.payload;
+        const isDefeated = defeated.some((d) => d.payload.characterId === characterId);
+        out.push({
+          kind: 'entry', key: key(),
+          node: (
+            <>
+              {pn(playerId)} uses {inn(cardId)} {label} against {cn(characterId)} — deals {amount} damage
+              {shieldsBlocked > 0 && ` (${shieldsBlocked} blocked)`}
+              {isDefeated && ' — defeated!'}
+            </>
+          ),
+        });
+      } else if (shielded.length >= 1) {
+        const { characterId, amount } = shielded[0]!.payload;
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} uses {inn(cardId)} {label} — gives {amount} shield{amount !== 1 ? 's' : ''} to {cn(characterId)}</>,
+        });
+      } else if (healed.length >= 1) {
+        const { characterId, amount } = healed[0]!.payload;
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} uses {inn(cardId)} {label} — heals {amount} from {cn(characterId)}</>,
+        });
+      } else {
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} uses {inn(cardId)} {label}</>,
+        });
+      }
+    }
+
+    // ── dice resolved ────────────────────────────────────────────
+    if (resolved) {
+      const { playerId, symbol, totalValue } = resolved.payload;
+      const chip = <DieChip symbol={symbol} value={totalValue} modifier={false} />;
+      if (damages.length === 1) {
+        const { characterId, amount, shieldsBlocked } = damages[0]!.payload;
+        const isDefeated = defeated.some((d) => d.payload.characterId === characterId);
+        out.push({
+          kind: 'entry', key: key(),
+          node: (
+            <>
+              {pn(playerId)} resolves {chip} against {cn(characterId)} — deals {amount} damage
+              {shieldsBlocked > 0 && ` (${shieldsBlocked} blocked)`}
+              {isDefeated && ' — defeated!'}
+            </>
+          ),
+        });
+      } else if (shielded.length >= 1) {
+        const { characterId, amount } = shielded[0]!.payload;
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} resolves {chip} — places {amount} shield{amount !== 1 ? 's' : ''} on {cn(characterId)}</>,
+        });
+      } else if (resGained) {
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} resolves {chip} — gains {resGained.payload.amount} resources</>,
+        });
+      } else if (resLost) {
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(playerId)} resolves {chip} — disrupts {resLost.payload.amount} resources</>,
+        });
+      } else {
+        out.push({ kind: 'entry', key: key(), node: <>{pn(playerId)} resolves {chip}</> });
+      }
+    }
+
+    // ── dice rerolled ────────────────────────────────────────────
+    if (rerolled) {
+      const { playerId, discardCardId, rerolledDice } = rerolled.payload;
+      const n = rerolledDice.length;
+      out.push({
+        kind: 'entry', key: key(),
+        node: (
+          <>
+            {pn(playerId)} rerolls {n} {n === 1 ? 'die' : 'dice'} (discards {inn(discardCardId)})
+            {n > 0 && (
+              <> →{' '}
+                {rerolledDice.map((d, di) => (
+                  <span key={di}>
+                    <DieChip symbol={d.face.symbol} value={d.face.value} modifier={d.face.modifier} />{' '}
+                  </span>
+                ))}
+              </>
+            )}
+          </>
+        ),
+      });
+    }
+
+    // ── pass (non-automatic) ─────────────────────────────────────
+    if (passed && !passed.payload.automatic) {
+      out.push({ kind: 'entry', key: key(), node: <>{pn(passed.payload.playerId)} passes</> });
+    }
+
+    // ── claim battlefield ────────────────────────────────────────
+    if (claimed) {
+      out.push({ kind: 'entry', key: key(), node: <>{pn(claimed.payload.playerId)} claims the battlefield</> });
+    }
+
+    // ── round divider + upkeep ───────────────────────────────────
+    if (roundBegin) {
+      out.push({ kind: 'divider', key: key(), label: `Round ${roundBegin.payload.roundNumber}` });
+    }
+    for (const u of upkeeps) {
+      if (u.payload.cardsDrawn > 0 || u.payload.resourcesGained > 0) {
+        out.push({
+          kind: 'entry', key: key(),
+          node: <>{pn(u.payload.playerId)} draws {u.payload.cardsDrawn} and gains {u.payload.resourcesGained} resources</>,
+        });
+      }
+    }
+
+    // ── game ended ───────────────────────────────────────────────
+    if (gameEnded) {
+      const { winnerId, reason } = gameEnded.payload;
+      const why = reason === 'concede' ? 'concession'
+        : reason === 'all-characters-defeated' ? 'all characters defeated'
+        : 'deck exhausted';
+      out.push({ kind: 'entry', key: key(), node: <>{winnerId ? pn(winnerId) : 'Nobody'} wins ({why})</> });
+    }
+  });
 
   return out.slice(-30);
 }
 
 function EventLog({ game, catalogById }: { game: GameState; catalogById: Map<string, Card> }) {
-  const events = useApp((s) => s.recentEvents);
+  const batches = useApp((s) => s.recentBatches);
   const lobby = useApp((s) => s.lobby);
   const entries = useMemo(
-    () => buildLogEntries(events, lobby, game, catalogById),
-    [events, lobby, game, catalogById],
+    () => buildLogEntries(batches, lobby, game, catalogById),
+    [batches, lobby, game, catalogById],
   );
 
   if (entries.length === 0) return null;
