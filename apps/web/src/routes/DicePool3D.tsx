@@ -151,6 +151,9 @@ export function Die3D({
   const currentQ = useRef(DEFAULT_REST_Q.clone());
   const prevTumbling = useRef(false);
   const stopAtRef = useRef<number | null>(null);
+  // Captured on the first tumbling frame so the settle delay is stable even
+  // after the parent re-renders with staggerIndex=0 once isTumbling flips false.
+  const capturedStaggerRef = useRef(0);
 
   // Rotate the die so the effective face index is on top.
   const effectiveFaceIndex = overrideFaceIndex ?? die.faceIndex;
@@ -165,8 +168,16 @@ export function Die3D({
     if (!g) return;
 
     if (isTumbling) {
+      if (!prevTumbling.current) {
+        // First tumbling frame — capture stagger index and randomize starting
+        // orientation so dice don't tumble in lockstep.
+        capturedStaggerRef.current = staggerIndex;
+        g.rotation.x = Math.random() * Math.PI * 2;
+        g.rotation.y = Math.random() * Math.PI * 2;
+        g.rotation.z = Math.random() * Math.PI * 2;
+        prevTumbling.current = true;
+      }
       stopAtRef.current = null;
-      prevTumbling.current = true;
       g.rotation.x += dt * 7.0;
       g.rotation.y += dt * 5.3;
       g.rotation.z += dt * 3.1;
@@ -176,7 +187,7 @@ export function Die3D({
     // Just finished tumbling — stagger the settle left-to-right.
     if (prevTumbling.current) {
       if (stopAtRef.current === null) {
-        stopAtRef.current = state.clock.elapsedTime + staggerIndex * 0.4;
+        stopAtRef.current = state.clock.elapsedTime + capturedStaggerRef.current * 0.4;
       }
       if (state.clock.elapsedTime < stopAtRef.current) {
         g.rotation.x += dt * 7.0;
