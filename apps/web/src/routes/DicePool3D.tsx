@@ -18,9 +18,23 @@ import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture } from '../lib/dieFaceText
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const DIE_SIZE = 0.8;           // world units
-const DIE_RADIUS = 0.16;        // chamfer radius
+const DIE_RADIUS = 0.04;        // chamfer radius (tuned via /dice-preview)
 const DIE_SPACING = 1.05;       // center-to-center spacing
 const CANVAS_HEIGHT_PX = 96;    // px — tall enough to show value+label at readable size
+
+// Per-face UV transforms — tuned via /dice-preview live tuner. Indexed by
+// face index k (which cube face is on top). Applied to the die's CanvasTexture
+// at render time so text reads upright and centered on every face.
+//
+// Material order: +X=0  -X=1  +Y=2  -Y=3  +Z=4  -Z=5
+const FACE_SPIN_DEG: readonly number[]  = [-180, 0, 90, 90, 90, 90];
+const FACE_OFFSET_X: readonly number[]  = [0.13, 0.135, -0.135, 0.145, 0.135, 0.16];
+const FACE_OFFSET_Y: readonly number[]  = [0.205, -0.09, -0.085, -0.055, -0.08, 0.225];
+const FACE_MIRROR_X: readonly boolean[] = [true, false, false, true, false, false];
+const FACE_MIRROR_Y: readonly boolean[] = [false, false, false, false, false, true];
+
+// At rest with no override, the die shows face index 2 (+Y on top by default).
+const DEFAULT_FACE_INDEX = 2;
 
 // Camera stays centered on X so the die row doesn't shift in screen space.
 // Z=0.9 provides the overhead-with-depth look (bottom-of-screen tilt).
@@ -59,8 +73,10 @@ export const FACE_CORRECT_Q: readonly THREE.Quaternion[] = [
   _c(_O, _c(_q(_AY,  Math.PI),     _q(_AX,  Math.PI / 2))),  // 5: -Z → top
 ];
 
-// Default display tilt: slight Y rotation so the left face is visible.
-const DEFAULT_TILT_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.18, 0));
+// Default resting orientation: face 2 placed on top via FACE_CORRECT_Q[2].
+// (Per-face UV transforms above are calibrated against this orientation;
+// adding any extra tilt would rotate the text away from upright.)
+const DEFAULT_REST_Q = FACE_CORRECT_Q[DEFAULT_FACE_INDEX]!;
 
 // Points the camera at the dice origin after mount.
 // r3f positions the camera but doesn't auto-aim it for perspective cameras.
@@ -100,8 +116,8 @@ function Die3D({
 }) {
   const meshRef  = useRef<THREE.Mesh>(null);
   const animRef  = useRef(false);
-  const targetQ  = useRef(DEFAULT_TILT_Q.clone());
-  const currentQ = useRef(DEFAULT_TILT_Q.clone());
+  const targetQ  = useRef(DEFAULT_REST_Q.clone());
+  const currentQ = useRef(DEFAULT_REST_Q.clone());
   const prevTumbling = useRef(false);
 
   // When a new face is chosen, set the target quaternion and kick off slerp.
@@ -151,6 +167,20 @@ function Die3D({
     [displayFace.symbol, displayFace.value, displayFace.modifier, baseColor, textColor],
   );
   useEffect(() => () => { texture.dispose(); }, [texture]);
+
+  // Apply per-face UV transform (rotation / offset / mirror) so the texture
+  // reads upright and centered for whichever face is on top. Values tuned via
+  // /dice-preview live tuner. Texture matrix auto-rebuilds from these props.
+  const effectiveFaceIndex = overrideFaceIndex ?? DEFAULT_FACE_INDEX;
+  useEffect(() => {
+    texture.center.set(0.5, 0.5);
+    texture.offset.set(FACE_OFFSET_X[effectiveFaceIndex]!, FACE_OFFSET_Y[effectiveFaceIndex]!);
+    texture.repeat.set(
+      FACE_MIRROR_X[effectiveFaceIndex] ? -1 : 1,
+      FACE_MIRROR_Y[effectiveFaceIndex] ? -1 : 1,
+    );
+    texture.rotation = (FACE_SPIN_DEG[effectiveFaceIndex]! * Math.PI) / 180;
+  }, [texture, effectiveFaceIndex]);
 
   const emissive =
     state === 'selected-resolve' ? '#064e3b' :
