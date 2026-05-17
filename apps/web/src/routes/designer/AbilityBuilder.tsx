@@ -1037,13 +1037,16 @@ function SelectField({ label: fieldLabel, value, options, onChange }: {
   return (
     <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
       {fieldLabel && <span>{fieldLabel}</span>}
-      <Select value={value} onValueChange={onChange}>
+      <Select
+        value={value === '' ? '__none__' : value}
+        onValueChange={(v) => onChange(v === '__none__' ? '' : v)}
+      >
         <SelectTrigger className="h-9 text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            <SelectItem key={o.value || '__none__'} value={o.value || '__none__'}>{o.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
