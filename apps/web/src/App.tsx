@@ -6,6 +6,7 @@ import { authClient } from './lib/auth-client.js';
 import { ErrorBoundary } from './lib/ErrorBoundary.js';
 import { clearCachedLobby, loadCachedLobby, saveCachedLobby } from './lib/lobbyCache.js';
 import { Designer } from './routes/designer/index.js';
+import { DicePreview } from './routes/DicePreview.js';
 import { Game } from './routes/Game.js';
 import { Lobby } from './routes/Lobby.js';
 import { Splash } from './routes/Splash.js';
@@ -16,6 +17,9 @@ import { useApp } from './store.js';
 
 export function App() {
   const [queryClient] = useState(() => new QueryClient());
+
+  // Bypass all auth and network setup for dev preview routes (per #80).
+  if (window.location.pathname.startsWith('/dice-preview')) return <DicePreview />;
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
