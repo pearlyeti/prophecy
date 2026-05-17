@@ -212,6 +212,40 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### WEB-24 — Character-target commit/preview for card plays
+
+**Why now.** Dragging an event card onto a character currently fires `play-card`
+immediately and ends the turn. There's no chance to verify the target choice, and
+no preview of what the effect will actually do (e.g., damage net of shields). The
+commit model for reroll and focus flows already exists — this extends it to
+character-targeting plays.
+
+**Scope.**
+- `apps/web/src/store.ts`: add `{ kind: 'pendingCharTargetPlay', cardId: string, targetCharId: string }` variant to the `ActiveFlow` union.
+- `apps/web/src/routes/Game.tsx` — `useDragToPlay` hook: on drag-release over a valid character target, set `activeFlow` to `pendingCharTargetPlay` instead of dispatching immediately. Gate: cards whose immediate steps contain `searchDeck`, `rollEventDie`, or `rollCardDie` dispatch immediately as before (revealing hidden info or generating new randomness is non-undoable — see rules update below).
+- Effect preview overlay on the target character while in `pendingCharTargetPlay`: read the card's first-step effects from the catalog — `dealDamage` → `−N` badge (shields-aware: subtract target's current shields to show net HP impact); `addShields` → `+N shields`; `removeShields` → `−N shields`; `healDamage` → `+N HP`; exhaustion cost → faint tilt/exhaust tint. Amber/gold styling distinguishes "pending" from committed state.
+- Commit label: **"Play [card name]"**. Dispatches `play-card` with `characterTargets: [targetCharId]` and clears the flow.
+- Undo: clears `pendingCharTargetPlay` entirely — card stays in hand, no dispatch, no turn rotation.
+- Pure helper `hasImmediateRevealOrRoll(cardId, catalog): boolean` checks all steps for the ops listed above; used to gate the preview path.
+- `docs/rules-reference.md`: add an "Undoable vs. committed actions" subsection documenting the rule: undoable = no hidden info revealed, no new randomness (damage, shields, heal, exhaust, resource changes, turning a die face via Focus all qualify); committed-before-executing = deck searches/reveals, dice rolls/rerolls (once you see the result you cannot go back).
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (useDragToPlay ~lines 1212–1405; drag-finish dispatch ~lines 113–118; Commit button label / ActiveFlow rendering ~lines 2695–2698)
+- `apps/web/src/store.ts` (ActiveFlow union, lines 30–63)
+- `packages/protocol/src/catalog.ts` (effect op names, for undoable gate)
+- `docs/rules-reference.md` (rules update)
+
+**Out of scope.** Effect preview for `use-card-action` badge taps (already has a commit step; visual overlay is a follow-up card). Engine changes. Multi-step chain previews beyond direct first-step effects.
+
+**Done when.**
+- [ ] Typecheck clean.
+- [ ] Drag a `dealDamage` event onto an opponent character → amber preview badge shows net damage (after shields) → "Play [card name]" commits the action and the turn ends.
+- [ ] Undo from the preview state → card stays in hand, no dispatch, no turn rotation.
+- [ ] Drag a `searchDeck` event card → dispatches immediately (no preview/hold step).
+- [ ] `docs/rules-reference.md` has the undoable-vs-committed rule documented.
+
+---
+
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
