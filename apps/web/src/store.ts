@@ -105,10 +105,6 @@ interface AppStore {
   tumblingPoolDieIds: readonly string[];
   setTumblingPoolDieIds: (ids: readonly string[]) => void;
 
-  /** Card instance ID (character or support) that just activated — drives tumble on the opponent's side. */
-  tumblingActivatedCardId: string | null;
-  setTumblingActivatedCardId: (id: string | null) => void;
-
   /** Active flow of the opponent player (received via game.preview socket event). */
   opponentPreview: ActiveFlow | null;
   setOpponentPreview: (flow: ActiveFlow | null) => void;
@@ -164,9 +160,6 @@ export const useApp = create<AppStore>((set) => ({
   tumblingPoolDieIds: [],
   setTumblingPoolDieIds: (ids) => set({ tumblingPoolDieIds: ids }),
 
-  tumblingActivatedCardId: null,
-  setTumblingActivatedCardId: (id) => set({ tumblingActivatedCardId: id }),
-
   opponentPreview: null,
   setOpponentPreview: (flow) => set({ opponentPreview: flow }),
 
@@ -180,7 +173,6 @@ export const useApp = create<AppStore>((set) => ({
       selectionMode: null,
       activeFlow: null,
       tumblingPoolDieIds: [],
-      tumblingActivatedCardId: null,
       opponentPreview: null,
     });
   },
