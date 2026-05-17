@@ -2269,7 +2269,10 @@ function BattlefieldRow({
             setActiveFlow({ ...flow, pendingTargets: newPendingTargets, selectedDieIds: [] });
             return;
           }
-          if (isActivating) { setActiveFlow(null); return; }
+          if (isActivating) {
+            if (!activeFlow?.rolling) setActiveFlow(null); // cancel only before commit
+            return;
+          }
           if (eligible) { setActiveFlow({ kind: 'activate', charId: cid }); return; }
           onDetailTap(cid);
         };
@@ -2720,6 +2723,8 @@ function ActionBar({
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
   const inActionPhase = game.phase === 'action';
+  const tumbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (tumbleTimerRef.current) clearTimeout(tumbleTimerRef.current); }, []);
 
   if (game.phase === 'ended') return null;
   if (!inActionPhase) return <div className="shrink-0 h-[60px] border-t border-neutral-800" />;
@@ -2731,7 +2736,7 @@ function ActionBar({
 
   const commitLabel = (() => {
     if (!activeFlow) return 'Pass';
-    if (activeFlow.kind === 'activate') return 'Roll Dice';
+    if (activeFlow.kind === 'activate') return activeFlow.rolling ? 'Rolling…' : 'Roll Dice';
     if (activeFlow.kind === 'claim') return 'Claim';
     if (activeFlow.kind === 'cardAction') return 'Use ability';
     if (activeFlow.kind === 'reroll') {
@@ -2761,8 +2766,15 @@ function ActionBar({
   const handleCommit = () => {
     if (!activeFlow) { setConfirmPass(true); return; }
     if (activeFlow.kind === 'activate') {
+      if (activeFlow.rolling) return; // already committed
       send({ type: 'activate', playerId, cardId: activeFlow.charId });
-      setActiveFlow(null);
+      setActiveFlow({ kind: 'activate', charId: activeFlow.charId, rolling: true });
+      // Keep dice tumbling until the server responds and they appear in the pool,
+      // then settle them. 1500ms is conservative for any server RTT.
+      tumbleTimerRef.current = setTimeout(() => {
+        tumbleTimerRef.current = null;
+        setActiveFlow(null);
+      }, 1500);
       return;
     }
     if (activeFlow.kind === 'claim') {
@@ -2903,6 +2915,7 @@ function ActionBar({
             type="button"
             onClick={handleCommit}
             disabled={
+              (activeFlow?.kind === 'activate' && !!activeFlow.rolling) ||
               (activeFlow?.kind === 'resolve' && (() => {
                 const sym = activeFlow.symbol;
                 if (sym === 'melee' || sym === 'ranged' || sym === 'shield') {
@@ -3303,7 +3316,10 @@ function SupportStrip({
           : [];
 
         const handleTap = () => {
-          if (isActivating) { setActiveFlow(null); return; }
+          if (isActivating) {
+            if (!activeFlow?.rolling) setActiveFlow(null);
+            return;
+          }
           if (eligible) { setActiveFlow({ kind: 'activate', charId: sid }); return; }
         };
 

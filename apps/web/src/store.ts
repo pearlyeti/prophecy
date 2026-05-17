@@ -28,7 +28,7 @@ export type FacePickEvent =
   | { readonly kind: 'chain'; readonly chainedFocuserId: string; readonly budgetAdded: number };
 
 export type ActiveFlow =
-  | { readonly kind: 'activate'; readonly charId: string }
+  | { readonly kind: 'activate'; readonly charId: string; readonly rolling?: true }
   | { readonly kind: 'claim' }
   | {
       readonly kind: 'face-pick';
