@@ -20,7 +20,7 @@
         "Subtype 12",
         "Subtype 7"
       ],
-      "displayText": "Your non-unique characters have the Protector keyword.",
+      "abilityText": "Your non-unique characters have the Protector keyword.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -77,7 +77,7 @@
       "subtypes": [
         "Subtype 12"
       ],
-      "displayText": "",
+      "abilityText": "",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -134,7 +134,7 @@
       "subtypes": [
         "Subtype 7"
       ],
-      "displayText": "Before an opponent's character is defeated, you may move one of their non-ability upgrades to this character.",
+      "abilityText": "Before an opponent's character is defeated, you may move one of their non-ability upgrades to this character.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -191,7 +191,7 @@
       "subtypes": [
         "Subtype 7"
       ],
-      "displayText": "Action - Remove this die to turn one of your support dice to any side.",
+      "abilityText": "Action - Remove this die to turn one of your support dice to any side.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -248,7 +248,7 @@
       "subtypes": [
         "Subtype 13"
       ],
-      "displayText": "- Discard a support from play.",
+      "abilityText": "- Discard a support from play.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -305,7 +305,7 @@
       "subtypes": [
         "Subtype 13"
       ],
-      "displayText": "- Remove all shield from all of an opponent's characters.",
+      "abilityText": "- Remove all shield from all of an opponent's characters.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -362,7 +362,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Red character only. - Choose a Red die. If it is your die, resolve it, increasing its value by 2. If it is an opponent's die, remove it.",
+      "abilityText": "Red character only. - Choose a Red die. If it is your die, resolve it, increasing its value by 2. If it is an opponent's die, remove it.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -419,7 +419,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "Redeploy. - Magic an opponent to deal 2 damage to their characters, distributing the damage as they wish.",
+      "abilityText": "Redeploy. - Magic an opponent to deal 2 damage to their characters, distributing the damage as they wish.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -476,7 +476,7 @@
       "subtypes": [
         "Subtype 11"
       ],
-      "displayText": "Before this character is dealt 1 or more damage, you may discard a card from your hand to give him 1 shield.",
+      "abilityText": "Before this character is dealt 1 or more damage, you may discard a card from your hand to give him 1 shield.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -533,7 +533,7 @@
       "subtypes": [
         "Subtype 11"
       ],
-      "displayText": "After you activate this character you may Magic an opponent to choose and discard a card from their hand.",
+      "abilityText": "After you activate this character you may Magic an opponent to choose and discard a card from their hand.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -590,7 +590,7 @@
       "subtypes": [
         "Subtype 2"
       ],
-      "displayText": "- Choose an opponent's character. Then look at a random card in that opponent's hand and deal damage to that character equal to the cost of the card you just looked at.",
+      "abilityText": "- Choose an opponent's character. Then look at a random card in that opponent's hand and deal damage to that character equal to the cost of the card you just looked at.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -647,7 +647,7 @@
       "subtypes": [
         "Subtype 15"
       ],
-      "displayText": "Action - Reroll a die. Deal 1 damage to this character.",
+      "abilityText": "Action - Reroll a die. Deal 1 damage to this character.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -704,7 +704,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Blue character only. - Deal 1 unblockable damage to another character. Then you may turn one of its character or upgrade dice to any side.",
+      "abilityText": "Blue character only. - Deal 1 unblockable damage to another character. Then you may turn one of its character or upgrade dice to any side.",
       "dieFaces": [
         {
           "symbol": "disrupt",
@@ -761,7 +761,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Blue Character only.Action - Remove this die to turn a die to a side showing a blank ().",
+      "abilityText": "Blue Character only.Action - Remove this die to turn a die to a side showing a blank ().",
       "dieFaces": [
         {
           "symbol": "disrupt",
@@ -818,7 +818,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "Blue character only. - Deal 2 damage to a character. If any of this damage is blocked by shields, reroll this die instead of removing it from your pool.",
+      "abilityText": "Blue character only. - Deal 2 damage to a character. If any of this damage is blocked by shields, reroll this die instead of removing it from your pool.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -875,7 +875,7 @@
       "subtypes": [
         "Subtype 5"
       ],
-      "displayText": "- Switch this upgrade with a Blue ability upgrade in your hand, ignoring its play restrictions. Then you may spend 1 resource to roll its die into your pool, if able.",
+      "abilityText": "- Switch this upgrade with a Blue ability upgrade in your hand, ignoring its play restrictions. Then you may spend 1 resource to roll its die into your pool, if able.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -932,7 +932,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "- Deal 2 damage to each of an opponent's characters. Discard this upgrade from play.",
+      "abilityText": "- Deal 2 damage to each of an opponent's characters. Discard this upgrade from play.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -989,7 +989,7 @@
       "subtypes": [
         "Subtype 13"
       ],
-      "displayText": "- Remove a die. You may take one additional action.",
+      "abilityText": "- Remove a die. You may take one additional action.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1047,7 +1047,7 @@
         "Subtype 10",
         "Subtype 7"
       ],
-      "displayText": "After an opponent's character is defeated, you may ready this character.",
+      "abilityText": "After an opponent's character is defeated, you may ready this character.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1105,7 +1105,7 @@
         "Subtype 7",
         "Subtype 10"
       ],
-      "displayText": "After you activate this character, you may reroll a Yellow die.",
+      "abilityText": "After you activate this character, you may reroll a Yellow die.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -1162,7 +1162,7 @@
       "subtypes": [
         "Subtype 3"
       ],
-      "displayText": "After an opponent activates a character, you may activate this character.",
+      "abilityText": "After an opponent activates a character, you may activate this character.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1219,7 +1219,7 @@
       "subtypes": [
         "Subtype 9"
       ],
-      "displayText": "After you activate this character, you may discard a card from your hand to resolve one of its character or upgrade dice.",
+      "abilityText": "After you activate this character, you may discard a card from your hand to resolve one of its character or upgrade dice.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1276,7 +1276,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Yellow Character only. - Spend 5 resources to choose a character. That character is defeated after this round ends.",
+      "abilityText": "Yellow Character only. - Spend 5 resources to choose a character. That character is defeated after this round ends.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -1333,7 +1333,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "- Deal 1 damage each to up to 3 different characters.",
+      "abilityText": "- Deal 1 damage each to up to 3 different characters.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -1390,7 +1390,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "Redeploy. - Remove one of your dice showing melee damage () to deal 3 damage to a character.",
+      "abilityText": "Redeploy. - Remove one of your dice showing melee damage () to deal 3 damage to a character.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -1447,7 +1447,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "- Remove all shields from a character. You may spend 1 resource to remove one of its character or upgrade dice.",
+      "abilityText": "- Remove all shields from a character. You may spend 1 resource to remove one of its character or upgrade dice.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1504,7 +1504,7 @@
       "subtypes": [
         "Subtype 7"
       ],
-      "displayText": "After an opponent plays or discards the last card from their hand, they choose and deal 2 damage to one of their characters.",
+      "abilityText": "After an opponent plays or discards the last card from their hand, they choose and deal 2 damage to one of their characters.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1561,7 +1561,7 @@
       "subtypes": [
         "Subtype 7"
       ],
-      "displayText": "Action - Remove this die to reroll up to 2 of your dice.",
+      "abilityText": "Action - Remove this die to reroll up to 2 of your dice.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1618,7 +1618,7 @@
       "subtypes": [
         "Subtype 8"
       ],
-      "displayText": "- Discard a card from your hand to resolve one of the sides of its die, if able. Then, if it was a vehicle card, you may pay its cost to play it from your discard pile.",
+      "abilityText": "- Discard a card from your hand to resolve one of the sides of its die, if able. Then, if it was a vehicle card, you may pay its cost to play it from your discard pile.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1675,7 +1675,7 @@
       "subtypes": [
         "Subtype 12"
       ],
-      "displayText": "Protector.",
+      "abilityText": "Protector.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1730,7 +1730,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "The X on this die is equal to the number of cards in your hand.",
+      "abilityText": "The X on this die is equal to the number of cards in your hand.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1787,7 +1787,7 @@
       "subtypes": [
         "Subtype 13"
       ],
-      "displayText": "- Deal 1 damage to a character. Reroll this die instead of removing it from your pool.",
+      "abilityText": "- Deal 1 damage to a character. Reroll this die instead of removing it from your pool.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -1844,7 +1844,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "- Look at an opponent's hand and discard the cheapest card from it (you choose in the case of a tie).",
+      "abilityText": "- Look at an opponent's hand and discard the cheapest card from it (you choose in the case of a tie).",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -1901,7 +1901,7 @@
       "subtypes": [
         "Subtype 5"
       ],
-      "displayText": "",
+      "abilityText": "",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -1958,7 +1958,7 @@
       "subtypes": [
         "Subtype 6"
       ],
-      "displayText": "After you activate this character, draw a card.",
+      "abilityText": "After you activate this character, draw a card.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -2015,7 +2015,7 @@
       "subtypes": [
         "Subtype 2"
       ],
-      "displayText": "While this character does not have an upgrade, the cost to attach a weapon to it is decreased by 1.",
+      "abilityText": "While this character does not have an upgrade, the cost to attach a weapon to it is decreased by 1.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -2072,7 +2072,7 @@
       "subtypes": [
         "Subtype 6"
       ],
-      "displayText": "Before this character gains 1 or more shields, you may remove 1 of his shields to deal 1 damage to a character.",
+      "abilityText": "Before this character gains 1 or more shields, you may remove 1 of his shields to deal 1 damage to a character.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -2129,7 +2129,7 @@
       "subtypes": [
         "Subtype 9"
       ],
-      "displayText": "After you play an upgrade on this character, you may take one additional action.",
+      "abilityText": "After you play an upgrade on this character, you may take one additional action.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -2186,7 +2186,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Blue character only. - Give 3 shields to your characters, distributed as you wish.",
+      "abilityText": "Blue character only. - Give 3 shields to your characters, distributed as you wish.",
       "dieFaces": [
         {
           "symbol": "disrupt",
@@ -2243,7 +2243,7 @@
       "subtypes": [
         "Subtype 5"
       ],
-      "displayText": "After you play this upgrade, give attached character 1 shield, or 2 shields instead in the first round of play.",
+      "abilityText": "After you play this upgrade, give attached character 1 shield, or 2 shields instead in the first round of play.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -2300,7 +2300,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "Blue character only. - Give a character 2 shields or deal 2 unblockable damage to a character.",
+      "abilityText": "Blue character only. - Give a character 2 shields or deal 2 unblockable damage to a character.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -2357,7 +2357,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Blue character only.Before attached character is defeated, this upgrade becomes a support for the rest of the game (it starts ready).",
+      "abilityText": "Blue character only.Before attached character is defeated, this upgrade becomes a support for the rest of the game (it starts ready).",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -2414,7 +2414,7 @@
       "subtypes": [
         "Subtype 4"
       ],
-      "displayText": "- Reroll this die and one of your other dice. Do not remove this die from your pool after resolving this ability.",
+      "abilityText": "- Reroll this die and one of your other dice. Do not remove this die from your pool after resolving this ability.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -2471,7 +2471,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "- Remove a die showing damage ( or )",
+      "abilityText": "- Remove a die showing damage ( or )",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -2528,7 +2528,7 @@
       "subtypes": [
         "Subtype 10"
       ],
-      "displayText": "You can attach any weapon to this character, ignoring play restrictions.You can include Red Villain weapons and vehicles in your deck.",
+      "abilityText": "You can attach any weapon to this character, ignoring play restrictions.You can include Red Villain weapons and vehicles in your deck.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -2585,7 +2585,7 @@
       "subtypes": [
         "Subtype 10"
       ],
-      "displayText": "After you play a card with the Ambush keyword, you may give this character 1 shield.",
+      "abilityText": "After you play a card with the Ambush keyword, you may give this character 1 shield.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -2642,7 +2642,7 @@
       "subtypes": [
         "Subtype 10"
       ],
-      "displayText": "",
+      "abilityText": "",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -2699,7 +2699,7 @@
       "subtypes": [
         "Subtype 7"
       ],
-      "displayText": "- Discard the top card of an opponent's deck or spend 1 resource to discard the top 2 cards of an opponent's deck.",
+      "abilityText": "- Discard the top card of an opponent's deck or spend 1 resource to discard the top 2 cards of an opponent's deck.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -2756,7 +2756,7 @@
       "subtypes": [
         "Subtype 13"
       ],
-      "displayText": "- Play a Yellow event from your discard pile or hand for free.",
+      "abilityText": "- Play a Yellow event from your discard pile or hand for free.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -2813,7 +2813,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "The shields from this die can be given to any of your characters distributed as you wish.",
+      "abilityText": "The shields from this die can be given to any of your characters distributed as you wish.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -2870,7 +2870,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "Ambush.After you play this upgrade, Magic an opponent to choose and remove one of their dice.",
+      "abilityText": "Ambush.After you play this upgrade, Magic an opponent to choose and remove one of their dice.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -2927,7 +2927,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "- Reroll up to 2 of an opponent's dice.",
+      "abilityText": "- Reroll up to 2 of an opponent's dice.",
       "dieFaces": [
         {
           "symbol": "disrupt",
@@ -2982,7 +2982,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "- Resolve the battlefield ability as if you had just claimed it.",
+      "abilityText": "- Resolve the battlefield ability as if you had just claimed it.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -3039,7 +3039,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "",
+      "abilityText": "",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3096,7 +3096,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "- Deal 2 unblockable damage to a character.",
+      "abilityText": "- Deal 2 unblockable damage to a character.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3153,7 +3153,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Red character only.After you play this upgrade, you may draw a card.",
+      "abilityText": "Red character only.After you play this upgrade, you may draw a card.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3210,7 +3210,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Blue Character Only. - Remove a die to deal a character damage equal to the value showing on that die (specials and blanks are zeroes).",
+      "abilityText": "Blue Character Only. - Remove a die to deal a character damage equal to the value showing on that die (specials and blanks are zeroes).",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3267,7 +3267,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "To play, spot a Blue character. - Choose and do two of the following: deal 1 damage to a character, or gain 1 resource, or give a character 1 shield.",
+      "abilityText": "To play, spot a Blue character. - Choose and do two of the following: deal 1 damage to a character, or gain 1 resource, or give a character 1 shield.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3324,7 +3324,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "Redeploy. - Deal 2 unblockable damage to a character.",
+      "abilityText": "Redeploy. - Deal 2 unblockable damage to a character.",
       "dieFaces": [
         {
           "symbol": "melee",
@@ -3381,7 +3381,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Blue Character only. - Deal an opponent's character 1 damage for each card in that opponent's hand.",
+      "abilityText": "Blue Character only. - Deal an opponent's character 1 damage for each card in that opponent's hand.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3438,7 +3438,7 @@
       "subtypes": [
         "Subtype 5"
       ],
-      "displayText": "After you play this upgrade, you may reroll any number of your dice or any number of an opponent's dice.",
+      "abilityText": "After you play this upgrade, you may reroll any number of your dice or any number of an opponent's dice.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -3495,7 +3495,7 @@
       "subtypes": [
         "Subtype 5"
       ],
-      "displayText": "- Turn one of your dice to a side not showing damage ( or ).",
+      "abilityText": "- Turn one of your dice to a side not showing damage ( or ).",
       "dieFaces": [
         {
           "symbol": "resource",
@@ -3552,7 +3552,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "Ambush. Redeploy.",
+      "abilityText": "Ambush. Redeploy.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3607,7 +3607,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "- Draw 2 cards. You may play an upgrade from your hand, decreasing its cost by 1.",
+      "abilityText": "- Draw 2 cards. You may play an upgrade from your hand, decreasing its cost by 1.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3664,7 +3664,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Yellow character only. - Resolve a special ability () on another card in play as if it were your card.",
+      "abilityText": "Yellow character only. - Resolve a special ability () on another card in play as if it were your card.",
       "dieFaces": [
         {
           "symbol": "focus",
@@ -3721,7 +3721,7 @@
       "subtypes": [
         "Subtype 5"
       ],
-      "displayText": "- Remove a die showing melee damage () and give attached character 1 shield.",
+      "abilityText": "- Remove a die showing melee damage () and give attached character 1 shield.",
       "dieFaces": [
         {
           "symbol": "ranged",
@@ -3778,7 +3778,7 @@
       "subtypes": [
         "Subtype 14"
       ],
-      "displayText": "To play, spot a Yellow character. - Deal 3 damage to each of an opponent's characters. Discard this upgrade from play.",
+      "abilityText": "To play, spot a Yellow character. - Deal 3 damage to each of an opponent's characters. Discard this upgrade from play.",
       "dieFaces": [
         {
           "symbol": "discard",
@@ -3833,7 +3833,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Deal one of your non-unique characters damage equal to the value of an opponent's die showing damage ( or ). Then remove that die.",
+      "abilityText": "Deal one of your non-unique characters damage equal to the value of an opponent's die showing damage ( or ). Then remove that die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3851,7 +3851,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Magic an opponent to choose and remove one of their dice. You may place this event on the bottom of your deck instead of discarding it.",
+      "abilityText": "Magic an opponent to choose and remove one of their dice. You may place this event on the bottom of your deck instead of discarding it.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3869,7 +3869,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Return one of your defeated non-unique Red characters to the game with no damage on it.",
+      "abilityText": "Return one of your defeated non-unique Red characters to the game with no damage on it.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3887,7 +3887,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Play only if you control the battlefield.Magic an opponent to lose all of their resources.",
+      "abilityText": "Play only if you control the battlefield.Magic an opponent to lose all of their resources.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3905,7 +3905,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Look at two random cards from your opponent's hand and discard any of those cards that are events.",
+      "abilityText": "Look at two random cards from your opponent's hand and discard any of those cards that are events.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3923,7 +3923,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Count the number of ready Red characters you have. Reroll that many of an opponent's dice.",
+      "abilityText": "Count the number of ready Red characters you have. Reroll that many of an opponent's dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3941,7 +3941,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Red character to take up to 2 additional actions.",
+      "abilityText": "Spot a Red character to take up to 2 additional actions.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3959,7 +3959,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Deal one of your Red characters 3 damage to remove up to 2 of an opponent's dice.",
+      "abilityText": "Deal one of your Red characters 3 damage to remove up to 2 of an opponent's dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3977,7 +3977,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support and one of your characters to gain 1 resource.",
+      "abilityText": "Action - Exhaust this support and one of your characters to gain 1 resource.",
       "dieFaces": null,
       "abilities": []
     },
@@ -3995,7 +3995,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Each opponent gains 1 fewer resource during each upkeep phase to a minimum of 1.",
+      "abilityText": "Each opponent gains 1 fewer resource during each upkeep phase to a minimum of 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4015,7 +4015,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Attached character has the Protector keyword.",
+      "abilityText": "Attached character has the Protector keyword.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4033,7 +4033,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Magic an opponent to choose to either lose all of their resources or discard all cards in their hand.",
+      "abilityText": "Magic an opponent to choose to either lose all of their resources or discard all cards in their hand.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4051,7 +4051,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Draw cards up to your hand size.",
+      "abilityText": "Draw cards up to your hand size.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4069,7 +4069,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Deal 1 damage to one of your Blue characters to gain 1 resource.",
+      "abilityText": "Deal 1 damage to one of your Blue characters to gain 1 resource.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4087,7 +4087,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Count the number of blanks () showing on an opponent's dice. Remove that many of their dice.",
+      "abilityText": "Count the number of blanks () showing on an opponent's dice. Remove that many of their dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4105,7 +4105,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Turn one of your Blue dice to the side showing melee damage (). Then you may resolve that die.",
+      "abilityText": "Turn one of your Blue dice to the side showing melee damage (). Then you may resolve that die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4123,7 +4123,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove all shields from a character.",
+      "abilityText": "Remove all shields from a character.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4141,7 +4141,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Blue character to remove a character die.",
+      "abilityText": "Spot a Blue character to remove a character die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4159,7 +4159,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Discard any number of Blue cards from your hand. Then resolve one of your dice showing damage ( or ), increasing its value by 1 for each card you just discarded.",
+      "abilityText": "Discard any number of Blue cards from your hand. Then resolve one of your dice showing damage ( or ), increasing its value by 1 for each card you just discarded.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4177,7 +4177,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Look at the top 3 cards of any deck. Then place those cards on the top and/or bottom of that deck in any order.",
+      "abilityText": "Look at the top 3 cards of any deck. Then place those cards on the top and/or bottom of that deck in any order.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4195,7 +4195,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Your hand size is increased by 1.",
+      "abilityText": "Your hand size is increased by 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4213,7 +4213,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exaust this support to reroll one of your dice. If that die rolls a blank (), deal 2 unblockable damage to a character.",
+      "abilityText": "Action - Exaust this support to reroll one of your dice. If that die rolls a blank (), deal 2 unblockable damage to a character.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4233,7 +4233,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Action - If attached character has no shields, exhaust this upgrade to give it 1 shield.",
+      "abilityText": "Action - If attached character has no shields, exhaust this upgrade to give it 1 shield.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4251,7 +4251,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Turn each of your dice showing a blank () to any side.",
+      "abilityText": "Turn each of your dice showing a blank () to any side.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4269,7 +4269,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Discard a Yellow upgrade from your hand to roll its die into your pool, if able. Set aside that die after it is resolved or removed.",
+      "abilityText": "Discard a Yellow upgrade from your hand to roll its die into your pool, if able. Set aside that die after it is resolved or removed.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4287,7 +4287,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Discard any number of upgrades from one of your Yellow characters. Then deal damage to a character equal to the number of upgrades you just discarded.",
+      "abilityText": "Discard any number of upgrades from one of your Yellow characters. Then deal damage to a character equal to the number of upgrades you just discarded.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4305,7 +4305,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spend resources equal to the cost of an opponent's upgrade in play to return that upgrade to their hand.",
+      "abilityText": "Spend resources equal to the cost of an opponent's upgrade in play to return that upgrade to their hand.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4323,7 +4323,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove any number of your Yellow dice. Then deal damage to a character equal to the number of dice you just removed.",
+      "abilityText": "Remove any number of your Yellow dice. Then deal damage to a character equal to the number of dice you just removed.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4341,7 +4341,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Resolve one of your dice showing ranged damage (), treating this damage as unblockable.",
+      "abilityText": "Resolve one of your dice showing ranged damage (), treating this damage as unblockable.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4359,7 +4359,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove one of your dice to remove an opponent's die.",
+      "abilityText": "Remove one of your dice to remove an opponent's die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4377,7 +4377,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Magic an opponent to choose and discard cards from their hand down to the number of cards you have in your hand.",
+      "abilityText": "Magic an opponent to choose and discard cards from their hand down to the number of cards you have in your hand.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4395,7 +4395,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "When you play this support, place 3 damage on it.Action - Exhaust this support to move 1 damage from it to a character (this ignores shields).",
+      "abilityText": "When you play this support, place 3 damage on it.Action - Exhaust this support to move 1 damage from it to a character (this ignores shields).",
       "dieFaces": null,
       "abilities": []
     },
@@ -4413,7 +4413,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "After you resolve a die showing disrupt (), you may exhaust this support to gain resources equal to the number of resources your opponent just lost.",
+      "abilityText": "After you resolve a die showing disrupt (), you may exhaust this support to gain resources equal to the number of resources your opponent just lost.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4431,7 +4431,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support to gain 1 resource.",
+      "abilityText": "Action - Exhaust this support to gain 1 resource.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4449,7 +4449,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "After you play this upgrade, you may remove an opponent's character die and place it here. It is not rolled by any character and does not return to its character unless this upgrade leaves play.",
+      "abilityText": "After you play this upgrade, you may remove an opponent's character die and place it here. It is not rolled by any character and does not return to its character unless this upgrade leaves play.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4467,7 +4467,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Resolve one of your Red dice showing discard (), increasing its value by 2. Then draw a card.",
+      "abilityText": "Resolve one of your Red dice showing discard (), increasing its value by 2. Then draw a card.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4485,7 +4485,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Play only if you control the battlefield.Remove all of an opponent's dice showing a value of 2 or higher.",
+      "abilityText": "Play only if you control the battlefield.Remove all of an opponent's dice showing a value of 2 or higher.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4503,7 +4503,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove 2 damage from a character.",
+      "abilityText": "Remove 2 damage from a character.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4521,7 +4521,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Ambush.Activate one of your Red characters.",
+      "abilityText": "Ambush.Activate one of your Red characters.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4539,7 +4539,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Choose a symbol showing on an opponent's die. Then turn up to 2 of your Red dice to sides showing that symbol.",
+      "abilityText": "Choose a symbol showing on an opponent's die. Then turn up to 2 of your Red dice to sides showing that symbol.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4557,7 +4557,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Resolve one of your dice, increasing its value by 1.",
+      "abilityText": "Resolve one of your dice, increasing its value by 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4575,7 +4575,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Play a Red upgrade from your discard pile, decreasing its cost by 1.",
+      "abilityText": "Play a Red upgrade from your discard pile, decreasing its cost by 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4593,7 +4593,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Your opponent may take 1 action. Then end the action phase.",
+      "abilityText": "Your opponent may take 1 action. Then end the action phase.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4611,7 +4611,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Ready a support that has no mods or exhaust a support.",
+      "abilityText": "Ready a support that has no mods or exhaust a support.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4629,7 +4629,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove any number of your Red dice showing ranged damage (), increasing each of their values by 1, to discard a support from play that costs equal to or less than the combined value of those dice.",
+      "abilityText": "Remove any number of your Red dice showing ranged damage (), increasing each of their values by 1, to discard a support from play that costs equal to or less than the combined value of those dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4647,7 +4647,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support and discard a card from your hand to give a character 1 shield. Then ready this support unless an opponent spends 1 resource.",
+      "abilityText": "Action - Exhaust this support and discard a card from your hand to give a character 1 shield. Then ready this support unless an opponent spends 1 resource.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4665,7 +4665,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Give a character 2 shields.",
+      "abilityText": "Give a character 2 shields.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4683,7 +4683,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Choose a symbol showing on one of your Blue dice. Then remove all of an opponent's dice showing that symbol.",
+      "abilityText": "Choose a symbol showing on one of your Blue dice. Then remove all of an opponent's dice showing that symbol.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4701,7 +4701,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Deal one of your unique characters damage equal to the value of an opponent's die showing damage ( or ). Then remove that die.",
+      "abilityText": "Deal one of your unique characters damage equal to the value of an opponent's die showing damage ( or ). Then remove that die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4719,7 +4719,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Defeat one of your Blue characters to exhaust a character.",
+      "abilityText": "Defeat one of your Blue characters to exhaust a character.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4737,7 +4737,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove any number of your dice. Then discard cards from the top of an opponent's deck equal to the number of dice you just removed.",
+      "abilityText": "Remove any number of your dice. Then discard cards from the top of an opponent's deck equal to the number of dice you just removed.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4755,7 +4755,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Add a blue event from your discard pile to your hand.",
+      "abilityText": "Add a blue event from your discard pile to your hand.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4773,7 +4773,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove any number of shields from one of your characters. Then deal damage to a character equal to the number of shields you just removed.",
+      "abilityText": "Remove any number of shields from one of your characters. Then deal damage to a character equal to the number of shields you just removed.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4791,7 +4791,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Move 1 damage from one of your exhausted characters to an opponent's exhausted character (this ignores shields).",
+      "abilityText": "Move 1 damage from one of your exhausted characters to an opponent's exhausted character (this ignores shields).",
       "dieFaces": null,
       "abilities": []
     },
@@ -4809,7 +4809,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support to look at the top 2 cards of a player's deck. Then you may discard one of those cards and have that player draw the other.",
+      "abilityText": "Action - Exhaust this support to look at the top 2 cards of a player's deck. Then you may discard one of those cards and have that player draw the other.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4827,7 +4827,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support to resolve one of your dice showing a modified side (a side with a +) as if it was not modified (did not have the +).",
+      "abilityText": "Action - Exhaust this support to resolve one of your dice showing a modified side (a side with a +) as if it was not modified (did not have the +).",
       "dieFaces": null,
       "abilities": []
     },
@@ -4845,7 +4845,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support and discard a Blue card from your hand to play another copy of that card from your hand for free.",
+      "abilityText": "Action - Exhaust this support and discard a Blue card from your hand to play another copy of that card from your hand for free.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4863,7 +4863,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Ambush.Reroll any number of an opponent's dice. Then remove all of their dice showing blanks ().",
+      "abilityText": "Ambush.Reroll any number of an opponent's dice. Then remove all of their dice showing blanks ().",
       "dieFaces": null,
       "abilities": []
     },
@@ -4881,7 +4881,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Each player draws 2 cards.",
+      "abilityText": "Each player draws 2 cards.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4899,7 +4899,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Move up to 2 damage from one of your characters to another one of your characters (this ignores shields).",
+      "abilityText": "Move up to 2 damage from one of your characters to another one of your characters (this ignores shields).",
       "dieFaces": null,
       "abilities": []
     },
@@ -4917,7 +4917,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "End the action phase. You may switch the battlefield with the battlefield that is not being used. Set aside this card instead of discarding it.",
+      "abilityText": "End the action phase. You may switch the battlefield with the battlefield that is not being used. Set aside this card instead of discarding it.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4935,7 +4935,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Magic an opponent to choose to either deal one of their exhausted characters 2 damage or choose and remove 2 of their dice.",
+      "abilityText": "Magic an opponent to choose to either deal one of their exhausted characters 2 damage or choose and remove 2 of their dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4953,7 +4953,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove one of your character dice to Magic an opponent to choose and remove 2 of their dice.",
+      "abilityText": "Remove one of your character dice to Magic an opponent to choose and remove 2 of their dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4971,7 +4971,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Discard the top 3 cards of your deck. Then you may add an upgrade or support from your discard pile to your hand.",
+      "abilityText": "Discard the top 3 cards of your deck. Then you may add an upgrade or support from your discard pile to your hand.",
       "dieFaces": null,
       "abilities": []
     },
@@ -4989,7 +4989,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Ambush.Resolve one of your Yellow dice showing ranged damage (). Then remove an opponent's die showing ranged damage ().",
+      "abilityText": "Ambush.Resolve one of your Yellow dice showing ranged damage (). Then remove an opponent's die showing ranged damage ().",
       "dieFaces": null,
       "abilities": []
     },
@@ -5007,7 +5007,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Yellow character and discard a card from your hand to gain 1 resource.",
+      "abilityText": "Spot a Yellow character and discard a card from your hand to gain 1 resource.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5025,7 +5025,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support to reroll one of your Yellow dice. If it rolls a resource (), gain 1 resource.",
+      "abilityText": "Action - Exhaust this support to reroll one of your Yellow dice. If it rolls a resource (), gain 1 resource.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5043,7 +5043,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Ambush.Action - Exhaust this support to look at an opponent's hand.",
+      "abilityText": "Ambush.Action - Exhaust this support to look at an opponent's hand.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5063,7 +5063,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "Yellow character only.Before attached character would be defeated, instead heal 5 damage from it and discard this upgrade from play.",
+      "abilityText": "Yellow character only.Before attached character would be defeated, instead heal 5 damage from it and discard this upgrade from play.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5081,7 +5081,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Red character to draw cards equal to the number of exhausted characters you have. Set that many cards from your hand aside.",
+      "abilityText": "Spot a Red character to draw cards equal to the number of exhausted characters you have. Set that many cards from your hand aside.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5099,7 +5099,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Play only if you control the battlefield.Give 3 shields to your characters, distributed as you wish.",
+      "abilityText": "Play only if you control the battlefield.Give 3 shields to your characters, distributed as you wish.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5117,7 +5117,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Resolve one of your Red dice showing ranged damage (), increasing its value by 1, or by 2 instead if you are resolving a vehicle die.",
+      "abilityText": "Resolve one of your Red dice showing ranged damage (), increasing its value by 1, or by 2 instead if you are resolving a vehicle die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5135,7 +5135,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Exhaust one of your unique Red characters to ready another character.",
+      "abilityText": "Exhaust one of your unique Red characters to ready another character.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5153,7 +5153,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a red character to resolve a die with the resource symbol (), increasing its value by 1.",
+      "abilityText": "Spot a red character to resolve a die with the resource symbol (), increasing its value by 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5171,7 +5171,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Activate any number of your non-unique characters at once.",
+      "abilityText": "Activate any number of your non-unique characters at once.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5189,7 +5189,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Action - Exhaust this support to resolve one of your dice showing ranged damage (), increasing its value by 1.",
+      "abilityText": "Action - Exhaust this support to resolve one of your dice showing ranged damage (), increasing its value by 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5207,7 +5207,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Blue character to remove a die showing ranged damage () and deal half of that damage, rounded up, to a character.",
+      "abilityText": "Spot a Blue character to remove a die showing ranged damage () and deal half of that damage, rounded up, to a character.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5225,7 +5225,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Reroll all dice.",
+      "abilityText": "Reroll all dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5243,7 +5243,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Blue character to Magic your opponent to split their dice pool into 2 groups of any size. Choose 1 group and remove all dice in it.",
+      "abilityText": "Spot a Blue character to Magic your opponent to split their dice pool into 2 groups of any size. Choose 1 group and remove all dice in it.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5261,7 +5261,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Resolve one of your dice, treating its value as equal to the number of Blue upgrades you have in play.",
+      "abilityText": "Resolve one of your dice, treating its value as equal to the number of Blue upgrades you have in play.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5279,7 +5279,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Blue character to turn a die to any side.",
+      "abilityText": "Spot a Blue character to turn a die to any side.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5297,7 +5297,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Before you play a Blue upgrade, you may exhaust this support to decrease its cost by 1.",
+      "abilityText": "Before you play a Blue upgrade, you may exhaust this support to decrease its cost by 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5315,7 +5315,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Turn one of your dice to a side showing ranged damage ().",
+      "abilityText": "Turn one of your dice to a side showing ranged damage ().",
       "dieFaces": null,
       "abilities": []
     },
@@ -5333,7 +5333,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Resolve any number of your dice in the order of your choice.",
+      "abilityText": "Resolve any number of your dice in the order of your choice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5351,7 +5351,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove all of an opponent's dice showing melee damage.",
+      "abilityText": "Remove all of an opponent's dice showing melee damage.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5369,7 +5369,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Count the number of dice you have showing melee damage (). Discard that many random cards from an opponent's hand.",
+      "abilityText": "Count the number of dice you have showing melee damage (). Discard that many random cards from an opponent's hand.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5387,7 +5387,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove all of an opponent's dice showing ranged damage ()",
+      "abilityText": "Remove all of an opponent's dice showing ranged damage ()",
       "dieFaces": null,
       "abilities": []
     },
@@ -5405,7 +5405,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Play only if you have more ready characters than an opponent.Remove one of that opponent's dice.",
+      "abilityText": "Play only if you have more ready characters than an opponent.Remove one of that opponent's dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5423,7 +5423,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Give a character 1 shield.",
+      "abilityText": "Give a character 1 shield.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5441,7 +5441,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Remove one of your dice showing damage ( or ) to discard a weapon or equipment from play that costs equal to or less than the value of that die.",
+      "abilityText": "Remove one of your dice showing damage ( or ) to discard a weapon or equipment from play that costs equal to or less than the value of that die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5459,7 +5459,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Yellow character to remove a die showing a value of 2 or lower.",
+      "abilityText": "Spot a Yellow character to remove a die showing a value of 2 or lower.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5477,7 +5477,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Yellow character to remove a die showing damage ( or ) and deal that damage to a character.",
+      "abilityText": "Spot a Yellow character to remove a die showing damage ( or ) and deal that damage to a character.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5495,7 +5495,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Spot a Yellow character to reroll all of an opponent's dice.",
+      "abilityText": "Spot a Yellow character to reroll all of an opponent's dice.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5513,7 +5513,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Ambush.Reroll a die (yours or an opponent's).",
+      "abilityText": "Ambush.Reroll a die (yours or an opponent's).",
       "dieFaces": null,
       "abilities": []
     },
@@ -5531,7 +5531,7 @@
       "plotPointValue": null,
       "isUnique": false,
       "subtypes": [],
-      "displayText": "Before you play a Yellow card, you may exhaust this support to give it the Ambush keyword.",
+      "abilityText": "Before you play a Yellow card, you may exhaust this support to give it the Ambush keyword.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5551,7 +5551,7 @@
       "subtypes": [
         "Subtype 1"
       ],
-      "displayText": "If attached character takes melee damage (), discard this upgrade.Action - Exhaust this upgrade to give attached character 1 shield.",
+      "abilityText": "If attached character takes melee damage (), discard this upgrade.Action - Exhaust this upgrade to give attached character 1 shield.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5569,7 +5569,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Each opponent discards the top 2 cards of their deck.",
+      "abilityText": "Claim - Each opponent discards the top 2 cards of their deck.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5587,7 +5587,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Give a character 1 shield.",
+      "abilityText": "Claim - Give a character 1 shield.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5605,7 +5605,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Turn one of your dice to a side showing a special ability (). Then you may resolve that die.",
+      "abilityText": "Claim - Turn one of your dice to a side showing a special ability (). Then you may resolve that die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5623,7 +5623,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Remove one character die.",
+      "abilityText": "Claim - Remove one character die.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5641,7 +5641,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Play an upgrade from your hand, decreasing its cost by 1.",
+      "abilityText": "Claim - Play an upgrade from your hand, decreasing its cost by 1.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5659,7 +5659,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Look at an opponent's hand and discard up to 2 events of your choice from it.",
+      "abilityText": "Claim - Look at an opponent's hand and discard up to 2 events of your choice from it.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5677,7 +5677,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Resolve one of your dice. If it has a resource cost, you do not have to pay it.",
+      "abilityText": "Claim - Resolve one of your dice. If it has a resource cost, you do not have to pay it.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5695,7 +5695,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Return one of your upgrades in play to your hand to gain 1 resource.",
+      "abilityText": "Claim - Return one of your upgrades in play to your hand to gain 1 resource.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5713,7 +5713,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Each opponent chooses and deals 1 unblockable damage to one of their characters.",
+      "abilityText": "Claim - Each opponent chooses and deals 1 unblockable damage to one of their characters.",
       "dieFaces": null,
       "abilities": []
     },
@@ -5731,7 +5731,7 @@
       "plotPointValue": null,
       "isUnique": true,
       "subtypes": [],
-      "displayText": "Claim - Choose a support or upgrade in your discard pile and place it on top of your deck.",
+      "abilityText": "Claim - Choose a support or upgrade in your discard pile and place it on top of your deck.",
       "dieFaces": null,
       "abilities": []
     }

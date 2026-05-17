@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AbilityBuilder } from './AbilityBuilder.js';
 import { DiceEditor, defaultDiceFaces } from './DiceEditor.js';
 import { HistoryPanel } from './HistoryPanel.js';
-import { saveCards, uploadCardArt } from './api.js';
+import { parseAbilities, saveCards, uploadCardArt } from './api.js';
 
 type SixFaces = [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
 
@@ -63,7 +63,7 @@ function newCard(): Card {
     plotPointValue: null,
     isUnique: false,
     keywords: [],
-    displayText: '',
+    abilityText: '',
     dieFaces: null,
     abilities: [],
     artUrl: null,
@@ -110,6 +110,8 @@ export function CardsTab({
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const newMenuRef = useRef<HTMLDivElement>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set(CARD_TYPES));
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   const [dragKey, setDragKey] = useState<string | null>(null);
   const [dragOriginalTabs, setDragOriginalTabs] = useState<CardTab[] | null>(null);
   const lastDragOverKey = useRef<string | null>(null);
@@ -579,14 +581,39 @@ export function CardsTab({
               </label>
             </div>
 
-            <Field label="Display text">
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wider text-neutral-500">Ability text</span>
+                <button
+                  type="button"
+                  disabled={!draft.abilityText.trim() || parsing}
+                  onClick={async () => {
+                    setParsing(true);
+                    setParseError(null);
+                    try {
+                      const abilities = await parseAbilities(draft.abilityText);
+                      updateDraft({ abilities });
+                    } catch (e) {
+                      setParseError((e as Error).message ?? 'Parse failed');
+                    } finally {
+                      setParsing(false);
+                    }
+                  }}
+                  className="flex items-center gap-1 rounded border border-neutral-600 px-2 py-0.5 text-xs text-neutral-300 hover:border-neutral-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {parsing ? '…' : '✨'} {parsing ? 'Parsing…' : 'Parse abilities'}
+                </button>
+              </div>
               <textarea
-                value={draft.displayText}
+                value={draft.abilityText}
                 rows={3}
-                onChange={(e) => updateDraft({ displayText: e.target.value })}
+                onChange={(e) => updateDraft({ abilityText: e.target.value })}
                 className="min-h-[80px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
               />
-            </Field>
+              {parseError && (
+                <p className="mt-1 text-xs text-red-400">{parseError}</p>
+              )}
+            </div>
 
             <div>
               <div className="mb-2 text-sm uppercase tracking-wider text-neutral-500">

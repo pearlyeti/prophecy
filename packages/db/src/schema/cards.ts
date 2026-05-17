@@ -40,7 +40,7 @@ export const cards = pgTable(
     pointValue: integer('point_value'),
     elitePointValue: integer('elite_point_value'),
     isUnique: boolean('is_unique').notNull().default(false),
-    displayText: text('display_text').notNull().default(''),
+    abilityText: text('ability_text').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -52,7 +52,7 @@ export const cards = pgTable(
 );
 
 // One row per ability paragraph on the card, ordered by `ordinal`.
-// `ast` is the engine-interpretable form; `displayText` is the
+// `ast` is the engine-interpretable form; `abilityText` is the
 // printed text the player sees on the card.
 export const cardAbilities = pgTable(
   'card_abilities',
@@ -63,7 +63,7 @@ export const cardAbilities = pgTable(
       .references(() => cards.id, { onDelete: 'cascade' }),
     ordinal: smallint('ordinal').notNull(),
     ast: jsonb('ast').$type<Ability>().notNull(),
-    displayText: text('display_text').notNull().default(''),
+    abilityText: text('ability_text').notNull().default(''),
   },
   (t) => [
     uniqueIndex('card_abilities_card_ordinal_idx').on(t.cardId, t.ordinal),

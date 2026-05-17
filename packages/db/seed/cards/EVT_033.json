@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Deal 3 melee damage to an opponent's character.",
+  "abilityText": "Deal 3 melee damage to an opponent's character.",
   "dieFaces": null,
   "abilities": [
     {

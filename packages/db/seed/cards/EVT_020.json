@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Heal 1 damage from one of your characters.",
+  "abilityText": "Heal 1 damage from one of your characters.",
   "dieFaces": null,
   "abilities": [
     {

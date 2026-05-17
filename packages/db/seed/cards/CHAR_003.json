@@ -15,7 +15,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Special: Remove all shields from an opponent's character.",
+  "abilityText": "Special: Remove all shields from an opponent's character.",
   "dieFaces": [
     {
       "symbol": "melee",

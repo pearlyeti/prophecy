@@ -1,6 +1,6 @@
 // REST helpers for the /designer endpoints on the game-server.
 
-import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
+import type { Ability, AttributeCatalog, Card, Deck } from '@prophecy/protocol';
 
 // ── Schema migration shim ─────────────────────────────────────────────
 // ENGINE-ST1 replaced `effects: Effect[]` with `steps: EffectStep[]` on
@@ -201,4 +201,19 @@ export async function fetchCommitReport(sha: string): Promise<CommitReport> {
   const r = await fetch(`${serverUrl()}/designer/commits/${encodeURIComponent(sha)}`);
   if (!r.ok) throw new Error(`GET /designer/commits/${sha} failed: ${r.status}`);
   return (await r.json()) as CommitReport;
+}
+
+// ── AI ability parser ─────────────────────────────────────────────────
+
+export async function parseAbilities(text: string): Promise<Ability[]> {
+  const r = await fetch(`${serverUrl()}/designer/ai/parse-abilities`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ text }),
+  });
+  const body = (await r.json()) as { ok: boolean; abilities?: Ability[]; error?: string };
+  if (!r.ok || !body.ok) {
+    throw new Error(body.error ?? `parse-abilities failed: ${r.status}`);
+  }
+  return body.abilities!;
 }

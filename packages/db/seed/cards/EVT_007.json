@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Each player draws 2 cards.",
+  "abilityText": "Each player draws 2 cards.",
   "dieFaces": null,
   "abilities": [
     {

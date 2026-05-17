@@ -390,7 +390,7 @@ function generateCharacter(rng: SeededRng, index: number, title: string): CardFi
     isUnique: maybe(rng, rarity === 'legendary' ? 0.95 : rarity === 'rare' ? 0.7 : 0.3),
     subtypes: pickSubtypes(rng, 'character'),
     dieFaces,
-    displayText: '',
+    abilityText: '',
     abilities: generateAbilities(rng, 'character', rarity, hasSpecial),
   };
 }
@@ -420,7 +420,7 @@ function generateUpgrade(rng: SeededRng, index: number, title: string): CardFixt
     isUnique: maybe(rng, rarity === 'legendary' ? 0.9 : rarity === 'rare' ? 0.5 : 0.2),
     subtypes: pickSubtypes(rng, 'upgrade'),
     dieFaces,
-    displayText: '',
+    abilityText: '',
     abilities: generateAbilities(rng, 'upgrade', rarity, hasSpecial),
   };
 }
@@ -450,7 +450,7 @@ function generateSupport(rng: SeededRng, index: number, title: string): CardFixt
     isUnique: maybe(rng, 0.3),
     subtypes: pickSubtypes(rng, 'support'),
     dieFaces,
-    displayText: '',
+    abilityText: '',
     abilities: generateAbilities(rng, 'support', rarity, hasSpecial),
   };
 }
@@ -475,7 +475,7 @@ function generateEvent(rng: SeededRng, index: number, title: string): CardFixtur
     isUnique: maybe(rng, 0.05),
     subtypes: pickSubtypes(rng, 'event'),
     dieFaces: null,
-    displayText: '',
+    abilityText: '',
     abilities: generateAbilities(rng, 'event', rarity, false),
   };
 }
@@ -499,7 +499,7 @@ function generatePlot(rng: SeededRng, index: number, title: string): CardFixture
     isUnique: true,
     subtypes: pickSubtypes(rng, 'plot'),
     dieFaces: null,
-    displayText: '',
+    abilityText: '',
     abilities: generateAbilities(rng, 'plot', 'fixed', false),
   };
 }
@@ -521,7 +521,7 @@ function generateBattlefield(rng: SeededRng, index: number, title: string): Card
     isUnique: true,
     subtypes: pickSubtypes(rng, 'battlefield'),
     dieFaces: null,
-    displayText: '',
+    abilityText: '',
     abilities: generateAbilities(rng, 'battlefield', 'fixed', false),
   };
 }

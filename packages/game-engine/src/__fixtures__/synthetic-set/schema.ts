@@ -220,11 +220,11 @@ export const CardFixtureSchema = z
     /**
      * Printed ability prose as carried over from the input fixture
      * file. The engine doesn't dispatch off this — gameplay resolution
-     * keys off the structured `abilities` AST. `displayText` is for
+     * keys off the structured `abilities` AST. `abilityText` is for
      * the deckbuilder / card viewer UI and as a reference while we
      * hand-author the AST for each card.
      */
-    displayText: z.string().default(''),
+    abilityText: z.string().default(''),
     /** Six die faces (characters / dice-bearing upgrades / supports). null otherwise. */
     dieFaces: z
       .tuple([DieFaceSchema, DieFaceSchema, DieFaceSchema, DieFaceSchema, DieFaceSchema, DieFaceSchema])

@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Deal 1 ranged damage to an opponent's character.",
+  "abilityText": "Deal 1 ranged damage to an opponent's character.",
   "dieFaces": null,
   "abilities": [
     {

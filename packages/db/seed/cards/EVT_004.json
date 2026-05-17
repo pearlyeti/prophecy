@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Remove all shields from a character.",
+  "abilityText": "Remove all shields from a character.",
   "dieFaces": null,
   "abilities": [
     {

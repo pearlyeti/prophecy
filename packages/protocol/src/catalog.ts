@@ -467,7 +467,7 @@ export const cardSchema = z
     plotPointValue: z.number().int().min(-5).max(5).nullable().default(null),
     isUnique: z.boolean().default(false),
     keywords: z.array(keywordSchema).default([]),
-    displayText: z.string().default(''),
+    abilityText: z.string().default(''),
     dieFaces: z
       .tuple([
         dieFaceSchema,
