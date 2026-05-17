@@ -93,6 +93,7 @@ type DieState = 'default' | 'eligible' | 'selected-resolve' | 'selected-reroll' 
 
 function Die3D({
   die,
+  allFaces,
   position,
   baseColor,
   textColor,
@@ -103,6 +104,12 @@ function Die3D({
   onClick,
 }: {
   die: DieInPool;
+  /**
+   * All 6 faces of this die (from state.cardDieFaces[die.cardId]).
+   * Each cube face slot k shows allFaces[k]. Falls back to repeating
+   * die.face on every slot if catalog data isn't available.
+   */
+  allFaces: readonly DieFace[] | undefined;
   position: [number, number, number];
   baseColor: string;
   textColor: string;
@@ -120,12 +127,14 @@ function Die3D({
   const currentQ = useRef(DEFAULT_REST_Q.clone());
   const prevTumbling = useRef(false);
 
-  // When a new face is chosen, set the target quaternion and kick off slerp.
+  // Rotate the die so the effective face index is on top.
+  // Default rest = die.faceIndex (the rolled face). Override = overrideFaceIndex.
+  const effectiveFaceIndex = overrideFaceIndex ?? die.faceIndex;
   useEffect(() => {
-    if (overrideFaceIndex == null || isTumbling) return;
-    targetQ.current.copy(FACE_CORRECT_Q[overrideFaceIndex] ?? FACE_CORRECT_Q[2]!);
+    if (isTumbling) return;
+    targetQ.current.copy(FACE_CORRECT_Q[effectiveFaceIndex] ?? FACE_CORRECT_Q[DEFAULT_FACE_INDEX]!);
     animRef.current = true;
-  }, [overrideFaceIndex, isTumbling]);
+  }, [effectiveFaceIndex, isTumbling]);
 
   // All rotation controlled here — no rotation prop on RoundedBox.
   useFrame((_, dt) => {
@@ -159,28 +168,45 @@ function Die3D({
     }
   });
 
-  // Use the override face texture when provided (shows chosen face value while
-  // the die is animating/settled during a focus pick).
-  const displayFace = overrideFace ?? die.face;
-  const texture = useMemo(
-    () => makeFaceTexture(displayFace.symbol, displayFace.value, displayFace.modifier, baseColor, textColor),
-    [displayFace.symbol, displayFace.value, displayFace.modifier, baseColor, textColor],
-  );
-  useEffect(() => () => { texture.dispose(); }, [texture]);
+  // Build the per-slot face array. allFaces is the catalog's 6-face spec; if
+  // missing, fall back to repeating the current rolled face on every slot
+  // (mostly for transient/event dice that aren't in cardDieFaces). The
+  // override slot (if any) is replaced with overrideFace.
+  const effectiveFaces = useMemo<readonly DieFace[]>(() => {
+    const base: readonly DieFace[] = allFaces && allFaces.length === 6
+      ? allFaces
+      : Array.from({ length: 6 }, () => die.face);
+    if (overrideFaceIndex != null && overrideFace) {
+      const next = base.slice();
+      next[overrideFaceIndex] = overrideFace;
+      return next;
+    }
+    return base;
+  }, [allFaces, die.face, overrideFaceIndex, overrideFace]);
 
-  // Apply per-face UV transform (rotation / offset / mirror) so the texture
-  // reads upright and centered for whichever face is on top. Values tuned via
-  // /dice-preview live tuner. Texture matrix auto-rebuilds from these props.
-  const effectiveFaceIndex = overrideFaceIndex ?? DEFAULT_FACE_INDEX;
+  // One texture per cube face — each shows its own face's content.
+  const textures = useMemo(
+    () => effectiveFaces.map((f) =>
+      makeFaceTexture(f.symbol, f.value, f.modifier, baseColor, textColor),
+    ),
+    [effectiveFaces, baseColor, textColor],
+  );
+  useEffect(() => () => { textures.forEach((t) => t.dispose()); }, [textures]);
+
+  // Apply per-face UV transform (rotation / offset / mirror) so each face's
+  // content reads upright and centered when THAT face is on top. Tuned via
+  // /dice-preview live tuner; same values were calibrated per face index.
   useEffect(() => {
-    texture.center.set(0.5, 0.5);
-    texture.offset.set(FACE_OFFSET_X[effectiveFaceIndex]!, FACE_OFFSET_Y[effectiveFaceIndex]!);
-    texture.repeat.set(
-      FACE_MIRROR_X[effectiveFaceIndex] ? -1 : 1,
-      FACE_MIRROR_Y[effectiveFaceIndex] ? -1 : 1,
-    );
-    texture.rotation = (FACE_SPIN_DEG[effectiveFaceIndex]! * Math.PI) / 180;
-  }, [texture, effectiveFaceIndex]);
+    textures.forEach((tex, slot) => {
+      tex.center.set(0.5, 0.5);
+      tex.offset.set(FACE_OFFSET_X[slot]!, FACE_OFFSET_Y[slot]!);
+      tex.repeat.set(
+        FACE_MIRROR_X[slot] ? -1 : 1,
+        FACE_MIRROR_Y[slot] ? -1 : 1,
+      );
+      tex.rotation = (FACE_SPIN_DEG[slot]! * Math.PI) / 180;
+    });
+  }, [textures]);
 
   const emissiveHex =
     state === 'selected-resolve' ? '#064e3b' :
@@ -194,9 +220,7 @@ function Die3D({
     0;
   const dimmed = state === 'dimmed';
 
-  // Six-material array: only the slot that ends up on top (= effectiveFaceIndex)
-  // shows the texture. Other slots show plain die color so we don't see ghost
-  // text on the cube's side faces / chamfer.
+  // Six materials, one per cube face slot, each with its own texture.
   const materials = useMemo(
     () => Array.from({ length: 6 }, () => new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.05 })),
     [],
@@ -206,20 +230,14 @@ function Die3D({
   useEffect(() => {
     for (let slot = 0; slot < 6; slot++) {
       const m = materials[slot]!;
+      m.map = textures[slot]!;
+      m.color.set(dimmed ? '#2a2a2a' : '#ffffff');
       m.emissive.set(emissiveHex);
       m.emissiveIntensity = emissiveIntensity;
-      if (slot === effectiveFaceIndex) {
-        m.map = texture;
-        m.color.set(dimmed ? '#2a2a2a' : '#ffffff');
-      } else {
-        m.map = null;
-        m.color.set(dimmed ? '#2a2a2a' : baseColor);
-      }
       m.needsUpdate = true;
     }
-  }, [materials, effectiveFaceIndex, texture, baseColor, emissiveHex, emissiveIntensity, dimmed]);
+  }, [materials, textures, dimmed, emissiveHex, emissiveIntensity]);
 
-  // Apply the material array to the mesh once it's mounted.
   useEffect(() => {
     if (meshRef.current) meshRef.current.material = materials;
   }, [materials]);
@@ -232,7 +250,7 @@ function Die3D({
       smoothness={3}
       position={position}
       // No rotation prop — fully controlled by useFrame to avoid reconciler conflicts.
-      // Material array is set via the useEffect above (one textured slot + 5 plain).
+      // Material array is set imperatively via the useEffect above.
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     />
   );
@@ -293,6 +311,9 @@ export default function DicePool3D({
   const activeFlow    = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
+  // Full 6-face catalog data per die instance — needed so each cube face
+  // can render its own content rather than echoing the current rolled face.
+  const cardDieFaces = useApp((s) => s.game?.cardDieFaces);
 
   const inRerollPickDice = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice';
   const inRerollMode     = selectionMode?.kind === 'reroll';
@@ -462,10 +483,12 @@ export default function DicePool3D({
           }
 
           const override = faceOverrides?.[d.instanceId];
+          const allFaces = cardDieFaces?.[d.cardId];
           return (
             <Die3D
               key={d.instanceId}
               die={d}
+              allFaces={allFaces}
               position={[xStart + i * DIE_SPACING, 0, 0]}
               baseColor={baseColor}
               textColor={textColor}
