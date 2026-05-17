@@ -2156,7 +2156,7 @@ function BattlefieldRow({
 }) {
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
-  const tumblingActivatedCardId = useApp((s) => s.tumblingActivatedCardId);
+  const tumblingPoolDieIds = useApp((s) => s.tumblingPoolDieIds);
 
   return (
     <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
@@ -2185,6 +2185,25 @@ function BattlefieldRow({
             }))
           : [];
         const displayDice = dice.length > 0 ? dice : activationPreviewDice;
+
+        // For opponent side: placeholder dice so the 3-D Canvas exists before
+        // game.state arrives, mirroring the activationPreviewDice pattern.
+        // tumblingPoolDieIds is set from game.events (before game.state), so
+        // we can match against spec die IDs to detect which char is activating.
+        const charDieIds = char.dice.map((d) => d.instanceId);
+        const isOpponentActivatingThisChar =
+          side === 'opponent' && charDieIds.some((id) => tumblingPoolDieIds.includes(id));
+        const opponentPreviewDice: DieInPool[] =
+          isOpponentActivatingThisChar && dice.length === 0
+            ? char.dice.map((sd) => ({
+                instanceId: sd.instanceId,
+                cardId: sd.cardId,
+                faceIndex: 0,
+                face: sd.faces[0],
+                ownerInstanceId: cid,
+              }))
+            : [];
+        const opponentDisplayDice = dice.length > 0 ? dice : opponentPreviewDice;
 
         // Resolve flow targeting
         const inResolveFlow = activeFlow?.kind === 'resolve';
@@ -2379,7 +2398,7 @@ function BattlefieldRow({
             {side === 'opponent' && (
               <Suspense fallback={
                 <DiceStack
-                  dice={dice}
+                  dice={opponentDisplayDice}
                   diceInteractive={false}
                   selectionMode={selectionMode}
                   horizontal
@@ -2389,11 +2408,11 @@ function BattlefieldRow({
                 />
               }>
                 <DicePool3D
-                  dice={dice}
+                  dice={opponentDisplayDice}
                   diceInteractive={false}
                   selectionMode={selectionMode}
                   cardColor={dieCardColor}
-                  tumblingCharId={tumblingActivatedCardId === cid ? cid : null}
+                  tumblingCharId={isOpponentActivatingThisChar ? cid : null}
                   previewSelectedDieIds={previewSelectedDieIds}
                   previewSpentDieIds={previewSpentDieIds}
                   previewRerollDieIds={previewRerollDieIds}
