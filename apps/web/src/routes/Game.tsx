@@ -1935,17 +1935,9 @@ function BattleZone({
           onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
         />
 
-        {/* Center divider — white line with log icon anchored to the left */}
-        <div className="relative shrink-0 px-4 py-3">
+        {/* Center divider */}
+        <div className="shrink-0 px-4 py-3">
           <div className="h-px w-full bg-white" />
-          <button
-            type="button"
-            aria-label="Open activity log"
-            onClick={() => setLogOpen(true)}
-            className="absolute left-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300 active:bg-neutral-800"
-          >
-            <ScrollText size={16} aria-hidden />
-          </button>
         </div>
 
         {/* 3 ── Player zone */}
@@ -1974,7 +1966,7 @@ function BattleZone({
         />
 
         {/* 5 ── Action bar — Undo (future) | Commit */}
-        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
+        <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} onOpenLog={() => setLogOpen(true)} />
       </section>
 
       {detailChar && detailId && (
@@ -2716,11 +2708,13 @@ function ActionBar({
   playerId,
   send,
   isMyTurn,
+  onOpenLog,
 }: {
   game: GameState;
   playerId: string;
   send: (a: Action) => void;
   isMyTurn: boolean;
+  onOpenLog: () => void;
 }) {
   const [confirmPass, setConfirmPass] = useState(false);
   const activeFlow = useApp((s) => s.activeFlow);
@@ -2886,11 +2880,18 @@ function ActionBar({
           >
             Discard to reroll
           </button>
-        ) : (
-          <div className="flex-1" />
-        )}
+        ) : null}
 
-        <div className="flex-1" />
+        <div className="flex flex-1 items-center justify-center">
+          <button
+            type="button"
+            aria-label="Open activity log"
+            onClick={onOpenLog}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300 active:bg-neutral-800"
+          >
+            <ScrollText size={16} aria-hidden />
+          </button>
+        </div>
 
         {/* Commit */}
         {isMyTurn && (
