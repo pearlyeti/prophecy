@@ -2137,7 +2137,7 @@ function makeSpecDicePreview(
     instanceId: sd.instanceId,
     cardId: sd.cardId,
     faceIndex: 0,
-    face: sd.faces[0],
+    face: sd.faces[0]!,
     ownerInstanceId: ownerId,
   }));
 }
