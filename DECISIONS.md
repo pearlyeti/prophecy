@@ -105,3 +105,23 @@ Migrated from a single `cards.json` to `packages/db/seed/cards/{id}.json` — on
 ### 2026-05-16 — [ARCH] Incremental event-log writes for in-flight durability
 
 `GameWriter` was rewritten from flush-on-game-end to `open()` / `append()` / `close()`. Each round's events are written immediately; if the server dies mid-game, the partial log is already in Postgres and the session can be marked `abandoned` on boot. The old model lost all events for games that never reached `game.ended`.
+
+### 2026-05-17 — [GAME] Cost-modifier effects prompt at play time
+
+When a player plays a card and one or more in-play cost modifiers are eligible (predicate matches, usage cap not hit), the client opens a confirm modal listing each option plus "Pay full cost"; the player's pick rides on the `play-card` action and the engine validates+applies it. We rejected always auto-applying the best discount because some modifiers carry side costs (exhausting the source, consuming a charge) and the player must consent — the engine is still source of truth via `getCostModifierOptions`, the client only renders the choice.
+
+### 2026-05-17 — [ENGINE] Play restrictions are a card-level field, not an ability
+
+`playRestriction` lives on the catalog card schema, not inside `Ability`. Triggered abilities already have `playCondition` for "fire only if…" semantics; conflating the two would muddy what's gating what — card-level restrictions gate whether the card can be played at all, evaluated by `play-card` / `getLegalActions` before any ability dispatches.
+
+### 2026-05-17 — [ENGINE] Passive abilities use an attached-index, not on-read recomputation
+
+`GameState.activePassives` is keyed by the affected card and recomputed on enter/leave-play, not on every stat read; combat math reads stability and keywords many times per resolution and an index keeps that O(1). Deterministic ordering is fixed at attach time (`attachedAtSeq`, tiebreak `instanceId`) rather than re-derived on every read, which avoids subtle non-determinism when multiple passives modify the same stat.
+
+### 2026-05-17 — [ENGINE] Step model with implicit AND (no explicit container)
+
+Abilities expose `steps: EffectStep[]` where each step is `{ effects: Effect[], then?: boolean }`. AND-grouping ("Discard a card AND remove a shield") is implicit in a step holding multiple effects; we rejected an explicit `AND` wrapper because authors think "I'm adding another effect to this step", not "I'm wrapping things in a container". `then` gates a step on the previous step's `fullyResolved` (AND of its effects' resolution flags) — this handles "Discard AND remove a shield. Then deal 3." gating on **both** prior effects, which a flat then-on-the-last-effect model can't express.
+
+### 2026-05-17 — [ENGINE] `playCondition` (per-ability) and `playRestriction` (per-card) stay distinct fields
+
+ENGINE-PC1 enforces the existing per-ability `playCondition`; ENGINE-PR1 adds a new top-level `playRestriction` on the card itself. They evaluate similar predicates but gate different things — one is whether the ability fires, the other is whether the card can leave hand at all. Whichever lands second factors out a shared predicate-evaluator module; we did not pre-merge them because the call sites differ and a premature merge would muddy which field gates what.

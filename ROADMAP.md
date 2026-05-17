@@ -12,6 +12,185 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### ENGINE-ST1 — Step model + `then` gating
+
+**Why now.** Today `applyEffects` is a flat sequential loop over `Effect[]`; the rules reference's "Then" gating ("Remove a shield. Then deal 3 damage." — damage only resolves if the shield was actually removed) cannot be expressed. Authors also can't AND-group effects to share a single resolve status ("Discard AND remove a shield. Then deal 3."). This is the foundation Card C / ENGINE-CH1 builds on.
+
+**Scope.**
+- `packages/protocol/src/catalog.ts`: replace `effects: Effect[]` with `steps: EffectStep[]` on every ability kind (immediate, triggered, action, powerAction, special, claim — `passive` is touched only if ENGINE-PASS1 has already landed). `EffectStep = { effects: Effect[], then?: boolean }`.
+- `packages/game-engine/src/abilities/types.ts`: matching type change; `EffectResult` gains `fullyResolved: boolean`.
+- `packages/game-engine/src/abilities/dispatch.ts` `applyEffects`: iterate steps; per step, run all effects collecting `fullyResolved` per effect; step resolved iff every effect resolved; if `then: true` and previous step did not fully resolve, skip the entire step (do not consume target slots).
+- Per-op `fullyResolved` definitions: `dealDamage`/`addShields`/`removeShields`/`healDamage` — ≥1 target existed AND the requested amount was applied; `drawCards`/`loseResources` — full amount; `gainResources` — always true; other ops — default true unless they have a natural failure mode. One-line addition per handler.
+- One-shot JSON migration: every `effects: [a, b, c]` becomes `steps: [{effects:[a]}, {effects:[b]}, {effects:[c]}]`. Pass over `packages/db/seed/cards/*.json`. No back-compat shim — old shape fails validation.
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`: step list editor; "Then ↳" toggle on each step after the first; "+ Add effect" inside a step (AND group); "+ Add step" below the list.
+- `README.md` §Engine implementation notes: document step semantics + per-op `fullyResolved` definitions.
+
+**Context to load.**
+- `packages/game-engine/src/abilities/types.ts`, `packages/game-engine/src/abilities/dispatch.ts`
+- `packages/protocol/src/catalog.ts`
+- `packages/db/seed/cards/*.json` (migration target)
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`
+- `docs/rules-reference.md` (the "Then" section)
+- `README.md` §Engine implementation notes
+
+**Out of scope.** `choose` op (ENGINE-CH1 — builds on this card). Explicit AND container in the UI — AND is implicit in step membership.
+
+**Done when.** Typecheck clean. Tests: (a) "Remove a shield. Then deal 3." resolves both when shield present, skips damage when no shield. (b) "Discard AND remove shield. Then deal 3." gates on both prior succeeding. (c) Per-op `fullyResolved` for at least 4 handlers (damage, drawCards, loseResources, gainResources). All existing engine tests stay green after JSON migration. Designer round-trips a multi-step then-gated ability without raw JSON.
+
+---
+
+#### ENGINE-CH1 — `choose` op (modal "or" / "Choose N")
+
+**Why now.** Modal abilities ("Give a shield, deal 2 damage, or draw a card") and "Choose N of M" are common in the rules reference. The current `choice` schema entry is a stub: no engine dispatch, no designer form. With ENGINE-ST1 in place, this is the natural next step.
+
+**Scope.**
+- `packages/protocol/src/catalog.ts`: replace the `choice` stub with a real `choose` schema — `{ op: 'choose', count: number, branches: { label?: string, steps: EffectStep[] }[], optional: boolean }`. Add to `KNOWN_OPS`.
+- `packages/game-engine/src/abilities/types.ts`: `GameState.pendingChoice: PendingChoice | null` mirroring `pendingSearch`.
+- `packages/game-engine/src/abilities/dispatch.ts`: `applyChoose` sets `pendingChoice = { branches, count, remainingSteps }` and bails out the same way `searchDeck` does (suspension pattern).
+- `apps/game-server/src/match/actions/resolve-choice.ts` NEW — mirrors `resolve-search.ts`. Receives the player's branch picks, validates (count matches, picks are in range, distinct), runs them via the step engine in chosen order, clears `pendingChoice`, resumes `remainingSteps`.
+- `getLegalActions` blocks all actions except `resolve-choice` while `pendingChoice` is set; exposes `canResolveChoice`.
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`: `choose` form — number input for `count`, branch list with add/remove, each branch wrapping a nested step list. "Choose…" entry in the implemented-ops optgroup.
+- ROADMAP op-status table: tick `choose` and reference ENGINE-CH1.
+
+**Context to load.**
+- `packages/game-engine/src/abilities/dispatch.ts` (lines 145–155 — `pendingSearch` suspension pattern)
+- `packages/game-engine/src/abilities/types.ts`
+- `packages/protocol/src/catalog.ts`
+- `apps/game-server/src/match/actions/resolve-search.ts` (template)
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`
+- `README.md` §Engine implementation notes
+
+**Depends on.** ENGINE-ST1.
+
+**Out of scope.** Live-match player UI for picking a branch in a match — separate WEB card (designer can author choose-cards and server enforces them; player just can't pick yet via UI). Filed as a follow-up in the backlog.
+
+**Done when.** Typecheck clean. Tests: `choose` count=1 (3 branches) → only chosen branch applies. `choose` count=2 (3 branches) → two chosen branches apply in chosen order. `choose` followed by a then-gated step → gates on whether all chosen branches fully resolved. `choose` mid-ability → `remainingSteps` resumes correctly after resolution. `getLegalActions` blocks unrelated actions while `pendingChoice` is set. Designer round-trips "Choose two: A, B, C" without raw JSON.
+
+---
+
+#### ENGINE-PC1 — Enforce `playCondition` in the engine
+
+**Why now.** Schema and designer UI for `playCondition` have been complete since ENGINE-7 (`catalog.ts` lines 62–76) — but no execution path reads the field. A "spot a yellow character" triggered or action ability fires regardless of whether the player has a yellow character in play. This is a zero-trust violation (client can't be the only check) and a correctness gap covering ≥ 8 condition kinds already in the schema. Pure bug fix; small surface.
+
+**Scope.**
+- `packages/game-engine/src/legal-actions.ts`: new pure helper `playConditionMet(state, ctx, condition): boolean`. Cover every existing kind: `controlsBattlefield`, `spotCharacter` (color, unique, count), `spotCard`, `moreReadyCharacters`, `firstActionOfRound`, `opponentHasNoCards`, `haveNCharactersInPlay`, `opponentHasNCharacters`.
+- Wire `playConditionMet` into the legal-action selector so cards/abilities whose condition fails are excluded from the offered set (client greys them out naturally).
+- `apps/game-server/src/match/actions/use-card-action.ts`: pre-dispatch check. Unmet condition returns a structured `IllegalActionError` with `reason: 'playCondition'` and the failing kind.
+- Same pre-dispatch check on any other entry point that fires an ability with a `playCondition` (triggered ability dispatch path, immediate ability on play, etc.) — audit and gate consistently.
+
+**Relationship to ENGINE-PR1.** PR1 introduces a new top-level `playRestriction` field on cards; PC1 enforces the existing per-ability `playCondition` field. Different fields, different scopes (card-level vs ability-level), but the predicate evaluators share enough shape that whichever lands second should factor out a common module. Note this in the PR description; no upfront refactor required.
+
+**Context to load.**
+- `packages/protocol/src/catalog.ts` (lines 62–76 — `playConditionSchema`)
+- `packages/game-engine/src/abilities/types.ts` (`PlayCondition`, ability kinds carrying it)
+- `packages/game-engine/src/legal-actions.ts` (`costsCanBeMet` lives here; add alongside)
+- `apps/game-server/src/match/actions/use-card-action.ts`
+- All paths that dispatch a `triggered` / `immediate` / `claim` ability (search for `applyEffects` callers in the engine).
+
+**Out of scope.** New `PlayCondition` kinds (existing 8 only). Generalising the predicate AST to share with ENGINE-PR1 (note for the second card to land, not required of this one).
+
+**Done when.** Typecheck clean. `legal-actions.test.ts` covers every condition kind (≥ 8 tests) — present/absent and any sub-fields (color, count). Pre-dispatch test on `use-card-action`: server rejects with `reason: 'playCondition'` when unmet, succeeds when met. Manual smoke: seed a card with `spotCharacter: { color: 'yellow' }`; attempt to play with no yellow character → engine blocks and client greys it; play a yellow character first → card becomes legal.
+
+---
+
+#### ENGINE-CM1 — Cost-modification effects (with play-time prompt)
+
+**Why now.** Several seeded card concepts need "this costs N less if…" or "+1 to play if…" semantics. Today there's no authored shape for it — authors fall back to hand-edited JSON, and the engine can't enforce it. This unblocks a meaningful slice of design space and lays the primitive ENGINE-PASS1 reuses.
+
+**Scope.**
+- New `Effect` op `modifyCost` (or new ability kind `costModifier`, decided in implementation): predicate `appliesTo: CardCriteria` + integer `delta` (negative or positive, clamped so adjusted cost ≥ 0). Optional `oncePerTurn` flag, optional `usesPerRound: number`.
+- `packages/protocol/src/catalog.ts`: Zod schema; add to `KNOWN_OPS`.
+- `packages/game-engine`:
+  - `GameState.costModifiers` index: derived from in-play sources (characters, supports, upgrades, battlefield) each turn; cleared/recomputed on enter/leave play and on round/turn boundaries.
+  - `play-card` action accepts optional `costModifierSourceId`. Engine validates the source still exists, predicate matches the played card, and the per-turn/round usage cap hasn't been hit. Adjusted cost is deducted; an `cost.modified` event records the source + delta.
+  - `getLegalActions` / a new `getCostModifierOptions(playerId, cardInHandId)` selector exposes the choices the client renders. Returns an array of `{ sourceCardInstanceId, label, delta }`.
+- `apps/web`:
+  - At `play-card` dispatch time: if `getCostModifierOptions` returns ≥ 1 entry for this card, open a confirm modal — "Apply −1 cost from Healer's Charm?" with options for each eligible modifier **and** a "Pay full cost" choice. Touch-first (≥ 44 px targets, confirm before commit). The user's pick rides on the `play-card` action.
+  - If zero options, the modal is skipped (no UX regression for normal plays).
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`: new form for `modifyCost` with delta stepper, `CardCriteriaEditor` for `appliesTo`, usage-cap inputs. No raw-JSON fallback.
+
+**Context to load.**
+- `packages/game-engine/src/abilities/types.ts`
+- `packages/game-engine/src/abilities/dispatch.ts`
+- `packages/game-engine/src/actions/play-card.ts`
+- `packages/game-engine/src/getLegalActions.ts`
+- `packages/protocol/src/catalog.ts`, `packages/protocol/src/events.ts`
+- `apps/web/src/routes/Game.tsx` (play-card dispatch path)
+- `apps/web/src/store.ts` (ActiveFlow — add a `pendingCostModifierChoice` flow)
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`
+
+**Out of scope.** Cost modifiers that target `action`/`powerAction` costs (separate card). Replacement-style "instead of paying X" effects (covered by the replacement-effect backlog item). Cost modifiers that change resource colors required (defer).
+
+**Done when.** Typecheck clean. Engine tests: predicate-match, predicate-miss, clamp-at-zero, oncePerTurn enforcement, cost.modified event payload. Manual smoke: seed two cards — a static −1 modifier source and a target — confirm prompt offers the discount, "Pay full" deducts the base cost, choosing the modifier deducts the reduced cost, and a second play in the same turn is offered no modifier when `oncePerTurn` is set.
+
+---
+
+#### ENGINE-PR1 — Play restrictions ("only" conditions on cards)
+
+**Why now.** Cards like *play only if you control a Shadow character* or *play only when your opponent has ≤ 2 cards in hand* are common designs. The check has to live in the engine (zero-trust client). Today there's no authored field for it — the engine accepts any play whose cost is paid.
+
+**Scope.**
+- New optional field `playRestriction?: PlayRestriction` on the catalog card schema (not on `Ability` — it gates the card itself, not its triggered/action abilities).
+- `PlayRestriction` is a predicate AST. Start with a small composable set:
+  - `controlsCharacter(criteria: CardCriteria)` / `controlsSupport(criteria)` / `controlsBattlefield(side: 'own' | 'opponent', criteria?)`
+  - `handSize(op: '>=' | '<=' | '==', n: number, target: 'own' | 'opponent')`
+  - `cardInPlay(criteria, side: 'own' | 'opponent' | 'either')`
+  - `allOf([…])` / `anyOf([…])` / `not(child)`
+- `packages/game-engine`:
+  - `evaluatePlayRestriction(state, playerId, card)` exported pure helper.
+  - `play-card` action validates restriction before cost deduction; returns IllegalAction with a structured `reason: 'playRestriction'` and the failing predicate path.
+  - `getLegalActions` filters out plays whose restriction fails so the UI greys/hides the card naturally.
+- `packages/protocol/src/catalog.ts`: Zod schema for the predicate AST (recursive). Versioned via existing catalog version.
+- `apps/web/src/routes/designer/AbilityBuilder.tsx` (or the card-level editor that wraps it): new `PlayRestrictionEditor` component. Recursive UI mirroring the AST shape — `allOf`/`anyOf`/`not` containers with add-child buttons; leaf predicates have their own forms reusing `CardCriteriaEditor` where applicable. No raw JSON.
+- `apps/web` greys disabled hand cards with a tap-to-see-reason tooltip ("Requires: control a Shadow character"). Touch-first.
+
+**Context to load.**
+- `packages/game-engine/src/actions/play-card.ts`
+- `packages/game-engine/src/getLegalActions.ts`
+- `packages/protocol/src/catalog.ts`
+- `apps/web/src/routes/designer/AbilityBuilder.tsx` (or the card-level editor file)
+- `apps/web/src/routes/Game.tsx` (hand-card legality rendering)
+
+**Out of scope.** Play-zone restrictions (e.g. "play only on a support row" — covered by existing card-type/zone routing). Conditions that mutate during a single play resolution (e.g. "play only after spending a resource this turn" — defer until a card needs it). Triggered-ability `playCondition` is already a separate field and stays as-is.
+
+**Done when.** Typecheck clean. Engine tests cover at least three restriction shapes including a nested `allOf(not(...), handSize(...))`. Server rejects a restriction-violating `play-card` with the structured reason. UI greys the card with the human-readable cause when the restriction fails; restriction passes → card plays normally. AbilityBuilder authors and round-trips a non-trivial restriction without raw JSON.
+
+---
+
+#### ENGINE-PASS1 — Passive / ongoing abilities (mechanical effects)
+
+**Why now.** `passive` exists in the schema as an open `[k: string]: unknown` record (no dispatcher, no shape, no UI). The op-status table has had it sitting unchecked since ENGINE-6. Several characters/supports/upgrades need "while in play, X" semantics (stat buffs, granted keywords, ongoing cost discounts, targeting eligibility tweaks). Without this, those cards can't be authored or enforced.
+
+**Scope.**
+- Replace open-record `PassiveAbility` with a typed AST in `packages/game-engine/src/abilities/types.ts`:
+  - `effects: readonly PassiveEffect[]`
+  - `PassiveEffect` kinds (first wave): `modifyStat` (stability/shields-cap with `delta` and `stacking: 'add' | 'replaceWithMax'`), `grantKeyword`, `modifyCost` (reuses ENGINE-CM1's predicate + delta — eligible-source semantics shared), `modifyTargetingEligibility` (e.g. "cannot be targeted by events").
+  - Each `PassiveEffect` carries `appliesTo: CardCriteria` (who it affects) and optional `whileCondition: PassiveCondition` (e.g. "while exhausted" — small AST, can stay tiny in v1).
+- Engine lifecycle:
+  - `GameState.activePassives: Record<instanceId, ActivePassive[]>` — index keyed by the **affected** card (so stat reads are O(1) per character).
+  - `attachPassives(state, sourceCardInstanceId)` runs when a card enters play; recomputes the index. `detachPassives` runs on leave-play. Deterministic order: by `attachedAtSeq` then `instanceId`.
+  - Stat read paths (`getEffectiveStability`, etc.), keyword checks (`hasKeyword`), cost calculation (folded into ENGINE-CM1 selector), and targeting eligibility (`matchesCardCriteria` consumers) all consult the index instead of the base card.
+- `packages/protocol/src/catalog.ts`: discriminated-union Zod schema for `PassiveEffect`. Validates `kind: 'passive'` is no longer open-record.
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`: full passive form. Effect list + per-effect form (one per `PassiveEffect.kind`). `appliesTo` uses `CardCriteriaEditor`. No raw JSON; the open-record fallback is removed.
+- `ROADMAP.md` op-status table: tick `passive` and reference this card.
+
+**Context to load.**
+- `packages/game-engine/src/abilities/types.ts`
+- `packages/game-engine/src/state.ts` (GameState shape)
+- `packages/game-engine/src/actions/play-card.ts` (entering play hook)
+- Wherever defeated/discarded characters leave play (search `applyDefeat` / `applyDiscard`)
+- `packages/game-engine/src/dispatch.ts` (stat / keyword / criteria readers)
+- `packages/protocol/src/catalog.ts`
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`
+
+**Depends on.** ENGINE-CM1 ✅ first — the `modifyCost` effect kind is shared. If ENGINE-PASS1 lands earlier, factor out the shared selector as part of this card.
+
+**Out of scope.** Replacement effects (already a backlog item — "instead of"). Conditional passives whose `whileCondition` mutates mid-resolution (defer). Passives on cards in zones other than in-play (no current design need).
+
+**Done when.** Typecheck clean. Engine tests: attach on enter play, detach on leave play, stat buff visible in combat math, keyword grant respected by triggered-ability gating, `replaceWithMax` vs. `add` stacking both verified, two stacking sources sum deterministically regardless of play order tiebreak via `instanceId`. AbilityBuilder authors a "+1 stability while in play" character and the value updates live in a smoke session. `passive` row in op-status table is checked and references ENGINE-PASS1.
+
+---
+
 #### WEB-20 — Per-player zone pagination
 **Why now.** Supports enter play mid-game and may not fit alongside characters; we need a way to navigate to them without disrupting the character view.
 
@@ -190,7 +369,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - [x] `action` — player activates (exhaust/remove-die/spend cost) · _ENGINE-A1_
 - [x] `powerAction` — same, once per round · _ENGINE-A1_
 - [x] `special` — fires when this card's special die face is resolved · _ENGINE-K3_
-- [ ] `passive` — always-on predicate read by other engine paths; no dispatcher
+- [ ] `passive` — always-on ongoing effects (stat buffs, keyword grants, cost mods, targeting eligibility) · _ENGINE-PASS1_
 - [x] `claim` — fires when this battlefield is claimed · _ENGINE-C1_
 
 #### Effect ops
@@ -214,7 +393,11 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - [ ] `activateCharacter` · [ ] `exhaustCard` · [ ] `readyCard` · [ ] `moveDamage` · [ ] `moveShields` · [ ] `placeDamageOnCard` · [ ] `placeResourceOnCard` · [ ] `grantKeyword` · [ ] `forceActivate` · [ ] `takeBattlefieldControl` · [ ] `claimBattlefield` · [ ] `endActionPhase` · [ ] `takeAdditionalActions`
 
 **Branching**
-- [ ] `choice` — present two effect branches; active player or opponent picks one
+- [ ] `choose` — modal "or" (count=1) / "Choose N of M" (count≥2); mid-resolution `pendingChoice` pause, branch picks resumed via `resolve-choice` · _ENGINE-CH1_
+
+**Cost & restrictions**
+- [ ] `modifyCost` — predicate-matched delta applied to a card's play cost; player chooses at play time via confirm prompt · _ENGINE-CM1_
+- [ ] `playRestriction` — top-level card field, predicate AST enforced by `play-card` and `getLegalActions` · _ENGINE-PR1_
 
 ---
 
