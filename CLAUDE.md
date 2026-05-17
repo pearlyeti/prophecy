@@ -223,6 +223,7 @@ If you're adding a feature to `packages/protocol/src/catalog.ts` or `packages/ga
 
 ## Style
 
+- Follow the [Google Developer's Style Guide](https://developers.google.com/style) for all writing — documentation, UI copy, and player-facing text alike. Key rules: sentence case (first word + proper nouns only), active voice, plain language, second person ("you"), present tense.
 - Match the README's tone in any docs you write — concise, declarative, no marketing language.
 - Don't write multi-paragraph code comments. One short line max, only when the *why* is non-obvious.
 - Don't create new top-level docs (`ARCHITECTURE.md`, `CHANGELOG.md`, etc.) — fold the content into the README or DECISIONS.md instead.

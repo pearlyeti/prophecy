@@ -19,6 +19,7 @@ import type {
   TriggerEvent,
 } from '@prophecy/protocol';
 import { CARD_TYPES, COLORS, DIE_SYMBOLS, KNOWN_OPS } from '@prophecy/protocol';
+import { label } from './labels';
 
 // ────────────────────────────────────────────────────────────────────
 // Constants
@@ -153,7 +154,7 @@ export function AbilityBuilder({
         <div key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs uppercase tracking-wider text-neutral-500">
-              Ability {idx + 1} · {ab.kind}
+              Ability {idx + 1} · {label(ab.kind)}
             </span>
             <button type="button" onClick={() => remove(idx)}
               className="min-h-[32px] rounded border border-neutral-700 px-2 text-xs text-neutral-400 hover:border-red-700 hover:text-red-300">
@@ -169,7 +170,7 @@ export function AbilityBuilder({
         {ABILITY_KINDS.map((k) => (
           <button key={k} type="button" onClick={() => add(k)}
             className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500">
-            + {k}
+            + {label(k)}
           </button>
         ))}
       </div>
@@ -354,7 +355,7 @@ function PlayConditionSection({ value, onChange }: {
         <div className="flex gap-2">
           <SelectField
             value={value.kind}
-            options={CONDITION_KINDS.map((k) => ({ value: k, label: k }))}
+            options={CONDITION_KINDS.map((k) => ({ value: k, label: label(k) }))}
             onChange={(k) => onChange(defaultCondition(k as PlayCondition['kind']))}
           />
           <button type="button" onClick={() => onChange(undefined)}
@@ -430,12 +431,12 @@ function TriggerEventEditor({ value, onChange }: {
         >
           <optgroup label="Wired — engine fires these">
             {TRIGGER_KINDS_WIRED.map((k) => (
-              <option key={k} value={k}>{k}</option>
+              <option key={k} value={k}>{label(k)}</option>
             ))}
           </optgroup>
           <optgroup label="Schema-only — not yet wired, won't fire">
             {TRIGGER_KINDS_STUB.map((k) => (
-              <option key={k} value={k}>{k}</option>
+              <option key={k} value={k}>{label(k)}</option>
             ))}
           </optgroup>
         </select>
@@ -525,7 +526,7 @@ function ActionCostList({ costs, onChange }: {
         <div key={idx} className="flex flex-wrap items-start gap-2">
           <SelectField
             value={cost.kind}
-            options={COST_KINDS.map((k) => ({ value: k, label: k }))}
+            options={COST_KINDS.map((k) => ({ value: k, label: label(k) }))}
             onChange={(k) => replaceCost(idx, defaultCost(k as ActionCost['kind']))}
           />
           <ActionCostFields cost={cost} onChange={(next) => replaceCost(idx, next)} />
@@ -645,12 +646,12 @@ function StepsList({ steps, onChange }: {
                   >
                     <optgroup label="Implemented">
                       {KNOWN_OPS.map((o) => (
-                        <option key={o} value={o}>{o}</option>
+                        <option key={o} value={o}>{label(o)}</option>
                       ))}
                     </optgroup>
                     <optgroup label="Stub — schema defined, not yet dispatched">
                       {STUB_OPS.map((o) => (
-                        <option key={o} value={o}>{o}</option>
+                        <option key={o} value={o}>{label(o)}</option>
                       ))}
                     </optgroup>
                     <optgroup label="Placeholder">
@@ -976,7 +977,7 @@ function TargetPicker({ value, options, onChange }: {
     <SelectField
       label="Target"
       value={value.kind}
-      options={options.map((k) => ({ value: k, label: k }))}
+      options={options.map((k) => ({ value: k, label: label(k) }))}
       onChange={(k) => onChange({ kind: k as TargetSpec['kind'] })}
     />
   );
