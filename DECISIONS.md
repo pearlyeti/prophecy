@@ -125,3 +125,7 @@ Abilities expose `steps: EffectStep[]` where each step is `{ effects: Effect[], 
 ### 2026-05-17 — [ENGINE] `playCondition` (per-ability) and `playRestriction` (per-card) stay distinct fields
 
 ENGINE-PC1 enforces the existing per-ability `playCondition`; ENGINE-PR1 adds a new top-level `playRestriction` on the card itself. They evaluate similar predicates but gate different things — one is whether the ability fires, the other is whether the card can leave hand at all. Whichever lands second factors out a shared predicate-evaluator module; we did not pre-merge them because the call sites differ and a premature merge would muddy which field gates what.
+
+### 2026-05-17 — [WEB] 3D dice render as six plane meshes per die, not one RoundedBox with six textured materials
+
+`Die3D` is a group containing one `RoundedBox` body (solid color, no texture) plus six flat plane meshes overlaid on each face, each with an upright canvas texture. We tried the one-mesh-six-materials approach across nine PRs (#67, #78, #79, #81, #86, #100, #101, #102, #110) and it never stabilised — `RoundedBoxGeometry`'s UV axes differ from `BoxGeometry` and required per-face rotation, offset, and mirror corrections that drifted out of sync every time anything changed. Six planes makes the orientation derivable from first principles (`FACE_CORRECT_Q[2]` is identity by construction) and eliminates the entire `/dice-preview` tuner.
