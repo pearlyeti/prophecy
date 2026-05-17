@@ -2169,6 +2169,22 @@ function BattlefieldRow({
         const eligible = activatableIds.includes(cid) && activeFlow === null;
         const isActivating = activeFlow?.kind === 'activate' && activeFlow.charId === cid;
 
+        // While the player has selected this character to activate but hasn't
+        // clicked "Roll Dice" yet, the pool is empty. Show the character's
+        // spec dice as tumbling placeholders so the animation starts immediately
+        // on tap. They share the same instanceIds as the real dice, so Die3D
+        // preserves its tumble refs when the server's rolled dice replace them.
+        const activationPreviewDice: DieInPool[] = isActivating && dice.length === 0
+          ? char.dice.map((sd) => ({
+              instanceId: sd.instanceId,
+              cardId: sd.cardId,
+              faceIndex: 0,
+              face: sd.faces[0],
+              ownerInstanceId: cid,
+            }))
+          : [];
+        const displayDice = dice.length > 0 ? dice : activationPreviewDice;
+
         // Resolve flow targeting
         const inResolveFlow = activeFlow?.kind === 'resolve';
         const resolveSym = inResolveFlow ? activeFlow!.symbol : null;
@@ -2327,7 +2343,7 @@ function BattlefieldRow({
                 />
               }>
                 <DicePool3D
-                  dice={dice}
+                  dice={displayDice}
                   diceInteractive={diceInteractive}
                   selectionMode={selectionMode}
                   eligibleSymbols={resolvableSymbols}

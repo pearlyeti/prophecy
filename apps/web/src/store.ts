@@ -101,6 +101,10 @@ interface AppStore {
   activeFlow: ActiveFlow | null;
   setActiveFlow: (flow: ActiveFlow | null) => void;
 
+  /** Die instance IDs currently mid-tumble from a roll (character.activated / support.activated). */
+  tumblingPoolDieIds: readonly string[];
+  setTumblingPoolDieIds: (ids: readonly string[]) => void;
+
   /** Active flow of the opponent player (received via game.preview socket event). */
   opponentPreview: ActiveFlow | null;
   setOpponentPreview: (flow: ActiveFlow | null) => void;
@@ -153,6 +157,9 @@ export const useApp = create<AppStore>((set) => ({
   activeFlow: null,
   setActiveFlow: (flow) => set({ activeFlow: flow }),
 
+  tumblingPoolDieIds: [],
+  setTumblingPoolDieIds: (ids) => set({ tumblingPoolDieIds: ids }),
+
   opponentPreview: null,
   setOpponentPreview: (flow) => set({ opponentPreview: flow }),
 
@@ -165,6 +172,7 @@ export const useApp = create<AppStore>((set) => ({
       lastError: null,
       selectionMode: null,
       activeFlow: null,
+      tumblingPoolDieIds: [],
       opponentPreview: null,
     });
   },
