@@ -72,12 +72,16 @@ Optional extra fields:
   { kind: "anyCharacter" } | { kind: "eachOpponentCharacter" } | { kind: "eachCharacter" }
   { kind: "attachedCharacter" } | { kind: "thisCharacter" }
 
+## CardCriteria (optional filter on which characters/cards an effect can target)
+  { exhausted?: boolean, unique?: boolean, subtype?: string|string[], color?: string|string[], hasUpgrade?: boolean, minHealth?: number, maxDamage?: number }
+  Use exhausted: true for "exhausted character", exhausted: false for "ready character".
+
 ## Implemented Effect ops (use these when possible)
 
-dealDamage:     { op: "dealDamage", amount: number, target: TargetSpec, damageType?: "melee"|"ranged"|"indirect"|"unspecified", unblockable?: boolean, optional?: boolean }
-healDamage:     { op: "healDamage", amount: number, target: TargetSpec, optional?: boolean }
-addShields:     { op: "addShields", amount: number, target: TargetSpec, optional?: boolean }
-removeShields:  { op: "removeShields", amount: number|"all", target: TargetSpec, optional?: boolean }
+dealDamage:     { op: "dealDamage", amount: number, target: TargetSpec, criteria?: CardCriteria, damageType?: "melee"|"ranged"|"indirect"|"unspecified", unblockable?: boolean, optional?: boolean }
+healDamage:     { op: "healDamage", amount: number, target: TargetSpec, criteria?: CardCriteria, optional?: boolean }
+addShields:     { op: "addShields", amount: number, target: TargetSpec, criteria?: CardCriteria, optional?: boolean }
+removeShields:  { op: "removeShields", amount: number|"all", target: TargetSpec, criteria?: CardCriteria, optional?: boolean }
 gainResources:  { op: "gainResources", amount: number, optional?: boolean }
 loseResources:  { op: "loseResources", amount: number|"all", target: "opponent"|"self", optional?: boolean }
 drawCards:      { op: "drawCards", player?: "self"|"eachPlayer"|"opponent", amount?: number, toHandSize?: boolean, optional?: boolean }
@@ -107,6 +111,10 @@ Output:
 Input: "Action — Heal 2 damage from one of your characters. Action — Deal 2 indirect damage to an opponent's character."
 Output:
 [{"kind":"action","costs":[],"steps":[{"effects":[{"op":"healDamage","amount":2,"target":{"kind":"ownCharacter"}}]}]},{"kind":"action","costs":[],"steps":[{"effects":[{"op":"dealDamage","amount":2,"damageType":"indirect","target":{"kind":"opponentCharacter"}}]}]}]
+
+Input: "Deal 1 damage to an exhausted character."
+Output:
+[{"kind":"immediate","steps":[{"effects":[{"op":"dealDamage","amount":1,"target":{"kind":"anyCharacter"},"criteria":{"exhausted":true}}]}]}]
 
 Input: "Guardian."
 Output:
