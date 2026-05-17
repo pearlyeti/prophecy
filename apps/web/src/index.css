@@ -25,44 +25,29 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Override the neutral-* scale with Dracula-tinted equivalents so
-     existing structural neutral-* Tailwind classes pick up the theme
-     without a mechanical find-and-replace. */
-  --color-neutral-950: oklch(0.17 0.02 270);
-  --color-neutral-900: oklch(0.21 0.02 270);  /* Dracula bg   #282a36 */
-  --color-neutral-800: oklch(0.26 0.02 270);
-  --color-neutral-700: oklch(0.32 0.02 270);  /* current line #44475a */
-  --color-neutral-600: oklch(0.40 0.04 268);
-  --color-neutral-500: oklch(0.48 0.05 265);  /* comment      #6272a4 */
-  --color-neutral-400: oklch(0.60 0.04 268);
-  --color-neutral-300: oklch(0.72 0.02 270);
-  --color-neutral-200: oklch(0.85 0.01 270);
-  --color-neutral-100: oklch(0.93 0.003 90);
-  --color-neutral-50:  oklch(0.97 0.003 90);  /* Dracula fg   #f8f8f2 */
-
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
-/* ── Dracula palette → shadcn CSS variable slots ─────────────────── */
+/* ── shadcn default dark-neutral theme ───────────────────────────── */
 :root {
-  --background:           oklch(0.21 0.02 270);   /* #282a36 */
-  --foreground:           oklch(0.97 0.003 90);   /* #f8f8f2 */
-  --card:                 oklch(0.26 0.02 270);
-  --card-foreground:      oklch(0.97 0.003 90);
-  --popover:              oklch(0.21 0.02 270);
-  --popover-foreground:   oklch(0.97 0.003 90);
-  --primary:              oklch(0.72 0.17 295);   /* #bd93f9 purple */
-  --primary-foreground:   oklch(0.21 0.02 270);
-  --secondary:            oklch(0.32 0.02 270);   /* #44475a current line */
-  --secondary-foreground: oklch(0.97 0.003 90);
-  --muted:                oklch(0.32 0.02 270);
-  --muted-foreground:     oklch(0.48 0.05 265);   /* #6272a4 comment */
-  --accent:               oklch(0.72 0.22 330);   /* #ff79c6 pink */
-  --accent-foreground:    oklch(0.21 0.02 270);
-  --destructive:          oklch(0.66 0.22 25);    /* #ff5555 red */
-  --border:               oklch(0.32 0.02 270);   /* #44475a */
-  --input:                oklch(0.32 0.02 270);
-  --ring:                 oklch(0.72 0.17 295);   /* purple focus ring */
+  --background:           oklch(0.145 0 0);
+  --foreground:           oklch(0.985 0 0);
+  --card:                 oklch(0.205 0 0);
+  --card-foreground:      oklch(0.985 0 0);
+  --popover:              oklch(0.205 0 0);
+  --popover-foreground:   oklch(0.985 0 0);
+  --primary:              oklch(0.985 0 0);
+  --primary-foreground:   oklch(0.205 0 0);
+  --secondary:            oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted:                oklch(0.269 0 0);
+  --muted-foreground:     oklch(0.708 0 0);
+  --accent:               oklch(0.269 0 0);
+  --accent-foreground:    oklch(0.985 0 0);
+  --destructive:          oklch(0.704 0.191 22.216);
+  --border:               oklch(1 0 0 / 10%);
+  --input:                oklch(1 0 0 / 15%);
+  --ring:                 oklch(0.556 0 0);
   --radius:               0.5rem;
 }
 
