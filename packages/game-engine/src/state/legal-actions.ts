@@ -6,7 +6,7 @@
 // This module never mutates state. It encodes the same guards each
 // action handler enforces, hoisted into a single struct.
 
-import type { ActionAbility, PowerActionAbility } from '../abilities/types.js';
+import type { ActionAbility, PlayCondition, PowerActionAbility } from '../abilities/types.js';
 import type { DieSymbol, GameState, PlayerState } from './types.js';
 
 export interface LegalActions {
@@ -94,6 +94,88 @@ function costsCanBeMet(
     if (cost.kind === 'spendResources' && player.resources < cost.amount) return false;
   }
   return true;
+}
+
+/**
+ * Returns true if the given play condition is currently satisfied for `playerId`.
+ *
+ * Per the rules: "spot" checks the player's own characters/cards in play. A player
+ * cannot spot an opponent's characters unless the card explicitly says so.
+ */
+export function playConditionMet(
+  state: GameState,
+  playerId: string,
+  condition: PlayCondition,
+): boolean {
+  const player = state.players[playerId];
+  if (!player) return false;
+
+  switch (condition.kind) {
+    case 'controlsBattlefield':
+      return state.battlefieldControllerId === playerId;
+
+    case 'spotCharacter': {
+      const needed = condition.count ?? 1;
+      let found = 0;
+      for (const charId of player.characterOrder) {
+        const char = player.characters[charId];
+        if (!char) continue;
+        if (condition.color !== undefined) {
+          const meta = state.cardMeta[charId];
+          if (!meta || meta.color !== condition.color) continue;
+        }
+        if (condition.unique !== undefined) {
+          const meta = state.cardMeta[charId];
+          if (!meta || meta.isUnique !== condition.unique) continue;
+        }
+        found++;
+        if (found >= needed) return true;
+      }
+      return false;
+    }
+
+    case 'spotCard': {
+      for (const charId of player.characterOrder) {
+        const char = player.characters[charId];
+        if (char && char.cardId === condition.cardId) return true;
+      }
+      for (const supportId of player.supportOrder) {
+        const support = player.supports[supportId];
+        if (support && support.cardId === condition.cardId) return true;
+      }
+      return false;
+    }
+
+    case 'moreReadyCharacters': {
+      const myReady = player.characterOrder.filter(
+        (id) => !player.characters[id]?.exhausted,
+      ).length;
+      const oppId = state.playerOrder.find((id) => id !== playerId);
+      const opp = oppId ? state.players[oppId] : undefined;
+      const oppReady = opp
+        ? opp.characterOrder.filter((id) => !opp.characters[id]?.exhausted).length
+        : 0;
+      return myReady > oppReady;
+    }
+
+    case 'firstActionOfRound':
+      return (state.actionsThisRound[playerId] ?? 0) === 0;
+
+    case 'opponentHasNoCards': {
+      const oppId = state.playerOrder.find((id) => id !== playerId);
+      const opp = oppId ? state.players[oppId] : undefined;
+      return !opp || opp.hand.length === 0;
+    }
+
+    case 'haveNCharactersInPlay':
+      return player.characterOrder.length >= condition.count;
+
+    case 'opponentHasNCharacters': {
+      const oppId = state.playerOrder.find((id) => id !== playerId);
+      const opp = oppId ? state.players[oppId] : undefined;
+      return (opp?.characterOrder.length ?? 0) >= condition.count;
+    }
+  }
 }
 
 const RESOLVABLE_SYMBOLS_V1: readonly DieSymbol[] = [
@@ -192,7 +274,11 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     for (const charId of player.characterOrder) {
       const abilities = state.cardAbilities[charId] ?? [];
       for (const ability of abilities) {
-        if (ability.kind === 'action' && costsCanBeMet(ability, player, charId)) {
+        if (
+          ability.kind === 'action' &&
+          costsCanBeMet(ability, player, charId) &&
+          (!ability.playCondition || playConditionMet(state, playerId, ability.playCondition))
+        ) {
           actionable.push(charId);
           break;
         }
@@ -200,7 +286,11 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
       const char = player.characters[charId];
       if (char && !char.powerActionUsedThisRound) {
         for (const ability of abilities) {
-          if (ability.kind === 'powerAction' && costsCanBeMet(ability, player, charId)) {
+          if (
+            ability.kind === 'powerAction' &&
+            costsCanBeMet(ability, player, charId) &&
+            (!ability.playCondition || playConditionMet(state, playerId, ability.playCondition))
+          ) {
             powerActionable.push(charId);
             break;
           }

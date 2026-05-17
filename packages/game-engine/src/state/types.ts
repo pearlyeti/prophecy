@@ -334,4 +334,10 @@ export interface GameState {
    * criteria checks (owner-type/color/subtype criteria won't match them).
    */
   readonly cardMeta: Readonly<Record<string, CardMeta>>;
+  /**
+   * Count of non-pass actions each player has taken this round. Reset to {}
+   * at the start of each round by runUpkeepAndStartRound. Used by the
+   * `firstActionOfRound` play condition.
+   */
+  readonly actionsThisRound: Readonly<Record<string, number>>;
 }

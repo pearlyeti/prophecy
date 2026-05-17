@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { getLegalActions } from '../state/legal-actions.js';
+import { getLegalActions, playConditionMet } from '../state/legal-actions.js';
 import { applyAction } from '../reducers/apply-action.js';
 import { newGame, newGameInActionPhase } from '../state/new-game.js';
+import type { Ability, PlayCondition } from '../abilities/types.js';
+import type { GameState } from '../state/types.js';
 import { basicGameInput } from './fixtures.js';
 
 describe('getLegalActions', () => {
@@ -166,5 +168,186 @@ describe('getLegalActions', () => {
       expect(actions.resolvableSymbols).toEqual([]);
       expect(actions.canPlayCard).toBe(false);
     });
+  });
+
+  describe('play condition gating on actionableCardIds', () => {
+    function withActionAbility(state: GameState, condition: PlayCondition): GameState {
+      const charId = state.players[state.activePlayerId!]!.characterOrder[0]!;
+      const ability: Ability = {
+        kind: 'action',
+        costs: [],
+        playCondition: condition,
+        steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }],
+      };
+      return { ...state, cardAbilities: { ...state.cardAbilities, [charId]: [ability] } };
+    }
+
+    it('excludes character from actionableCardIds when play condition is unmet', () => {
+      const base = newGameInActionPhase(basicGameInput({ seed: 'la-pc-1' }));
+      const active = base.activePlayerId!;
+      const opp = base.playerOrder.find((id) => id !== active)!;
+      // controlsBattlefield fails when not the controller
+      const state = withActionAbility(
+        { ...base, battlefieldControllerId: opp },
+        { kind: 'controlsBattlefield' },
+      );
+      expect(getLegalActions(state, active).actionableCardIds).toHaveLength(0);
+    });
+
+    it('includes character in actionableCardIds when play condition is met', () => {
+      const base = newGameInActionPhase(basicGameInput({ seed: 'la-pc-2' }));
+      const active = base.activePlayerId!;
+      const state = withActionAbility(
+        { ...base, battlefieldControllerId: active },
+        { kind: 'controlsBattlefield' },
+      );
+      expect(getLegalActions(state, active).actionableCardIds).toHaveLength(1);
+    });
+  });
+});
+
+// ── playConditionMet unit tests ───────────────────────────────────────────────
+
+describe('playConditionMet', () => {
+  function baseState() {
+    return newGameInActionPhase(basicGameInput({ seed: 'pc-unit' }));
+  }
+
+  function check(state: GameState, condition: PlayCondition): boolean {
+    return playConditionMet(state, state.activePlayerId!, condition);
+  }
+
+  it('controlsBattlefield: true when player is the battlefield controller', () => {
+    const state = baseState();
+    const active = state.activePlayerId!;
+    const controlled = { ...state, battlefieldControllerId: active };
+    expect(check(controlled, { kind: 'controlsBattlefield' })).toBe(true);
+  });
+
+  it('controlsBattlefield: false when opponent controls the battlefield', () => {
+    const state = baseState();
+    const active = state.activePlayerId!;
+    const opp = state.playerOrder.find((id) => id !== active)!;
+    const oppControlled = { ...state, battlefieldControllerId: opp };
+    expect(check(oppControlled, { kind: 'controlsBattlefield' })).toBe(false);
+  });
+
+  it('spotCharacter: true when player has a matching character (no filter)', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'spotCharacter' })).toBe(true);
+  });
+
+  it('spotCharacter: false when count exceeds characters in play', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'spotCharacter', count: 99 })).toBe(false);
+  });
+
+  it('spotCharacter: true when color filter matches via cardMeta', () => {
+    const state = baseState();
+    const active = state.activePlayerId!;
+    const charId = state.players[active]!.characterOrder[0]!;
+    const withMeta = {
+      ...state,
+      cardMeta: { ...state.cardMeta, [charId]: { type: 'character' as const, color: 'red' as const, subtypes: [], isUnique: false } },
+    };
+    expect(playConditionMet(withMeta, active, { kind: 'spotCharacter', color: 'red' })).toBe(true);
+  });
+
+  it('spotCharacter: false when color filter does not match', () => {
+    const state = baseState();
+    const active = state.activePlayerId!;
+    const charId = state.players[active]!.characterOrder[0]!;
+    const withMeta = {
+      ...state,
+      cardMeta: { ...state.cardMeta, [charId]: { type: 'character' as const, color: 'red' as const, subtypes: [], isUnique: false } },
+    };
+    expect(playConditionMet(withMeta, active, { kind: 'spotCharacter', color: 'blue' })).toBe(false);
+  });
+
+  it('spotCard: true when player has a character with that catalog card ID', () => {
+    const state = baseState();
+    // basicGameInput uses cardId 'CHAR_TEST_001' for all characters
+    expect(check(state, { kind: 'spotCard', cardId: 'CHAR_TEST_001' })).toBe(true);
+  });
+
+  it('spotCard: false when player has no character with that catalog card ID', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'spotCard', cardId: 'NONEXISTENT_CARD' })).toBe(false);
+  });
+
+  it('moreReadyCharacters: true when active player has more ready characters than opponent', () => {
+    const state = baseState();
+    const active = state.activePlayerId!;
+    const opp = state.playerOrder.find((id) => id !== active)!;
+    const oppCharId = state.players[opp]!.characterOrder[0]!;
+    // Exhaust the opponent's character so the active player has more ready.
+    const oppChar = state.players[opp]!.characters[oppCharId]!;
+    const withExhausted = {
+      ...state,
+      players: {
+        ...state.players,
+        [opp]: {
+          ...state.players[opp]!,
+          characters: { ...state.players[opp]!.characters, [oppCharId]: { ...oppChar, exhausted: true } },
+        },
+      },
+    };
+    expect(check(withExhausted, { kind: 'moreReadyCharacters' })).toBe(true);
+  });
+
+  it('moreReadyCharacters: false when counts are equal', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'moreReadyCharacters' })).toBe(false);
+  });
+
+  it('firstActionOfRound: true when player has not yet acted this round', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'firstActionOfRound' })).toBe(true);
+  });
+
+  it('firstActionOfRound: false after the player has taken an action', () => {
+    const state = baseState();
+    const active = state.activePlayerId!;
+    const withAction = {
+      ...state,
+      actionsThisRound: { [active]: 1 },
+    };
+    expect(check(withAction, { kind: 'firstActionOfRound' })).toBe(false);
+  });
+
+  it('opponentHasNoCards: true when opponent has no cards in hand', () => {
+    const state = baseState();
+    const active = state.activePlayerId!;
+    const opp = state.playerOrder.find((id) => id !== active)!;
+    const withEmptyHand = {
+      ...state,
+      players: { ...state.players, [opp]: { ...state.players[opp]!, hand: [] } },
+    };
+    expect(check(withEmptyHand, { kind: 'opponentHasNoCards' })).toBe(true);
+  });
+
+  it('opponentHasNoCards: false when opponent has cards in hand', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'opponentHasNoCards' })).toBe(false);
+  });
+
+  it('haveNCharactersInPlay: true when player has enough characters', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'haveNCharactersInPlay', count: 1 })).toBe(true);
+  });
+
+  it('haveNCharactersInPlay: false when player does not have enough characters', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'haveNCharactersInPlay', count: 5 })).toBe(false);
+  });
+
+  it('opponentHasNCharacters: true when opponent has enough characters', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'opponentHasNCharacters', count: 1 })).toBe(true);
+  });
+
+  it('opponentHasNCharacters: false when opponent does not have enough characters', () => {
+    const state = baseState();
+    expect(check(state, { kind: 'opponentHasNCharacters', count: 5 })).toBe(false);
   });
 });

@@ -226,4 +226,84 @@ describe('applyAction({ type: "use-card-action" })', () => {
       }),
     ).toThrow(/not enough resources/);
   });
+
+  it('throws with playCondition reason when condition is not met', () => {
+    const initial = setup();
+    const active = initial.activePlayerId!;
+    const opp = initial.playerOrder.find((id) => id !== active)!;
+    // controlsBattlefield fails when opponent controls
+    const state = withCharAbilities(
+      { ...initial, battlefieldControllerId: opp },
+      [
+        {
+          kind: 'action' as const,
+          costs: [],
+          playCondition: { kind: 'controlsBattlefield' as const },
+          steps: [],
+        },
+      ],
+    );
+    const charId = activeCharId(state);
+    expect(() =>
+      applyAction(state, {
+        type: 'use-card-action',
+        playerId: active,
+        cardId: charId,
+        abilityIndex: 0,
+      }),
+    ).toThrow(/playCondition/);
+  });
+
+  it('succeeds when play condition is met', () => {
+    const initial = setup();
+    const active = initial.activePlayerId!;
+    // controlsBattlefield passes when player is the controller
+    const state = withCharAbilities(
+      { ...initial, battlefieldControllerId: active },
+      [
+        {
+          kind: 'action' as const,
+          costs: [],
+          playCondition: { kind: 'controlsBattlefield' as const },
+          steps: [{ effects: [{ op: 'gainResources' as const, amount: 1 }] }],
+        },
+      ],
+    );
+    const charId = activeCharId(state);
+    const resourcesBefore = state.players[active]!.resources;
+    const { state: after } = applyAction(state, {
+      type: 'use-card-action',
+      playerId: active,
+      cardId: charId,
+      abilityIndex: 0,
+    });
+    expect(after.players[active]!.resources).toBe(resourcesBefore + 1);
+  });
+
+  it('firstActionOfRound condition: false after the player already acted this round', () => {
+    const initial = setup();
+    const active = initial.activePlayerId!;
+    const state = withCharAbilities(initial, [
+      {
+        kind: 'action' as const,
+        costs: [],
+        playCondition: { kind: 'firstActionOfRound' as const },
+        steps: [],
+      },
+    ]);
+    const charId = activeCharId(state);
+    // Mark player as having already taken an action this round.
+    const stateWithPriorAction: GameState = {
+      ...state,
+      actionsThisRound: { [active]: 1 },
+    };
+    expect(() =>
+      applyAction(stateWithPriorAction, {
+        type: 'use-card-action',
+        playerId: active,
+        cardId: charId,
+        abilityIndex: 0,
+      }),
+    ).toThrow(/playCondition/);
+  });
 });

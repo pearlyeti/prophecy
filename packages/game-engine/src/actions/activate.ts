@@ -3,6 +3,7 @@ import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
 import { createRng } from '../rng/seeded-rng.js';
+import { playConditionMet } from '../state/legal-actions.js';
 import { endTurn, grantExtraTurn } from '../state/turn.js';
 import { guardCanAct, runUpkeepAndStartRound } from './pass.js';
 import type { ApplyResult } from './pass.js';
@@ -86,6 +87,12 @@ export function performCharacterActivation(
     a.sourceCardInstanceId.localeCompare(b.sourceCardInstanceId),
   );
   for (const candidate of sorted) {
+    if (
+      candidate.ability.playCondition &&
+      !playConditionMet(working, candidate.playerId, candidate.ability.playCondition)
+    ) {
+      continue;
+    }
     const ctx = {
       playerId: candidate.playerId,
       characterTargets: [],
@@ -135,6 +142,10 @@ export function performCharacterActivation(
     ...working,
     players: { ...working.players, [playerId]: updatedPlayer },
     consecutivePasses: 0,
+    actionsThisRound: {
+      ...working.actionsThisRound,
+      [playerId]: (working.actionsThisRound[playerId] ?? 0) + 1,
+    },
   };
 
   // ── After triggers ───────────────────────────────────────────────
@@ -223,6 +234,10 @@ function applyActivateSupport(
     ...state,
     players: { ...state.players, [playerId]: updatedPlayer },
     consecutivePasses: 0,
+    actionsThisRound: {
+      ...state.actionsThisRound,
+      [playerId]: (state.actionsThisRound[playerId] ?? 0) + 1,
+    },
   };
 
   const afterCandidates = collectAfterTriggers(stateAfterActivate, [activateEvent]);

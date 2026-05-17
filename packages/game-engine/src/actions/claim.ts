@@ -40,6 +40,10 @@ export function applyClaim(state: GameState, playerId: string): ApplyResult {
     battlefieldControllerId: playerId,
     playerWhoClaimedThisRound: playerId,
     consecutivePasses: 0,
+    actionsThisRound: {
+      ...state.actionsThisRound,
+      [playerId]: (state.actionsThisRound[playerId] ?? 0) + 1,
+    },
   };
 
   // Fire any claim abilities on the claimer's battlefield card.

@@ -160,6 +160,7 @@ export function runUpkeepAndStartRound(
           winnerId,
           consecutivePasses: 0,
           playerWhoClaimedThisRound: null,
+          actionsThisRound: {},
           turnIndex: state.turnIndex + 1,
         },
         events,
@@ -187,6 +188,7 @@ export function runUpkeepAndStartRound(
       roundNumber: nextRound,
       consecutivePasses: 0,
       playerWhoClaimedThisRound: null,
+      actionsThisRound: {},
       turnIndex: state.turnIndex + 1,
       // New round → new turn for the first player; fresh Ambush budget.
       ambushGrantedThisTurn: false,

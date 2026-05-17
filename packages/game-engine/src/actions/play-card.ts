@@ -3,6 +3,7 @@ import type { CatalogDieEntry } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, commitTriggers } from '../queue/scan.js';
+import { playConditionMet } from '../state/legal-actions.js';
 import { endTurn } from '../state/turn.js';
 import type { CardDie, GameState, PlayerState, SupportState } from '../state/types.js';
 import { IllegalActionError } from './illegal.js';
@@ -90,11 +91,18 @@ export function applyPlayCard(
       ...state,
       players: { ...state.players, [playerId]: updatedPlayerWithSupport },
       consecutivePasses: 0,
+      actionsThisRound: {
+        ...state.actionsThisRound,
+        [playerId]: (state.actionsThisRound[playerId] ?? 0) + 1,
+      },
     };
 
     const ctx = { playerId, characterTargets, sourceCharacterId: cardId, ...(catalog !== undefined ? { catalog } : {}) };
     for (const ability of immediateAbilities) {
       if (ability.kind !== 'immediate') continue;
+      if (ability.playCondition && !playConditionMet(working, playerId, ability.playCondition)) {
+        continue;
+      }
       const result = applySteps(working, ctx, ability.steps);
       working = result.state;
       events.push(...result.events);
@@ -134,6 +142,10 @@ export function applyPlayCard(
     ...state,
     players: { ...state.players, [playerId]: updatedPlayer },
     consecutivePasses: 0,
+    actionsThisRound: {
+      ...state.actionsThisRound,
+      [playerId]: (state.actionsThisRound[playerId] ?? 0) + 1,
+    },
   };
 
   // Run immediate abilities in order.
@@ -145,6 +157,9 @@ export function applyPlayCard(
   };
   for (const ability of immediateAbilities) {
     if (ability.kind !== 'immediate') continue;
+    if (ability.playCondition && !playConditionMet(working, playerId, ability.playCondition)) {
+      continue;
+    }
     const result = applySteps(working, ctx, ability.steps);
     working = result.state;
     events.push(...result.events);

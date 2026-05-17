@@ -2,6 +2,7 @@ import { applySteps, NotImplementedError, type DispatchContext } from '../abilit
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, commitTriggers } from '../queue/scan.js';
+import { playConditionMet } from '../state/legal-actions.js';
 import { endTurn } from '../state/turn.js';
 import type { GameState } from '../state/types.js';
 import { IllegalActionError } from './illegal.js';
@@ -57,6 +58,13 @@ export function applyUseCardAction(
     );
   }
 
+  // ── Play condition gate ───────────────────────────────────────────────
+  if (ability.playCondition && !playConditionMet(state, playerId, ability.playCondition)) {
+    throw new IllegalActionError(
+      `playCondition '${ability.playCondition.kind}' not met for ability ${abilityIndex} on card ${cardId}`,
+    );
+  }
+
   // ── Pay costs ────────────────────────────────────────────────────────
   let working: GameState = state;
   const allEvents: EngineEvent[] = [];
@@ -101,6 +109,15 @@ export function applyUseCardAction(
         throw new NotImplementedError(`action cost "${cost.kind}"`);
     }
   }
+
+  // ── Record action taken this round ───────────────────────────────────
+  working = {
+    ...working,
+    actionsThisRound: {
+      ...working.actionsThisRound,
+      [playerId]: (working.actionsThisRound[playerId] ?? 0) + 1,
+    },
+  };
 
   // ── Fire effects ─────────────────────────────────────────────────────
   const ctx: DispatchContext = {

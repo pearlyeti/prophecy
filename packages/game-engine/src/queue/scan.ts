@@ -7,6 +7,7 @@
 
 import type { TriggeredAbility } from '../abilities/types.js';
 import type { EngineEvent } from '../events.js';
+import { playConditionMet } from '../state/legal-actions.js';
 import type { GameState } from '../state/types.js';
 import {
   emptyQueue,
@@ -47,6 +48,7 @@ export function collectAfterTriggers(
         // even if multiple matching events were emitted.
         for (const event of events) {
           if (!matchesAfterTrigger(ability, event, playerId, charId, state)) continue;
+          if (ability.playCondition && !playConditionMet(state, playerId, ability.playCondition)) continue;
 
           results.push({
             playerId,
@@ -184,6 +186,7 @@ export function collectBeforeTriggers(
         if (ability.kind !== 'triggered') continue;
         if (ability.triggerEvent.kind !== triggerKind) continue;
         if (!matchesBeforeContext(ability.triggerEvent.kind, context, playerId, charId, state)) continue;
+        if (ability.playCondition && !playConditionMet(state, playerId, ability.playCondition)) continue;
 
         results.push({ playerId, sourceCardInstanceId: charId, ability });
       }
