@@ -2409,7 +2409,7 @@ function OpponentZone({
           activatableSupportIds={[]}
           actionableIds={[]}
           powerActionableIds={[]}
-          previewCardActionId={previewFlow?.kind === 'cardAction' ? previewFlow.cardId : undefined}
+          {...(previewFlow?.kind === 'cardAction' ? { previewCardActionId: previewFlow.cardId } : {})}
         />
       )}
       {oppPlayer && rows.map((rowIds, i) => (
