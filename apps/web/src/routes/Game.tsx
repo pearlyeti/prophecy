@@ -1964,6 +1964,9 @@ function AvatarBar({
 
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
+  const opponentPreview = useApp((s) => s.opponentPreview);
+  const opponentIsClaiming = opponentPreview?.kind === 'claim';
+  const opponentIsRerolling = opponentPreview?.kind === 'reroll';
   // Battlefield card — battlefieldCardId is a catalog ID, look up directly
   const controllerId = game.battlefieldControllerId;
   const controllerIsMe = controllerId === playerId;
@@ -2005,7 +2008,9 @@ function AvatarBar({
           className={`flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-colors ${
             canClaim || isClaiming
               ? 'ring-1 ring-emerald-500/60 border border-emerald-600'
-              : 'border border-transparent'
+              : opponentIsClaiming
+                ? 'ring-1 ring-amber-500/60 border border-amber-600 animate-pulse'
+                : 'border border-transparent'
           }`}
         >
           <span className={`text-[8px] ${controllerIsMe ? 'text-emerald-400' : 'text-neutral-500'}`}>
@@ -2041,6 +2046,9 @@ function AvatarBar({
           <span className="mx-1 text-neutral-700">·</span>
           🂠 {oppPlayer?.deck.length ?? 0}
         </span>
+        {opponentIsRerolling && (
+          <span className="text-[10px] text-amber-400">rerolling…</span>
+        )}
       </div>
     </div>
   );
@@ -2151,6 +2159,8 @@ function BattlefieldRow({
         let previewSelectedDieIds: readonly string[] = [];
         let previewSpentDieIds: readonly string[] = [];
         let previewRerollDieIds: readonly string[] = [];
+        const opponentFaceOverrides: Record<string, { faceIndex: number; face: import('@prophecy/game-engine').DieFace }> = {};
+        let previewCardAction = false;
         if (previewFlow) {
           if (previewFlow.kind === 'activate' && side === 'opponent') {
             previewActivate = previewFlow.charId === cid;
@@ -2161,6 +2171,23 @@ function BattlefieldRow({
           }
           if (previewFlow.kind === 'reroll' && previewFlow.step === 'pick-dice' && side === 'opponent') {
             previewRerollDieIds = previewFlow.selectedDieIds;
+          }
+          if (previewFlow.kind === 'face-pick' && side === 'opponent') {
+            for (const event of previewFlow.history) {
+              if (event.kind !== 'flip') continue;
+              const poolDie = dice.find((d) => d.instanceId === event.targetDieId);
+              if (!poolDie?.ownerInstanceId) continue;
+              const ownerChar = (playerState as any).characters?.[poolDie.ownerInstanceId];
+              const dieSpec = ownerChar?.dice?.find((d: any) => d.instanceId === event.targetDieId);
+              if (!dieSpec) continue;
+              opponentFaceOverrides[event.targetDieId] = { faceIndex: event.faceIndex, face: dieSpec.faces[event.faceIndex] };
+            }
+            if (previewFlow.pickingForDieId && dice.some(d => d.instanceId === previewFlow.pickingForDieId)) {
+              previewRerollDieIds = [previewFlow.pickingForDieId];
+            }
+          }
+          if (previewFlow.kind === 'cardAction' && side === 'opponent' && previewFlow.cardId === cid) {
+            previewCardAction = true;
           }
           // Show pending counter badge from opponent's committed resolve groups targeting this char.
           if (!pendingCounter && previewFlow.kind === 'resolve') {
@@ -2271,8 +2298,9 @@ function BattlefieldRow({
               hp={hp}
               shields={char.shields}
               eligible={eligible}
-              pendingExhaust={isActivating}
+              pendingExhaust={isActivating || previewActivate}
               previewActivate={previewActivate}
+              previewCardAction={previewCardAction}
               charSide={side}
               {...(targetRing ? { targetRing } : {})}
               {...(dragRing ? { dragRing } : {})}
@@ -2302,6 +2330,7 @@ function BattlefieldRow({
                   previewSelectedDieIds={previewSelectedDieIds}
                   previewSpentDieIds={previewSpentDieIds}
                   previewRerollDieIds={previewRerollDieIds}
+                  {...(Object.keys(opponentFaceOverrides).length > 0 ? { faceOverrides: opponentFaceOverrides } : {})}
                 />
               </Suspense>
             )}
@@ -2380,6 +2409,7 @@ function OpponentZone({
           activatableSupportIds={[]}
           actionableIds={[]}
           powerActionableIds={[]}
+          previewCardActionId={previewFlow?.kind === 'cardAction' ? previewFlow.cardId : undefined}
         />
       )}
       {oppPlayer && rows.map((rowIds, i) => (
@@ -2862,6 +2892,7 @@ function CharacterCard({
   eligible = false,
   pendingExhaust = false,
   previewActivate = false,
+  previewCardAction = false,
   charSide,
   targetRing,
   dragRing,
@@ -2882,6 +2913,8 @@ function CharacterCard({
   pendingExhaust?: boolean;
   /** Faint ring shown when opponent's preview shows they are activating this character. */
   previewActivate?: boolean;
+  /** Amber ring shown when opponent's preview shows they are using a card action on this character. */
+  previewCardAction?: boolean;
   /** Zone side — used as data attribute for drag-target hit testing. */
   charSide?: 'player' | 'opponent';
   /** 'damage' = red ring (opponent damage target), 'shield' = blue ring (shield target). */
@@ -2928,7 +2961,9 @@ function CharacterCard({
                         ? 'border-emerald-500 ring-2 ring-emerald-500/60'
                         : previewActivate
                           ? 'border-sky-500/50 ring-1 ring-sky-500/30'
-                          : char.exhausted
+                          : previewCardAction
+                            ? 'border-amber-500/50 ring-1 ring-amber-500/30'
+                            : char.exhausted
                             ? 'border-neutral-600 opacity-70'
                             : pendingExhaust
                               ? 'border-emerald-600'
@@ -3058,6 +3093,7 @@ function SupportCard({
   catalogById,
   eligible = false,
   activating = false,
+  previewCardAction = false,
   abilityBadges,
   onAbilityBadgeTap,
   onTap,
@@ -3067,6 +3103,8 @@ function SupportCard({
   catalogById: Map<string, Card>;
   eligible?: boolean;
   activating?: boolean;
+  /** Amber ring shown when opponent's preview shows they are using a card action on this support. */
+  previewCardAction?: boolean;
   abilityBadges: Array<{ abilityIndex: number; kind: 'action' | 'powerAction'; eligible: boolean }>;
   onAbilityBadgeTap?: (abilityIndex: number, abilityKind: 'action' | 'powerAction') => void;
   onTap: () => void;
@@ -3082,11 +3120,13 @@ function SupportCard({
         className={`absolute inset-0 overflow-hidden rounded-xl border text-left transition-transform ${
           eligible
             ? 'border-emerald-500 ring-2 ring-emerald-500/60'
-            : support.exhausted
-              ? 'border-neutral-600 opacity-70'
-              : activating
-                ? 'border-emerald-600'
-                : 'border-neutral-700'
+            : previewCardAction
+              ? 'border-amber-500/50 ring-1 ring-amber-500/30'
+              : support.exhausted
+                ? 'border-neutral-600 opacity-70'
+                : activating
+                  ? 'border-emerald-600'
+                  : 'border-neutral-700'
         }`}
         style={{
           transform: (support.exhausted || activating) ? 'rotate(6deg)' : 'none',
@@ -3158,6 +3198,7 @@ function SupportStrip({
   activatableSupportIds,
   actionableIds,
   powerActionableIds,
+  previewCardActionId,
 }: {
   supportOrder: readonly string[];
   playerState: { supports: Record<string, SupportState> };
@@ -3171,6 +3212,8 @@ function SupportStrip({
   activatableSupportIds: readonly string[];
   actionableIds: readonly string[];
   powerActionableIds: readonly string[];
+  /** Highlights the support whose card action the opponent is previewing. */
+  previewCardActionId?: string;
 }) {
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
@@ -3226,6 +3269,7 @@ function SupportStrip({
               catalogById={catalogById}
               eligible={eligible}
               activating={isActivating}
+              previewCardAction={previewCardActionId === sid}
               abilityBadges={abilityBadges}
               onAbilityBadgeTap={handleAbilityBadgeTap}
               onTap={handleTap}
