@@ -132,6 +132,7 @@ function fittedSize(
 
 function makeFaceTextureTuned(
   symbol: string, value: number, modifier: boolean, baseColor: string, textColor: string, p: TextureParams,
+  canvasRotDeg: number,
 ): THREE.CanvasTexture {
   const S = 512;
   const c = document.createElement('canvas');
@@ -145,6 +146,13 @@ function makeFaceTextureTuned(
   grad.addColorStop(1, 'rgba(0,0,0,0.08)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, S, S);
+
+  if (canvasRotDeg !== 0) {
+    ctx.save();
+    ctx.translate(S / 2, S / 2);
+    ctx.rotate((canvasRotDeg * Math.PI) / 180);
+    ctx.translate(-S / 2, -S / 2);
+  }
 
   ctx.fillStyle = textColor;
   ctx.textAlign = 'center';
@@ -182,6 +190,8 @@ function makeFaceTextureTuned(
     }
   }
 
+  if (canvasRotDeg !== 0) ctx.restore();
+
   const texture = new THREE.CanvasTexture(c);
   texture.anisotropy = 4;
   return texture;
@@ -200,9 +210,9 @@ type Settings = {
   oAxis: 'X' | 'Y' | 'Z';
   oAngleDeg: number;
   // Per-face fine-tune
-  faceSpinDeg:  [number, number, number, number, number, number]; // top-axis in-plane rotation
-  faceOffsetX:  [number, number, number, number, number, number]; // texture U offset (-0.5..0.5)
-  faceOffsetY:  [number, number, number, number, number, number]; // texture V offset
+  faceSpinDeg:  [number, number, number, number, number, number]; // canvas pre-rotation baked into texture (matches production CANVAS_ROT_DEG)
+  faceOffsetX:  [number, number, number, number, number, number]; // texture U offset (-0.5..0.5) — debug only, not used in production
+  faceOffsetY:  [number, number, number, number, number, number]; // texture V offset — debug only
   faceMirrorX:  [boolean, boolean, boolean, boolean, boolean, boolean];
   faceMirrorY:  [boolean, boolean, boolean, boolean, boolean, boolean];
   // Camera
@@ -221,10 +231,10 @@ const DEFAULTS: Settings = {
   lMaxFrac: 0.22,
   gapFrac: 0.04,
   maxWFrac: 0.70,
-  // Mirrors DicePool3D: _O = Ry(-π/2); no per-face UV transforms (baked into canvas)
+  // Mirrors DicePool3D: _O = Ry(-π/2); faceSpinDeg = CANVAS_ROT_DEG
   oAxis: 'Y',
   oAngleDeg: -90,
-  faceSpinDeg: [0, 0, 0, 0, 0, 0],
+  faceSpinDeg: [180, 0, 90, 90, 90, 90],
   faceOffsetX: [0, 0, 0, 0, 0, 0],
   faceOffsetY: [0, 0, 0, 0, 0, 0],
   faceMirrorX: [false, false, false, false, false, false],
@@ -263,13 +273,15 @@ function TunerDie({
   mirrorX: boolean;
   mirrorY: boolean;
 }) {
-  // Apply per-face UV transform. Each die owns its own texture, so mutating
-  // these properties is isolated. Three.js auto-rebuilds the texture matrix.
+  // Per-face spin is now baked into the canvas (texture is re-created when it
+  // changes), so we don't apply texture.rotation here. Offset/mirror remain as
+  // debug knobs but are zero in production.
   useEffect(() => {
     texture.center.set(0.5, 0.5);
     texture.offset.set(offX, offY);
     texture.repeat.set(mirrorX ? -1 : 1, mirrorY ? -1 : 1);
-    texture.rotation = (spinDeg * Math.PI) / 180;
+    texture.rotation = 0;
+    void spinDeg;
   }, [texture, spinDeg, offX, offY, mirrorX, mirrorY]);
 
   return (
@@ -366,16 +378,19 @@ function LiveTuner({ bg, text }: { bg: string; text: string }) {
     });
   }
 
-  // Textures only depend on the canvas params.
+  // Textures depend on canvas params + per-slot canvas rotation (faceSpinDeg).
+  // Each slot's spin is baked into its texture pixels — matches production.
+  const spinKey = s.faceSpinDeg.join(',');
   const textures = useMemo(() => {
     const p: TextureParams = {
       ctrFrac: s.ctrFrac, vMaxFrac: s.vMaxFrac, lMaxFrac: s.lMaxFrac,
       gapFrac: s.gapFrac, maxWFrac: s.maxWFrac,
     };
-    return TEST_FACES.map((f) =>
-      makeFaceTextureTuned(f.symbol, f.value, f.modifier, bg, text, p),
+    return TEST_FACES.map((f, slot) =>
+      makeFaceTextureTuned(f.symbol, f.value, f.modifier, bg, text, p, s.faceSpinDeg[slot]!),
     );
-  }, [s.ctrFrac, s.vMaxFrac, s.lMaxFrac, s.gapFrac, s.maxWFrac, bg, text]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.ctrFrac, s.vMaxFrac, s.lMaxFrac, s.gapFrac, s.maxWFrac, bg, text, spinKey]);
 
   useEffect(() => () => { textures.forEach((t) => t.dispose()); }, [textures]);
 
@@ -461,9 +476,8 @@ function LiveTuner({ bg, text }: { bg: string; text: string }) {
         <div>
           <h3 style={{ fontSize: 13, color: '#ccc', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Per-face tune</h3>
           <p style={{ fontSize: 11, color: '#666', marginBottom: 8, lineHeight: 1.4 }}>
-            <strong>spin</strong>: in-plane rotation around the top-axis.
-            <strong> X / Y</strong>: nudge the texture on the face (UV offset).
-            <strong> mX / mY</strong>: mirror.
+            <strong>spin</strong>: canvas pre-rotation baked into the texture (= production <code>CANVAS_ROT_DEG[slot]</code>).
+            <strong> X / Y / mX / mY</strong>: UV transform — debug only, zero in production.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[0, 1, 2, 3, 4, 5].map((i) => (
