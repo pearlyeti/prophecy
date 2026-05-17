@@ -40,7 +40,7 @@ const FACE_PLANE_OFFSET = DIE_SIZE / 2 + 0.001;
 const DEFAULT_FACE_INDEX = 2;
 
 const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
-const CAM_FOV = 40;
+const CAM_ZOOM = 50; // px / world-unit; matches previous apparent die size at centre
 
 // ── Face plane layout ────────────────────────────────────────────────────────
 //
@@ -91,22 +91,18 @@ export const FACE_CORRECT_Q: readonly THREE.Quaternion[] = [
 
 const DEFAULT_REST_Q = FACE_CORRECT_Q[DEFAULT_FACE_INDEX]!;
 
-const TAN_HALF_FOV = Math.tan((CAM_FOV * Math.PI / 180) / 2);
-const BASE_DIST    = Math.sqrt(CAM_POS[1] ** 2 + CAM_POS[2] ** 2);
-
 // Positions and aims the camera so all dice fit horizontally with a margin.
-// Pulls the camera back proportionally when the dice span is wider than the
-// frustum at the current canvas aspect ratio.
+// Zooms out when the pool is wider than the canvas at the default zoom.
 function CameraRig({ diceCount }: { diceCount: number }) {
   const { camera, size } = useThree();
   useEffect(() => {
-    const aspect   = size.width / size.height;
     const halfSpan = ((diceCount - 1) / 2) * DIE_SPACING + DIE_SIZE / 2;
     const needed   = halfSpan * 1.25; // 25% breathing room
-    const available = BASE_DIST * TAN_HALF_FOV * aspect;
-    const scale    = Math.max(1, needed / available);
-    camera.position.set(CAM_POS[0], CAM_POS[1] * scale, CAM_POS[2] * scale);
+    const zoom = Math.min(CAM_ZOOM, (size.width / 2) / needed);
+    (camera as THREE.OrthographicCamera).zoom = zoom;
+    camera.position.set(...CAM_POS);
     camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
   }, [camera, size, diceCount]);
   return null;
 }
@@ -448,7 +444,8 @@ export default function DicePool3D({
   return (
     <div style={{ width: '100%', height: CANVAS_HEIGHT_PX }}>
       <Canvas
-        camera={{ position: CAM_POS, fov: CAM_FOV, near: 0.1, far: 50 }}
+        orthographic
+        camera={{ position: CAM_POS, zoom: CAM_ZOOM, near: 0.1, far: 50 }}
         style={{ width: '100%', height: '100%' }}
         gl={{ alpha: true, antialias: true }}
         dpr={Math.min(window.devicePixelRatio, 2)}
