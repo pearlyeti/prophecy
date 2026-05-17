@@ -75,21 +75,33 @@ export async function initialize(): Promise<void> {
 
   const json = await readCatalogFromStorage();
   if (json) {
-    const parsed = cardCatalogSchema.safeParse(JSON.parse(json));
-    if (parsed.success) {
-      const storageById = new Map(parsed.data.cards.map((c) => [c.id, c]));
-      const stale = diskCards.some((dc) => {
-        const sc = storageById.get(dc.id);
-        return dc.abilities.length > 0 && (!sc || sc.abilities.length === 0);
-      });
-      if (!stale) {
-        cachedCards = parsed.data.cards;
-        console.log('[corpus] cards loaded from object storage');
-        return;
-      }
-      console.warn('[corpus] object storage cards missing abilities — reloading from disk');
+    // Check raw JSON for old-format abilities (pre-ENGINE-ST1: `effects` instead of `steps`).
+    // Zod would silently strip `effects` and default `steps` to [], losing all effect data.
+    const raw = JSON.parse(json) as { cards?: Array<Record<string, unknown>> };
+    const hasOldFormat = raw.cards?.some((c) =>
+      (c.abilities as Array<Record<string, unknown>> | undefined)?.some(
+        (ab) => 'effects' in ab && !('steps' in ab),
+      ),
+    ) ?? false;
+    if (hasOldFormat) {
+      console.warn('[corpus] object storage has pre-step-model abilities — reloading from disk');
     } else {
-      console.warn('[corpus] object storage catalog failed validation — falling back to disk');
+      const parsed = cardCatalogSchema.safeParse(raw);
+      if (parsed.success) {
+        const storageById = new Map(parsed.data.cards.map((c) => [c.id, c]));
+        const stale = diskCards.some((dc) => {
+          const sc = storageById.get(dc.id);
+          return dc.abilities.length > 0 && (!sc || sc.abilities.length === 0);
+        });
+        if (!stale) {
+          cachedCards = parsed.data.cards;
+          console.log('[corpus] cards loaded from object storage');
+          return;
+        }
+        console.warn('[corpus] object storage cards missing abilities — reloading from disk');
+      } else {
+        console.warn('[corpus] object storage catalog failed validation — falling back to disk');
+      }
     }
   }
 
