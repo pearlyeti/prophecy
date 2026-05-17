@@ -2115,6 +2115,10 @@ function BattlefieldRow({
         const dice = diceByOwner.get(cid) ?? [];
         const hp = char.health - char.damage;
 
+        // Activation flow
+        const eligible = activatableIds.includes(cid) && activeFlow === null;
+        const isActivating = activeFlow?.kind === 'activate' && activeFlow.charId === cid;
+
         // While the player has selected this character to activate but hasn't
         // clicked "Roll Dice" yet, the pool is empty. Show the character's
         // spec dice as tumbling placeholders so the animation starts immediately
@@ -2130,10 +2134,6 @@ function BattlefieldRow({
             }))
           : [];
         const displayDice = dice.length > 0 ? dice : activationPreviewDice;
-
-        // Activation flow
-        const eligible = activatableIds.includes(cid) && activeFlow === null;
-        const isActivating = activeFlow?.kind === 'activate' && activeFlow.charId === cid;
 
         // Resolve flow targeting
         const inResolveFlow = activeFlow?.kind === 'resolve';
