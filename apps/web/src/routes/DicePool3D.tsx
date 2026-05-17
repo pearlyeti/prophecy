@@ -412,13 +412,11 @@ export default function DicePool3D({
           e.kind === 'flip' && e.targetDieId === d.instanceId,
       );
       const currentFaceIndex = lastFlip ? lastFlip.faceIndex : d.faceIndex;
-      const effectiveFaceIsFocus =
-        !isFocuser &&
-        lastFlip &&
-        (d.face.symbol === 'focus' || currentFaceIndex === lastFlip.faceIndex);
+      const effectiveFace = dieInstanceFaces?.[d.instanceId]?.[currentFaceIndex] ?? d.face;
+      const effectiveFaceIsFocus = !isFocuser && effectiveFace.symbol === 'focus';
 
-      if (!isFocuser && (d.face.symbol === 'focus' || effectiveFaceIsFocus)) {
-        const budgetAdded = d.face.value;
+      if (effectiveFaceIsFocus) {
+        const budgetAdded = effectiveFace.value;
         const chainEvent: FacePickEvent = {
           kind: 'chain',
           chainedFocuserId: d.instanceId,
