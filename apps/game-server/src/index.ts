@@ -125,6 +125,8 @@ const httpServer = createServer(async (req, res) => {
   // ── Card art upload (binary PUT body, Content-Type = image/*) ────────
   const artUploadMatch = req.url?.match(/^\/designer\/card-art\/([^/]+)$/);
   if (artUploadMatch && req.method === 'PUT') {
+    const userId = await requireSession(req, res);
+    if (!userId) return;
     if (!checkDesignerAuth(req, res)) return;
     const cardId = decodeURIComponent(artUploadMatch[1]!);
     if (!/^[A-Za-z0-9_-]{1,60}$/.test(cardId)) {
@@ -181,6 +183,8 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
   if (req.url === '/designer/cards' && req.method === 'PUT') {
+    const userId = await requireSession(req, res);
+    if (!userId) return;
     if (!checkDesignerAuth(req, res)) return;
     try {
       const body = await readJsonBody(req);
@@ -200,6 +204,8 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
   if (req.url === '/designer/decks' && req.method === 'PUT') {
+    const userId = await requireSession(req, res);
+    if (!userId) return;
     if (!checkDesignerAuth(req, res)) return;
     try {
       const body = await readJsonBody(req);
@@ -219,6 +225,8 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
   if (req.url === '/designer/attributes' && req.method === 'PUT') {
+    const userId = await requireSession(req, res);
+    if (!userId) return;
     if (!checkDesignerAuth(req, res)) return;
     try {
       const body = await readJsonBody(req);
@@ -258,6 +266,8 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (req.url === '/designer/commit' && req.method === 'POST') {
+    const userId = await requireSession(req, res);
+    if (!userId) return;
     if (!checkDesignerAuth(req, res)) return;
     if (!isGitHubSyncEnabled()) {
       res.writeHead(501, { 'Content-Type': 'application/json' });
@@ -354,6 +364,8 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (req.url === '/designer/ai/parse-abilities' && req.method === 'POST') {
+    const userId = await requireSession(req, res);
+    if (!userId) return;
     if (!checkDesignerAuth(req, res)) return;
     try {
       const body = await readJsonBody(req) as Record<string, unknown>;
@@ -386,8 +398,37 @@ async function readJsonBody(req: import('node:http').IncomingMessage): Promise<u
   return text ? JSON.parse(text) : {};
 }
 
+// Verifies the session cookie against the API. Returns userId on success;
+// writes a 401 and returns null on failure.
+async function requireSession(
+  req: import('node:http').IncomingMessage,
+  res: import('node:http').ServerResponse,
+): Promise<string | null> {
+  try {
+    const resp = await fetch(`${AUTH_API_URL}/api/auth/get-session`, {
+      headers: { cookie: req.headers.cookie ?? '' },
+    });
+    if (!resp.ok) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unauthorized' }));
+      return null;
+    }
+    const data = (await resp.json()) as { user?: { id: string } } | null;
+    if (!data?.user?.id) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unauthorized' }));
+      return null;
+    }
+    return data.user.id;
+  } catch {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'unauthorized' }));
+    return null;
+  }
+}
+
 // Guards mutating designer routes. Open in dev (no DESIGNER_SECRET set).
-// AUTH-1 will replace this with proper session auth when it lands.
+// Belt-and-suspenders alongside requireSession for local dev overrides.
 function checkDesignerAuth(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse): boolean {
   const secret = process.env.DESIGNER_SECRET;
   if (!secret) return true;
