@@ -393,7 +393,7 @@ These follow directly from the rules and are written down so they're not "redisc
 ## Local Development
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 22+
 - pnpm 9+
 - Docker + Docker Compose
 
@@ -418,6 +418,10 @@ pnpm db:seed
 
 # Start all services in dev mode (hot reload)
 pnpm dev
+
+# (Optional) Run the Playwright E2E suite — requires the stack above to be up
+# Install Chromium once: cd apps/web && pnpm exec playwright install chromium
+pnpm test:e2e
 ```
 
 Services will be available at:
