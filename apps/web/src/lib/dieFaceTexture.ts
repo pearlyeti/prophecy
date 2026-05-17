@@ -97,7 +97,7 @@ export function makeFaceTexture(
   const CTR   = Math.round(S * 0.45);
   const GAP   = Math.round(S * 0.04);
   const V_MAX = Math.round(S * 0.35); // max value font size
-  const L_MAX = Math.round(S * 0.22); // max label font size
+  const L_MAX = Math.round(S * 0.15); // max label font size (tuned via /dice-preview)
   const maxW  = Math.round(S * 0.70); // max text width
 
   if (symbol === 'blank') {
