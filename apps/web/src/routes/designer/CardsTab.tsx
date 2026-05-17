@@ -533,14 +533,14 @@ export function CardsTab({
               {draft.type !== 'battlefield' && (
                 <Field label="Color">
                   <Select
-                    value={draft.color ?? ''}
-                    onValueChange={(v) => updateDraft({ color: (v || null) as Card['color'] })}
+                    value={draft.color ?? '__none__'}
+                    onValueChange={(v) => updateDraft({ color: (v === '__none__' ? null : v) as Card['color'] })}
                   >
                     <SelectTrigger className="h-9 text-sm">
                       <SelectValue placeholder="—" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">—</SelectItem>
+                      <SelectItem value="__none__">—</SelectItem>
                       {attributes.colors.map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}

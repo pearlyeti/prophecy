@@ -1098,11 +1098,11 @@ function TextField({ label: fieldLabel, value, onChange, multiline = false }: {
 function BoolField({ label, value, onChange }: {
   label: string; value: boolean | undefined; onChange: (v: boolean | undefined) => void;
 }) {
-  const strVal = value === undefined ? '' : value ? 'true' : 'false';
+  const strVal = value === undefined ? '__none__' : value ? 'true' : 'false';
   return (
     <SelectField label={label} value={strVal}
-      options={[{ value: '', label: '—' }, { value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]}
-      onChange={(v) => onChange(v === '' ? undefined : v === 'true')} />
+      options={[{ value: '__none__', label: '—' }, { value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]}
+      onChange={(v) => onChange(v === '__none__' ? undefined : v === 'true')} />
   );
 }
 

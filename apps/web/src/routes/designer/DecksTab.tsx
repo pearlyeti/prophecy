@@ -213,14 +213,14 @@ export function DecksTab({
               <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Battlefield</span>
                 <Select
-                  value={draft.battlefieldCardId ?? ''}
-                  onValueChange={(v) => updateDraft({ battlefieldCardId: v || null })}
+                  value={draft.battlefieldCardId ?? '__none__'}
+                  onValueChange={(v) => updateDraft({ battlefieldCardId: v === '__none__' ? null : v })}
                 >
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="(none)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">(none)</SelectItem>
+                    <SelectItem value="__none__">(none)</SelectItem>
                     {battlefieldOptions.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name} ({c.id})
@@ -232,14 +232,14 @@ export function DecksTab({
               <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Plot</span>
                 <Select
-                  value={draft.plotCardId ?? ''}
-                  onValueChange={(v) => updateDraft({ plotCardId: v || null })}
+                  value={draft.plotCardId ?? '__none__'}
+                  onValueChange={(v) => updateDraft({ plotCardId: v === '__none__' ? null : v })}
                 >
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="(none)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">(none)</SelectItem>
+                    <SelectItem value="__none__">(none)</SelectItem>
                     {plotOptions.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name} ({c.id})
