@@ -303,8 +303,8 @@ export default function DicePool3D({
   const activeFlow    = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
-  const dieInstanceFaces = useApp((s) => {
-    const game = s.game;
+  const game = useApp((s) => s.game);
+  const dieInstanceFaces = useMemo(() => {
     if (!game) return undefined;
     const map: Record<string, readonly DieFace[]> = {};
     for (const player of Object.values(game.players)) {
@@ -320,7 +320,7 @@ export default function DicePool3D({
       }
     }
     return map;
-  });
+  }, [game]);
 
   const inRerollPickDice = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice';
   const inRerollMode     = selectionMode?.kind === 'reroll';
