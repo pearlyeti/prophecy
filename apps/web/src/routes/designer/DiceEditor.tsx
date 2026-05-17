@@ -5,7 +5,7 @@
 // as a fixed 6-slot grid and never reorders.
 
 import { DIE_SYMBOLS, type DieFace, type DieSymbol } from '@prophecy/protocol';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -107,7 +107,7 @@ export function DiceEditor({
               </Label>
             </div>
             <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Checkbox
+              <Switch
                 checked={face.modifier}
                 disabled={face.symbol === 'modifier'}
                 onCheckedChange={(v) => updateFace(idx, { modifier: v === true })}

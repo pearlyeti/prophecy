@@ -19,7 +19,7 @@ import type {
   TriggerEvent,
 } from '@prophecy/protocol';
 import { CARD_TYPES, COLORS, DIE_SYMBOLS, KNOWN_OPS } from '@prophecy/protocol';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -246,7 +246,7 @@ function TriggeredEditor({ ability, onChange }: {
         onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
       <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Checkbox
+        <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
         />
@@ -277,7 +277,7 @@ function ActionEditor({ ability, onChange }: {
         onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
       <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Checkbox
+        <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
         />
@@ -298,7 +298,7 @@ function SpecialEditor({ ability, onChange }: {
   return (
     <div className="space-y-3">
       <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Checkbox
+        <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
         />
@@ -332,7 +332,7 @@ function ClaimEditor({ ability, onChange }: {
   return (
     <div className="space-y-3">
       <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Checkbox
+        <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
         />
@@ -485,7 +485,7 @@ function TriggerEventFields({ value, onChange }: {
     case 'afterActivateSupport':
       return (
         <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Checkbox
+          <Switch
             checked={value.ownOnly ?? true}
             onCheckedChange={(v) => onChange({ ...value, ownOnly: v === true })}
           />
@@ -629,7 +629,7 @@ function StepsList({ steps, onChange }: {
         <div key={si} className="space-y-1">
           {si > 0 && (
             <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Checkbox
+              <Switch
                 checked={step.then ?? false}
                 onCheckedChange={(v) => updateStep(si, v === true ? { ...step, then: true } : { effects: step.effects })}
               />
@@ -687,7 +687,7 @@ function StepsList({ steps, onChange }: {
                     </SelectContent>
                   </Select>
                   <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-auto">
-                    <Checkbox
+                    <Switch
                       checked={'optional' in fx ? (fx.optional ?? false) : false}
                       onCheckedChange={(v) => replaceEffect(si, ei, { ...fx, optional: v === true } as Effect)}
                     />
@@ -734,7 +734,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
             options={[{ value: 'opponent', label: 'Opponent' }, { value: 'self', label: 'Self' }]}
             onChange={(v) => onChange({ ...effect, target: v as 'opponent' | 'self' })} />
           <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Checkbox
+            <Switch
               checked={effect.amount === 'all'}
               onCheckedChange={(v) => onChange({ ...effect, amount: v === true ? 'all' : 1 })}
             />
@@ -753,7 +753,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
             options={[{ value: 'self', label: 'Self' }, { value: 'eachPlayer', label: 'Each player' }, { value: 'opponent', label: 'Opponent' }]}
             onChange={(v) => onChange({ ...effect, player: v as typeof effect.player })} />
           <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Checkbox
+            <Switch
               checked={effect.toHandSize ?? false}
               onCheckedChange={(v) => onChange({ ...effect, toHandSize: v === true, amount: v === true ? null : 1 })}
             />
@@ -783,7 +783,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               onChange={(t) => onChange({ ...effect, target: t })}
             />
             <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Checkbox
+              <Switch
                 checked={effect.unblockable ?? false}
                 onCheckedChange={(v) => onChange({ ...effect, unblockable: v === true })}
               />
@@ -818,7 +818,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               onChange={(t) => onChange({ ...effect, target: t })}
             />
             <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Checkbox
+              <Switch
                 checked={effect.amount === 'all'}
                 onCheckedChange={(v) => onChange({ ...effect, amount: v === true ? 'all' : 1 })}
               />

@@ -1,6 +1,6 @@
 import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
 import { useEffect, useMemo, useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { CommitSelection, PendingChanges } from './api.js';
@@ -254,8 +254,8 @@ export function ChangesTab({
             {/* Select all */}
             <div className="flex items-center gap-3">
               <Label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox
-                  checked={selectAllIndeterminate ? 'indeterminate' : selected.size === allKeys.length && allKeys.length > 0}
+                <Switch
+                  checked={!selectAllIndeterminate && selected.size === allKeys.length && allKeys.length > 0}
                   onCheckedChange={toggleAll}
                 />
                 {selected.size === allKeys.length ? 'Deselect all' : 'Select all'}
@@ -543,7 +543,7 @@ function ChangeItem({
   return (
     <li>
       <Label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700">
-        <Checkbox checked={checked} onCheckedChange={onToggle} className="shrink-0" />
+        <Switch checked={checked} onCheckedChange={onToggle} className="shrink-0" />
         <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${badgeCls}`}>
           {badge}
         </span>

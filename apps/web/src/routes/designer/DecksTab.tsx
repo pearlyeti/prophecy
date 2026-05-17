@@ -6,7 +6,7 @@
 
 import { FACTIONS, type Card, type Deck, type DeckCard } from '@prophecy/protocol';
 import { useMemo, useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -309,7 +309,7 @@ export function DecksTab({
                       </SelectContent>
                     </Select>
                     <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <Checkbox
+                      <Switch
                         checked={ch.elite}
                         onCheckedChange={(v) => {
                           const next = draft.characters.slice();

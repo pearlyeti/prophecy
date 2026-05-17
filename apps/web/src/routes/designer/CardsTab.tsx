@@ -11,7 +11,7 @@ import {
 } from '@prophecy/protocol';
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -588,7 +588,7 @@ export function CardsTab({
                 <NullableNumber value={draft.plotPointValue} min={-5} max={5} onChange={(plotPointValue) => updateDraft({ plotPointValue })} />
               </Field>
               <Label className="flex min-h-[60px] items-center gap-2 self-end text-sm text-neutral-300">
-                <Checkbox
+                <Switch
                   checked={draft.isUnique}
                   onCheckedChange={(v) => updateDraft({ isUnique: v === true })}
                 />
@@ -642,7 +642,7 @@ export function CardsTab({
 
             <div>
               <Label className="mb-2 flex items-center gap-2 text-sm uppercase tracking-wider text-neutral-300">
-                <Checkbox
+                <Switch
                   checked={draft.dieFaces !== null}
                   onCheckedChange={(v) =>
                     updateDraft({
