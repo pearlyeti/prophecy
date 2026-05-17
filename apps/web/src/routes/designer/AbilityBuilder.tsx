@@ -153,16 +153,16 @@ export function AbilityBuilder({
   return (
     <div className="space-y-3">
       {abilities.length === 0 && (
-        <p className="text-xs italic text-neutral-500">No abilities yet.</p>
+        <p className="text-xs italic text-muted-foreground">No abilities yet.</p>
       )}
       {abilities.map((ab, idx) => (
         <div key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-neutral-500">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Ability {idx + 1} · {label(ab.kind)}
             </span>
             <button type="button" onClick={() => remove(idx)}
-              className="min-h-[32px] rounded border border-neutral-700 px-2 text-xs text-neutral-400 hover:border-red-700 hover:text-red-300">
+              className="min-h-[32px] rounded border border-neutral-700 px-2 text-xs text-muted-foreground hover:border-red-700 hover:text-red-300">
               Remove
             </button>
           </div>
@@ -171,10 +171,10 @@ export function AbilityBuilder({
       ))}
 
       <div className="flex items-center gap-2">
-        <span className="text-[11px] text-neutral-500">Add ability:</span>
+        <span className="text-xs text-muted-foreground">Add ability:</span>
         {ABILITY_KINDS.map((k) => (
           <button key={k} type="button" onClick={() => add(k)}
-            className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500">
+            className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-foreground hover:border-neutral-500">
             + {label(k)}
           </button>
         ))}
@@ -210,7 +210,7 @@ function ImmediateEditor({ ability, onChange }: {
         onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
       <div className="flex items-center gap-2">
-        <span className="text-[11px] text-neutral-400">After resolving:</span>
+        <span className="text-xs text-muted-foreground">After resolving:</span>
         <SelectField
           value={ability.cardDisposition ?? 'discard'}
           options={[
@@ -245,7 +245,7 @@ function TriggeredEditor({ ability, onChange }: {
         value={ability.playCondition}
         onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
-      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
@@ -276,7 +276,7 @@ function ActionEditor({ ability, onChange }: {
         value={ability.playCondition}
         onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
-      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
@@ -297,7 +297,7 @@ function SpecialEditor({ ability, onChange }: {
 }) {
   return (
     <div className="space-y-3">
-      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
@@ -331,7 +331,7 @@ function ClaimEditor({ ability, onChange }: {
 }) {
   return (
     <div className="space-y-3">
-      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Switch
           checked={ability.optional ?? false}
           onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
@@ -357,7 +357,7 @@ function PlayConditionSection({ value, onChange }: {
   if (!value) {
     return (
       <button type="button" onClick={() => onChange({ kind: 'controlsBattlefield' })}
-        className="text-[11px] text-neutral-500 hover:text-neutral-300 underline">
+        className="text-xs text-muted-foreground hover:text-foreground underline">
         + Add play condition
       </button>
     );
@@ -372,7 +372,7 @@ function PlayConditionSection({ value, onChange }: {
             onChange={(k) => onChange(defaultCondition(k as PlayCondition['kind']))}
           />
           <button type="button" onClick={() => onChange(undefined)}
-            className="text-[11px] text-neutral-500 hover:text-red-400">
+            className="text-xs text-muted-foreground hover:text-red-400">
             Remove
           </button>
         </div>
@@ -440,7 +440,7 @@ function TriggerEventEditor({ value, onChange }: {
         value={value.kind}
         onValueChange={(v) => onChange(defaultTrigger(v as TriggerEvent['kind']))}
       >
-        <SelectTrigger className="h-9 text-xs">
+        <SelectTrigger className="h-9 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -484,7 +484,7 @@ function TriggerEventFields({ value, onChange }: {
     case 'afterActivateCharacter':
     case 'afterActivateSupport':
       return (
-        <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Switch
             checked={value.ownOnly ?? true}
             onCheckedChange={(v) => onChange({ ...value, ownOnly: v === true })}
@@ -540,7 +540,7 @@ function ActionCostList({ costs, onChange }: {
   return (
     <div className="space-y-2">
       {costs.length === 0 && (
-        <p className="text-[11px] italic text-neutral-500">No costs (free action).</p>
+        <p className="text-xs italic text-muted-foreground">No costs (free action).</p>
       )}
       {costs.map((cost, idx) => (
         <div key={idx} className="flex flex-wrap items-start gap-2">
@@ -551,11 +551,11 @@ function ActionCostList({ costs, onChange }: {
           />
           <ActionCostFields cost={cost} onChange={(next) => replaceCost(idx, next)} />
           <button type="button" onClick={() => removeCost(idx)}
-            className="text-[11px] text-neutral-500 hover:text-red-400 mt-1">✕</button>
+            className="text-xs text-muted-foreground hover:text-red-400 mt-1">✕</button>
         </div>
       ))}
       <button type="button" onClick={addCost}
-        className="min-h-[32px] rounded border border-neutral-800 px-2 text-[11px] text-neutral-400 hover:border-neutral-600">
+        className="min-h-[32px] rounded border border-neutral-800 px-2 text-xs text-muted-foreground hover:border-neutral-600">
         + Add cost
       </button>
     </div>
@@ -623,19 +623,19 @@ function StepsList({ steps, onChange }: {
   return (
     <div className="space-y-2">
       {steps.length === 0 && (
-        <p className="text-[11px] italic text-neutral-500">No steps yet.</p>
+        <p className="text-xs italic text-muted-foreground">No steps yet.</p>
       )}
       {steps.map((step, si) => (
         <div key={si} className="space-y-1">
           {si > 0 && (
-            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Switch
                 checked={step.then ?? false}
                 onCheckedChange={(v) => updateStep(si, v === true ? { ...step, then: true } : { effects: step.effects })}
               />
               <span className="font-mono">Then ↳</span>
               {step.then && (
-                <span className="ml-1 rounded bg-blue-900/50 px-1 py-0.5 text-[10px] text-blue-300">
+                <span className="ml-1 rounded bg-blue-900/50 px-1 py-0.5 text-xs text-blue-300">
                   gates on previous step
                 </span>
               )}
@@ -643,14 +643,14 @@ function StepsList({ steps, onChange }: {
           )}
           <div className={`rounded border p-2 space-y-2 ${step.then ? 'border-blue-800 bg-blue-950/20 ml-4' : 'border-neutral-800 bg-neutral-900/60'}`}>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-neutral-500">
+              <span className="text-xs text-muted-foreground">
                 {steps.length > 1
                   ? `Step ${si + 1}${step.effects.length > 1 ? ' (AND)' : ''}`
                   : step.effects.length > 1 ? 'Effects (AND)' : 'Effect'}
               </span>
               {steps.length > 1 && (
                 <button type="button" onClick={() => removeStep(si)}
-                  className="text-[10px] text-neutral-500 hover:text-red-300">
+                  className="text-xs text-muted-foreground hover:text-red-300">
                   Remove step
                 </button>
               )}
@@ -662,7 +662,7 @@ function StepsList({ steps, onChange }: {
                     value={fx.op}
                     onValueChange={(v) => replaceEffect(si, ei, defaultEffect(v as OpKind))}
                   >
-                    <SelectTrigger className="h-9 flex-1 text-xs">
+                    <SelectTrigger className="h-9 flex-1 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -686,7 +686,7 @@ function StepsList({ steps, onChange }: {
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-                  <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-auto">
+                  <Label className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
                     <Switch
                       checked={'optional' in fx ? (fx.optional ?? false) : false}
                       onCheckedChange={(v) => replaceEffect(si, ei, { ...fx, optional: v === true } as Effect)}
@@ -694,7 +694,7 @@ function StepsList({ steps, onChange }: {
                     <span>Optional</span>
                   </Label>
                   <button type="button" onClick={() => removeEffectFromStep(si, ei)}
-                    className="min-h-[28px] rounded border border-neutral-800 px-2 text-xs text-neutral-500 hover:border-red-700 hover:text-red-300">
+                    className="min-h-[28px] rounded border border-neutral-800 px-2 text-xs text-muted-foreground hover:border-red-700 hover:text-red-300">
                     ✕
                   </button>
                 </div>
@@ -702,14 +702,14 @@ function StepsList({ steps, onChange }: {
               </div>
             ))}
             <button type="button" onClick={() => addEffectToStep(si)}
-              className="min-h-[28px] rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-[11px] text-neutral-400 hover:border-neutral-500">
+              className="min-h-[28px] rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs text-muted-foreground hover:border-neutral-500">
               + Add effect to step
             </button>
           </div>
         </div>
       ))}
       <button type="button" onClick={addStep}
-        className="min-h-[36px] rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500">
+        className="min-h-[36px] rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs text-foreground hover:border-neutral-500">
         + Add step
       </button>
     </div>
@@ -733,7 +733,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
           <SelectField label="Target" value={effect.target}
             options={[{ value: 'opponent', label: 'Opponent' }, { value: 'self', label: 'Self' }]}
             onChange={(v) => onChange({ ...effect, target: v as 'opponent' | 'self' })} />
-          <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Switch
               checked={effect.amount === 'all'}
               onCheckedChange={(v) => onChange({ ...effect, amount: v === true ? 'all' : 1 })}
@@ -752,7 +752,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
           <SelectField label="Player" value={effect.player ?? 'self'}
             options={[{ value: 'self', label: 'Self' }, { value: 'eachPlayer', label: 'Each player' }, { value: 'opponent', label: 'Opponent' }]}
             onChange={(v) => onChange({ ...effect, player: v as typeof effect.player })} />
-          <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Switch
               checked={effect.toHandSize ?? false}
               onCheckedChange={(v) => onChange({ ...effect, toHandSize: v === true, amount: v === true ? null : 1 })}
@@ -782,7 +782,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               options={['opponentCharacter', 'ownCharacter', 'anyCharacter', 'eachOpponentCharacter', 'eachCharacter']}
               onChange={(t) => onChange({ ...effect, target: t })}
             />
-            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Switch
                 checked={effect.unblockable ?? false}
                 onCheckedChange={(v) => onChange({ ...effect, unblockable: v === true })}
@@ -817,7 +817,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               options={['anyCharacter', 'opponentCharacter', 'ownCharacter', 'eachOpponentCharacter', 'eachCharacter']}
               onChange={(t) => onChange({ ...effect, target: t })}
             />
-            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Switch
                 checked={effect.amount === 'all'}
                 onCheckedChange={(v) => onChange({ ...effect, amount: v === true ? 'all' : 1 })}
@@ -849,7 +849,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
       );
     case 'rollEventDie':
       return (
-        <p className="text-[11px] text-neutral-400">
+        <p className="text-xs text-muted-foreground">
           Rolls this event card's own die (from its <code>dieFaces</code>) and adds it to the active player's pool as a transient die.
         </p>
       );
@@ -947,7 +947,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               onChange={(v) => onChange({ ...e, optional: v } as Effect)} />
           </div>
           <div className="space-y-1">
-            <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide">Choices</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Choices</p>
             {e.choices.map((ch, i) => (
               <div key={i} className="flex flex-wrap gap-2 rounded border border-neutral-700 p-2">
                 <NumberField label="Count" value={ch.count} min={1} max={20}
@@ -964,7 +964,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
                 <button type="button" onClick={() => {
                   const choices = e.choices.filter((_, j) => j !== i);
                   onChange({ ...e, choices } as Effect);
-                }} className="self-end rounded bg-red-900/40 px-2 py-1 text-[11px] text-red-300 hover:bg-red-800/60">
+                }} className="self-end rounded bg-red-900/40 px-2 py-1 text-xs text-destructive hover:bg-red-800/60">
                   Remove
                 </button>
               </div>
@@ -972,7 +972,7 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
             <button type="button" onClick={() => {
               const choices = [...e.choices, { count: 1, disposition: 'toHand' as SearchDisposition }];
               onChange({ ...e, choices } as Effect);
-            }} className="rounded bg-neutral-700 px-2 py-1 text-[11px] hover:bg-neutral-600">
+            }} className="rounded bg-neutral-700 px-2 py-1 text-xs hover:bg-neutral-600">
               + Add choice
             </button>
           </div>
@@ -991,9 +991,9 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
     default:
       // Stub op — schema defined, engine not yet dispatched
       return (
-        <p className="text-[11px] italic text-neutral-500">
+        <p className="text-xs italic text-muted-foreground">
           Stub op — schema defined, not yet dispatched. Card will parse cleanly but this effect
-          throws <code className="text-neutral-400">NotImplementedError</code> at runtime until the
+          throws <code className="text-muted-foreground">NotImplementedError</code> at runtime until the
           engine implements it.
         </p>
       );
@@ -1022,7 +1022,7 @@ function TargetPicker({ value, options, onChange }: {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="rounded border border-neutral-800/60 p-2 space-y-1">
-      <p className="text-[10px] uppercase tracking-wider text-neutral-500">{label}</p>
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
       {children}
     </div>
   );
@@ -1035,13 +1035,13 @@ function SelectField({ label: fieldLabel, value, options, onChange }: {
   onChange: (v: string) => void;
 }) {
   return (
-    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+    <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
       {fieldLabel && <span>{fieldLabel}</span>}
       <Select
         value={value === '' ? '__none__' : value}
         onValueChange={(v) => onChange(v === '__none__' ? '' : v)}
       >
-        <SelectTrigger className="h-9 text-xs">
+        <SelectTrigger className="h-9 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -1058,7 +1058,7 @@ function NumberField({ label: fieldLabel, value, min, max, onChange }: {
   label: string; value: number; min: number; max: number; onChange: (n: number) => void;
 }) {
   return (
-    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+    <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
       <span>{fieldLabel}</span>
       <Input
         type="number"
@@ -1066,7 +1066,7 @@ function NumberField({ label: fieldLabel, value, min, max, onChange }: {
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-9 w-24 text-xs"
+        className="h-9 w-24 text-sm"
       />
     </Label>
   );
@@ -1076,21 +1076,21 @@ function TextField({ label: fieldLabel, value, onChange, multiline = false }: {
   label: string; value: string; onChange: (s: string) => void; multiline?: boolean;
 }) {
   return (
-    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+    <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
       <span>{fieldLabel}</span>
       {multiline ? (
         <Textarea
           value={value}
           rows={2}
           onChange={(e) => onChange(e.target.value)}
-          className="text-xs"
+          className="text-sm"
         />
       ) : (
         <Input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 text-xs"
+          className="h-9 text-sm"
         />
       )}
     </Label>
@@ -1115,7 +1115,7 @@ function OptNumberField({ label: fieldLabel, value, min, max, onChange }: {
   onChange: (n: number | undefined) => void;
 }) {
   return (
-    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+    <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
       <span>{fieldLabel}</span>
       <Input
         type="number"
@@ -1124,7 +1124,7 @@ function OptNumberField({ label: fieldLabel, value, min, max, onChange }: {
         placeholder="—"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-        className="h-9 w-20 text-xs"
+        className="h-9 w-20 text-sm"
       />
     </Label>
   );

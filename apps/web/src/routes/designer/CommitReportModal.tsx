@@ -44,13 +44,13 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
         <div className="flex items-start justify-between border-b border-neutral-800 px-4 py-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-neutral-400">{report?.shortSha ?? sha.slice(0, 7)}</span>
-              <span className="text-sm font-semibold text-neutral-100 line-clamp-2">
+              <span className="font-mono text-xs text-muted-foreground">{report?.shortSha ?? sha.slice(0, 7)}</span>
+              <span className="text-sm font-semibold text-foreground line-clamp-2">
                 {report?.message ?? '…'}
               </span>
             </div>
             {report && (
-              <div className="mt-0.5 text-xs text-neutral-500">
+              <div className="mt-0.5 text-xs text-muted-foreground">
                 {report.author} · {new Date(report.date).toLocaleString()}
               </div>
             )}
@@ -58,7 +58,7 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
           <button
             type="button"
             onClick={onClose}
-            className="ml-4 min-h-[44px] min-w-[44px] shrink-0 rounded border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+            className="ml-4 min-h-[44px] min-w-[44px] shrink-0 rounded border border-neutral-700 bg-neutral-900 px-3 text-sm text-muted-foreground hover:border-neutral-500 hover:text-foreground"
           >
             Close
           </button>
@@ -69,16 +69,16 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
             <p className="text-xs text-red-400">{error}</p>
           )}
           {!error && report === null && (
-            <p className="text-xs text-neutral-500">Loading…</p>
+            <p className="text-xs text-muted-foreground">Loading…</p>
           )}
 
           {report !== null && !hasChanges && (
-            <p className="text-xs text-neutral-500">No catalog changes in this commit.</p>
+            <p className="text-xs text-muted-foreground">No catalog changes in this commit.</p>
           )}
 
           {report !== null && report.cards.length > 0 && (
             <section>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Cards ({report.cards.length})
               </h3>
               <ul className="space-y-1">
@@ -91,11 +91,11 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
                         onClick={() => onNavigateToCard(id)}
                         className="flex min-h-[44px] w-full items-center gap-3 rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-left hover:border-neutral-700"
                       >
-                        <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${badgeCls(status)}`}>
+                        <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${badgeCls(status)}`}>
                           {status}
                         </span>
-                        <span className="flex-1 text-xs text-neutral-200">{name ?? id}</span>
-                        <span className="font-mono text-[10px] text-neutral-500">{id}</span>
+                        <span className="flex-1 text-xs text-foreground">{name ?? id}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{id}</span>
                       </button>
                     </li>
                   );
@@ -106,7 +106,7 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
 
           {report !== null && report.decksChanged && (
             <section>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Decks
               </h3>
               <ul className="space-y-1">
@@ -116,10 +116,10 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
                     onClick={onNavigateToDecks}
                     className="flex min-h-[44px] w-full items-center gap-3 rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-left hover:border-neutral-700"
                   >
-                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${badgeCls('modified')}`}>
+                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${badgeCls('modified')}`}>
                       modified
                     </span>
-                    <span className="flex-1 text-xs text-neutral-200">decks.json</span>
+                    <span className="flex-1 text-xs text-foreground">decks.json</span>
                   </button>
                 </li>
               </ul>
@@ -128,7 +128,7 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
 
           {report !== null && report.attributesChanged && (
             <section>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Attributes
               </h3>
               <ul className="space-y-1">
@@ -138,10 +138,10 @@ export function CommitReportModal({ sha, cards, onClose, onNavigateToCard, onNav
                     onClick={onNavigateToAttributes}
                     className="flex min-h-[44px] w-full items-center gap-3 rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-left hover:border-neutral-700"
                   >
-                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${badgeCls('modified')}`}>
+                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${badgeCls('modified')}`}>
                       modified
                     </span>
-                    <span className="flex-1 text-xs text-neutral-200">attributes.json</span>
+                    <span className="flex-1 text-xs text-foreground">attributes.json</span>
                   </button>
                 </li>
               </ul>

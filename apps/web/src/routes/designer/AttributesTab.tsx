@@ -76,15 +76,15 @@ export function AttributesTab({
               className="flex w-full items-center gap-2 px-4 py-3 text-left"
             >
               <span
-                className="text-xs text-neutral-500 transition-transform"
+                className="text-xs text-muted-foreground transition-transform"
                 style={{ display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'none' }}
               >
                 ▶
               </span>
-              <span className="flex-1 text-base font-semibold text-neutral-200">{label}</span>
-              <span className="text-xs text-neutral-600">{values.length}</span>
+              <span className="flex-1 text-base font-semibold text-foreground">{label}</span>
+              <span className="text-xs text-muted-foreground">{values.length}</span>
               {system && (
-                <span className="rounded border border-neutral-700 px-1.5 py-0.5 text-[11px] uppercase tracking-wider text-neutral-500">
+                <span className="rounded border border-neutral-700 px-1.5 py-0.5 text-xs uppercase tracking-wider text-muted-foreground">
                   system
                 </span>
               )}
@@ -93,17 +93,17 @@ export function AttributesTab({
             {expanded && (
               <div className="border-t border-neutral-800 px-4 pb-4 pt-3">
                 {values.length === 0 ? (
-                  <p className="mb-3 text-sm text-neutral-600">No values yet.</p>
+                  <p className="mb-3 text-sm text-muted-foreground">No values yet.</p>
                 ) : (
                   <ul className="mb-3 flex flex-wrap gap-1.5">
                     {values.map((v) => (
                       <li key={v} className="flex items-center gap-1 rounded border border-neutral-700 bg-neutral-900 px-2 py-0.5">
-                        <span className="text-sm text-neutral-200">{v}</span>
+                        <span className="text-sm text-foreground">{v}</span>
                         <button
                           type="button"
                           onClick={() => void removeValue(key, v)}
                           disabled={saving}
-                          className="text-xs text-neutral-600 hover:text-red-400 disabled:opacity-40"
+                          className="text-xs text-muted-foreground hover:text-red-400 disabled:opacity-40"
                           aria-label={`Remove ${v}`}
                         >
                           ×
@@ -133,7 +133,7 @@ export function AttributesTab({
                   </button>
                 </form>
                 {system && (
-                  <p className="mt-2 text-xs text-neutral-600">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     System attributes — new values appear in designer dropdowns but require a schema update to be valid in cards.
                   </p>
                 )}

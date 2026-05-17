@@ -208,16 +208,16 @@ export function ChangesTab({
   };
 
   if (pending === null) {
-    return <div className="text-sm text-neutral-500">Loading changes…</div>;
+    return <div className="text-sm text-muted-foreground">Loading changes…</div>;
   }
 
   if (!pending.enabled) {
     return (
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-6 text-sm text-neutral-500">
+      <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-6 text-sm text-muted-foreground">
         GitHub sync is not configured. Set{' '}
-        <code className="text-neutral-300">GITHUB_TOKEN</code>,{' '}
-        <code className="text-neutral-300">GITHUB_REPO</code>, and{' '}
-        <code className="text-neutral-300">GITHUB_BRANCH</code> on the game server to enable committing from the designer.
+        <code className="text-foreground">GITHUB_TOKEN</code>,{' '}
+        <code className="text-foreground">GITHUB_REPO</code>, and{' '}
+        <code className="text-foreground">GITHUB_BRANCH</code> on the game server to enable committing from the designer.
       </div>
     );
   }
@@ -229,7 +229,7 @@ export function ChangesTab({
       <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-neutral-300">
+          <span className="text-sm font-medium text-foreground">
             {totalPending === 0
               ? 'No uncommitted changes'
               : `${totalPending} uncommitted change${totalPending !== 1 ? 's' : ''}`}
@@ -238,14 +238,14 @@ export function ChangesTab({
             type="button"
             onClick={() => void refresh()}
             disabled={loading}
-            className="ml-auto min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-400 hover:text-neutral-200 disabled:opacity-50"
+            className="ml-auto min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-3 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
           >
             {loading ? '…' : 'Refresh'}
           </button>
         </div>
 
         {totalPending === 0 && (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 px-4 py-10 text-center text-sm text-neutral-500">
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 px-4 py-10 text-center text-sm text-muted-foreground">
             Catalog is up to date — no uncommitted changes.
           </div>
         )}
@@ -262,7 +262,7 @@ export function ChangesTab({
                 {selected.size === allKeys.length ? 'Deselect all' : 'Select all'}
               </Label>
               {totalSelected > 0 && (
-                <span className="text-xs text-neutral-500">{totalSelected} selected</span>
+                <span className="text-xs text-muted-foreground">{totalSelected} selected</span>
               )}
             </div>
 
@@ -271,7 +271,7 @@ export function ChangesTab({
               pending.cards.modified.length > 0 ||
               pending.cards.deleted.length > 0) && (
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Cards
                 </h3>
                 <ul className="space-y-1">
@@ -314,7 +314,7 @@ export function ChangesTab({
               pending.decks.modified.length > 0 ||
               pending.decks.deleted.length > 0) && (
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Decks
                 </h3>
                 <ul className="space-y-1">
@@ -355,7 +355,7 @@ export function ChangesTab({
             {/* Attributes */}
             {pending.attributes.modified && (
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Attributes
                 </h3>
                 <ul className="space-y-1">
@@ -460,7 +460,7 @@ function CommitModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="flex w-full max-w-md flex-col gap-4 rounded-xl border border-neutral-700 bg-neutral-900 p-6 shadow-2xl">
-        <h2 className="text-base font-semibold text-neutral-100">
+        <h2 className="text-base font-semibold text-foreground">
           Commit {count} change{count !== 1 ? 's' : ''} to main
         </h2>
 
@@ -474,8 +474,8 @@ function CommitModal({
                   ? 'border-red-800 bg-red-900 text-red-300'
                   : 'border-amber-800 bg-amber-900 text-amber-300';
             return (
-              <li key={i} className="flex items-center gap-2 rounded px-2 py-1 text-sm text-neutral-200">
-                <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${badgeCls}`}>
+              <li key={i} className="flex items-center gap-2 rounded px-2 py-1 text-sm text-foreground">
+                <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${badgeCls}`}>
                   {item.badge}
                 </span>
                 {item.label}
@@ -503,7 +503,7 @@ function CommitModal({
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-800 px-4 text-sm text-neutral-300 hover:border-neutral-500 disabled:opacity-50"
+            className="min-h-[44px] rounded-lg border border-neutral-700 bg-neutral-800 px-4 text-sm text-foreground hover:border-neutral-500 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -545,11 +545,11 @@ function ChangeItem({
     <li>
       <Label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700">
         <Checkbox checked={checked} onCheckedChange={onToggle} className="shrink-0" />
-        <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${badgeCls}`}>
+        <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${badgeCls}`}>
           {badge}
         </span>
-        <span className="flex-1 text-sm text-neutral-200">{name}</span>
-        {subtext && <span className="font-mono text-[10px] text-neutral-500">{subtext}</span>}
+        <span className="flex-1 text-sm text-foreground">{name}</span>
+        {subtext && <span className="font-mono text-xs text-muted-foreground">{subtext}</span>}
       </Label>
     </li>
   );

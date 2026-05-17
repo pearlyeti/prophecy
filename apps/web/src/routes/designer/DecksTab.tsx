@@ -121,7 +121,7 @@ export function DecksTab({
     <div className="grid gap-4 md:grid-cols-[280px_1fr]">
       <aside className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-3">
         <div className="mb-2 flex items-center gap-2">
-          <div className="text-xs uppercase tracking-wider text-neutral-500">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
             {decks.length} deck{decks.length === 1 ? '' : 's'}
           </div>
           <button
@@ -144,14 +144,14 @@ export function DecksTab({
                   className={`min-h-[44px] w-full rounded border px-2 py-1 text-left text-xs ${
                     isSelected
                       ? 'border-emerald-600 bg-emerald-950/40 text-emerald-100'
-                      : 'border-neutral-800 bg-neutral-900 text-neutral-200 hover:border-neutral-600'
+                      : 'border-neutral-800 bg-neutral-900 text-foreground hover:border-neutral-600'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{d.name}</span>
-                    <span className="font-mono text-[10px] text-neutral-500">{d.id}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{d.id}</span>
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider text-neutral-500">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
                     {d.faction} · {d.characters.length} char · {cardTotal} cards
                   </div>
                 </button>
@@ -163,7 +163,7 @@ export function DecksTab({
 
       <section className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-4">
         {!draft ? (
-          <div className="text-sm text-neutral-500">
+          <div className="text-sm text-muted-foreground">
             Select a deck on the left, or click <span className="text-emerald-300">+ New</span>.
           </div>
         ) : (
@@ -175,32 +175,32 @@ export function DecksTab({
             className="space-y-4"
           >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+              <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
                 <span>Id</span>
                 <Input
                   type="text"
                   value={draft.id}
                   onChange={(e) => updateDraft({ id: e.target.value })}
-                  className="h-9 text-xs"
+                  className="h-9 text-sm"
                   disabled={selectedId !== null}
                 />
               </Label>
-              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground sm:col-span-2">
+              <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground sm:col-span-2">
                 <span>Name</span>
                 <Input
                   type="text"
                   value={draft.name}
                   onChange={(e) => updateDraft({ name: e.target.value })}
-                  className="h-9 text-xs"
+                  className="h-9 text-sm"
                 />
               </Label>
-              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+              <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
                 <span>Faction</span>
                 <Select
                   value={draft.faction}
                   onValueChange={(v) => updateDraft({ faction: v as Deck['faction'] })}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -210,13 +210,13 @@ export function DecksTab({
                   </SelectContent>
                 </Select>
               </Label>
-              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+              <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
                 <span>Battlefield</span>
                 <Select
                   value={draft.battlefieldCardId ?? '__none__'}
                   onValueChange={(v) => updateDraft({ battlefieldCardId: v === '__none__' ? null : v })}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder="(none)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -229,13 +229,13 @@ export function DecksTab({
                   </SelectContent>
                 </Select>
               </Label>
-              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+              <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
                 <span>Plot</span>
                 <Select
                   value={draft.plotCardId ?? '__none__'}
                   onValueChange={(v) => updateDraft({ plotCardId: v === '__none__' ? null : v })}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder="(none)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -250,19 +250,19 @@ export function DecksTab({
               </Label>
             </div>
 
-            <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+            <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
               <span>Description</span>
               <Textarea
                 value={draft.description}
                 rows={2}
                 onChange={(e) => updateDraft({ description: e.target.value })}
-                className="text-xs"
+                className="text-sm"
               />
             </Label>
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <div className="text-xs uppercase tracking-wider text-neutral-500">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
                   Characters ({draft.characters.length})
                 </div>
                 <button
@@ -297,7 +297,7 @@ export function DecksTab({
                         updateDraft({ characters: next });
                       }}
                     >
-                      <SelectTrigger className="h-9 min-w-[200px] flex-1 text-xs">
+                      <SelectTrigger className="h-9 min-w-[200px] flex-1 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -308,7 +308,7 @@ export function DecksTab({
                         ))}
                       </SelectContent>
                     </Select>
-                    <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Switch
                         checked={ch.elite}
                         onCheckedChange={(v) => {
@@ -326,7 +326,7 @@ export function DecksTab({
                           characters: draft.characters.filter((_, i) => i !== idx),
                         })
                       }
-                      className="min-h-[36px] rounded border border-neutral-800 px-2 text-xs text-neutral-500 hover:border-red-700 hover:text-red-300"
+                      className="min-h-[36px] rounded border border-neutral-800 px-2 text-xs text-muted-foreground hover:border-red-700 hover:text-red-300"
                     >
                       Remove
                     </button>
@@ -337,7 +337,7 @@ export function DecksTab({
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <div className="text-xs uppercase tracking-wider text-neutral-500">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
                   Deck cards ({totalCardCount} total · {draft.cards.length} entries)
                 </div>
                 <button
@@ -369,7 +369,7 @@ export function DecksTab({
                         updateDraft({ cards: next });
                       }}
                     >
-                      <SelectTrigger className="h-9 min-w-[200px] flex-1 text-xs">
+                      <SelectTrigger className="h-9 min-w-[200px] flex-1 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -380,7 +380,7 @@ export function DecksTab({
                         ))}
                       </SelectContent>
                     </Select>
-                    <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <span>count</span>
                       <Input
                         type="number"
@@ -393,10 +393,10 @@ export function DecksTab({
                           next[idx] = { ...entry, count };
                           updateDraft({ cards: next });
                         }}
-                        className="h-9 w-16 text-xs"
+                        className="h-9 w-16 text-sm"
                       />
                     </Label>
-                    <span className="text-[10px] text-neutral-500">
+                    <span className="text-xs text-muted-foreground">
                       {cardsById.get(entry.cardId)?.color ?? '—'}
                     </span>
                     <button
@@ -406,7 +406,7 @@ export function DecksTab({
                           cards: draft.cards.filter((_, i) => i !== idx),
                         })
                       }
-                      className="min-h-[36px] rounded border border-neutral-800 px-2 text-xs text-neutral-500 hover:border-red-700 hover:text-red-300"
+                      className="min-h-[36px] rounded border border-neutral-800 px-2 text-xs text-muted-foreground hover:border-red-700 hover:text-red-300"
                     >
                       Remove
                     </button>
@@ -448,7 +448,7 @@ export function DecksTab({
                 Revert
               </button>
               {savedAt && (
-                <span className="self-center text-[11px] text-emerald-400">
+                <span className="self-center text-xs text-emerald-400">
                   Saved {new Date(savedAt).toLocaleTimeString()}
                 </span>
               )}
