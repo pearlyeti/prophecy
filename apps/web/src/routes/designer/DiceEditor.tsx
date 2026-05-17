@@ -5,6 +5,10 @@
 // as a fixed 6-slot grid and never reorders.
 
 import { DIE_SYMBOLS, type DieFace, type DieSymbol } from '@prophecy/protocol';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type SixFaces = [DieFace, DieFace, DieFace, DieFace, DieFace, DieFace];
 
@@ -61,60 +65,55 @@ export function DiceEditor({
             Face {idx + 1}
           </div>
           <div className="space-y-2">
-            <label className="flex flex-col text-[11px] text-neutral-400">
+            <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
               <span>Symbol</span>
-              <select
+              <Select
                 value={face.symbol}
-                onChange={(e) =>
-                  updateFace(idx, { symbol: e.target.value as DieSymbol })
-                }
-                className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                onValueChange={(v) => updateFace(idx, { symbol: v as DieSymbol })}
               >
-                {DIE_SYMBOLS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIE_SYMBOLS.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Label>
             <div className="flex gap-2">
-              <label className="flex flex-1 flex-col text-[11px] text-neutral-400">
+              <Label className="flex flex-1 flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Value</span>
-                <input
+                <Input
                   type="number"
                   min={0}
                   max={20}
                   value={face.value}
                   disabled={face.symbol === 'special' || face.symbol === 'blank'}
-                  onChange={(e) =>
-                    updateFace(idx, { value: Number(e.target.value) })
-                  }
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs disabled:opacity-40"
+                  onChange={(e) => updateFace(idx, { value: Number(e.target.value) })}
+                  className="h-9 text-xs"
                 />
-              </label>
-              <label className="flex flex-1 flex-col text-[11px] text-neutral-400">
+              </Label>
+              <Label className="flex flex-1 flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Cost</span>
-                <input
+                <Input
                   type="number"
                   min={0}
                   max={8}
                   value={face.cost}
-                  onChange={(e) =>
-                    updateFace(idx, { cost: Number(e.target.value) })
-                  }
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  onChange={(e) => updateFace(idx, { cost: Number(e.target.value) })}
+                  className="h-9 text-xs"
                 />
-              </label>
+              </Label>
             </div>
-            <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-              <input
-                type="checkbox"
+            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Checkbox
                 checked={face.modifier}
                 disabled={face.symbol === 'modifier'}
-                onChange={(e) => updateFace(idx, { modifier: e.target.checked })}
+                onCheckedChange={(v) => updateFace(idx, { modifier: v === true })}
               />
               <span>Modifier (+N)</span>
-            </label>
+            </Label>
           </div>
         </div>
       ))}

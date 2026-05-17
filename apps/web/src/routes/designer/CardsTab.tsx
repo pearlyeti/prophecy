@@ -11,7 +11,11 @@ import {
 } from '@prophecy/protocol';
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { AbilityBuilder } from './AbilityBuilder.js';
 import { DiceEditor, defaultDiceFaces } from './DiceEditor.js';
 import { HistoryPanel } from './HistoryPanel.js';
@@ -241,12 +245,12 @@ export function CardsTab({
     <div className="grid gap-4 md:grid-cols-[280px_1fr]">
       <aside className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-3">
         <div className="mb-2 flex items-center gap-2">
-          <input
+          <Input
             type="text"
             placeholder="Filter…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="min-h-[36px] flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-sm"
+            className="h-9 flex-1 text-sm"
           />
           <div ref={newMenuRef} className="relative">
             <button
@@ -447,19 +451,19 @@ export function CardsTab({
             {/* ── Identity ──────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="Name" wide>
-                <input
+                <Input
                   type="text"
                   value={draft.name}
                   onChange={(e) => updateDraft({ name: e.target.value })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+                  className="h-9 text-sm"
                 />
               </Field>
               <Field label="Id">
-                <input
+                <Input
                   type="text"
                   value={draft.id}
                   onChange={(e) => updateDraft({ id: e.target.value })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+                  className="h-9 text-sm"
                   disabled={selectedId !== null}
                 />
               </Field>
@@ -512,40 +516,52 @@ export function CardsTab({
             {/* ── Classification ────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="Faction">
-                <select
+                <Select
                   value={draft.faction}
-                  onChange={(e) => updateDraft({ faction: e.target.value as Card['faction'] })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+                  onValueChange={(v) => updateDraft({ faction: v as Card['faction'] })}
                 >
-                  {attributes.factions.map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {attributes.factions.map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               {draft.type !== 'battlefield' && (
                 <Field label="Color">
-                  <select
+                  <Select
                     value={draft.color ?? ''}
-                    onChange={(e) => updateDraft({ color: (e.target.value || null) as Card['color'] })}
-                    className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+                    onValueChange={(v) => updateDraft({ color: (v || null) as Card['color'] })}
                   >
-                    <option value="">—</option>
-                    {attributes.colors.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">—</SelectItem>
+                      {attributes.colors.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
               )}
               <Field label="Rarity">
-                <select
+                <Select
                   value={draft.rarity}
-                  onChange={(e) => updateDraft({ rarity: e.target.value as Card['rarity'] })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+                  onValueChange={(v) => updateDraft({ rarity: v as Card['rarity'] })}
                 >
-                  {attributes.rarities.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {attributes.rarities.map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <SubtypePicker
                 selected={draft.subtypes ?? []}
@@ -571,14 +587,13 @@ export function CardsTab({
               <Field label="Plot point value">
                 <NullableNumber value={draft.plotPointValue} min={-5} max={5} onChange={(plotPointValue) => updateDraft({ plotPointValue })} />
               </Field>
-              <label className="flex min-h-[60px] items-center gap-2 self-end text-sm text-neutral-300">
-                <input
-                  type="checkbox"
+              <Label className="flex min-h-[60px] items-center gap-2 self-end text-sm text-neutral-300">
+                <Checkbox
                   checked={draft.isUnique}
-                  onChange={(e) => updateDraft({ isUnique: e.target.checked })}
+                  onCheckedChange={(v) => updateDraft({ isUnique: v === true })}
                 />
                 <span>Unique</span>
-              </label>
+              </Label>
             </div>
 
             <div>
@@ -604,11 +619,11 @@ export function CardsTab({
                   {parsing ? '…' : '✨'} {parsing ? 'Parsing…' : 'Parse abilities'}
                 </button>
               </div>
-              <textarea
+              <Textarea
                 value={draft.abilityText}
                 rows={3}
                 onChange={(e) => updateDraft({ abilityText: e.target.value })}
-                className="min-h-[80px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+                className="min-h-[80px] text-sm"
               />
               {parseError && (
                 <p className="mt-1 text-xs text-red-400">{parseError}</p>
@@ -626,18 +641,17 @@ export function CardsTab({
             </div>
 
             <div>
-              <label className="mb-2 flex items-center gap-2 text-sm uppercase tracking-wider text-neutral-300">
-                <input
-                  type="checkbox"
+              <Label className="mb-2 flex items-center gap-2 text-sm uppercase tracking-wider text-neutral-300">
+                <Checkbox
                   checked={draft.dieFaces !== null}
-                  onChange={(e) =>
+                  onCheckedChange={(v) =>
                     updateDraft({
-                      dieFaces: e.target.checked ? defaultDiceFaces() : null,
+                      dieFaces: v === true ? defaultDiceFaces() : null,
                     })
                   }
                 />
                 <span>Has dice</span>
-              </label>
+              </Label>
               {draft.dieFaces && (
                 <DiceEditor
                   faces={draft.dieFaces}
@@ -740,7 +754,7 @@ function NullableNumber({
 }) {
   return (
     <div className="flex items-center gap-1">
-      <input
+      <Input
         type="number"
         value={value ?? ''}
         min={min}
@@ -749,7 +763,7 @@ function NullableNumber({
         onChange={(e) =>
           onChange(e.target.value === '' ? null : Number(e.target.value))
         }
-        className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+        className="h-9 text-sm"
       />
     </div>
   );
@@ -1033,13 +1047,13 @@ function SubtypePicker({
           {open && (
             <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
               <div className="p-2">
-                <input
+                <Input
                   autoFocus
                   type="text"
                   placeholder="Search…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none"
+                  className="h-8 text-sm"
                 />
               </div>
               <ul className="max-h-48 overflow-y-auto pb-1">
