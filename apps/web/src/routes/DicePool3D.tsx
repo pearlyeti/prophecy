@@ -123,6 +123,7 @@ export function Die3D({
   textColor,
   state,
   isTumbling,
+  staggerIndex,
   overrideFaceIndex,
   overrideFace,
   onClick,
@@ -139,6 +140,8 @@ export function Die3D({
   textColor: string;
   state: DieState;
   isTumbling: boolean;
+  /** Left-to-right index among tumbling dice — each adds 400 ms to settle delay. */
+  staggerIndex: number;
   /** When set, animate the die to show this face index on top. */
   overrideFaceIndex?: number | null;
   /** Face data for the overridden face (for the texture). */
@@ -150,6 +153,7 @@ export function Die3D({
   const targetQ = useRef(DEFAULT_REST_Q.clone());
   const currentQ = useRef(DEFAULT_REST_Q.clone());
   const prevTumbling = useRef(false);
+  const stopAtRef = useRef<number | null>(null);
 
   // Rotate the die so the effective face index is on top.
   const effectiveFaceIndex = overrideFaceIndex ?? die.faceIndex;
@@ -159,11 +163,12 @@ export function Die3D({
     animRef.current = true;
   }, [effectiveFaceIndex, isTumbling]);
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const g = groupRef.current;
     if (!g) return;
 
     if (isTumbling) {
+      stopAtRef.current = null;
       prevTumbling.current = true;
       g.rotation.x += dt * 7.0;
       g.rotation.y += dt * 5.3;
@@ -171,9 +176,19 @@ export function Die3D({
       return;
     }
 
-    // Just finished tumbling — snap to display orientation.
+    // Just finished tumbling — stagger the settle left-to-right.
     if (prevTumbling.current) {
+      if (stopAtRef.current === null) {
+        stopAtRef.current = state.clock.elapsedTime + staggerIndex * 0.4;
+      }
+      if (state.clock.elapsedTime < stopAtRef.current) {
+        g.rotation.x += dt * 7.0;
+        g.rotation.y += dt * 5.3;
+        g.rotation.z += dt * 3.1;
+        return;
+      }
       prevTumbling.current = false;
+      stopAtRef.current = null;
       currentQ.current.copy(targetQ.current);
       g.quaternion.copy(targetQ.current);
       return;
@@ -291,8 +306,10 @@ export interface DicePool3DProps {
   horizontal?: boolean;
   eligibleSymbols?: readonly string[];
   cardColor?: string | null;
-  /** Character instance id currently in the activate flow — its dice tumble. */
+  /** Non-null when this pool's owner is activating — all dice in the pool tumble. */
   tumblingCharId?: string | null;
+  /** Explicit die instance ids to tumble (e.g. reroll selection). */
+  tumblingDieIds?: readonly string[] | null;
   /** Face overrides for focus-pick preview: dieId → chosen face. */
   faceOverrides?: Record<string, { faceIndex: number; face: DieFace }>;
   previewSelectedDieIds?: readonly string[];
@@ -307,6 +324,7 @@ export default function DicePool3D({
   eligibleSymbols,
   cardColor,
   tumblingCharId,
+  tumblingDieIds,
   faceOverrides,
   previewSelectedDieIds,
   previewSpentDieIds,
@@ -439,8 +457,13 @@ export default function DicePool3D({
         <ambientLight intensity={0.5} />
         <directionalLight position={[0, 5, 2]} intensity={0.9} castShadow={false} />
 
-        {dice.map((d, i) => {
-          const isTumbling = tumblingCharId != null && d.ownerInstanceId === tumblingCharId;
+        {(() => {
+          let tumblingCount = 0;
+          return dice.map((d, i) => {
+          const isTumbling =
+            tumblingCharId != null ||
+            (tumblingDieIds?.includes(d.instanceId) ?? false);
+          const staggerIndex = isTumbling ? tumblingCount++ : 0;
 
           let dieState: DieState = 'default';
           if (inRerollPickDice && activeFlow?.kind === 'reroll') {
@@ -496,12 +519,14 @@ export default function DicePool3D({
               textColor={textColor}
               state={dieState}
               isTumbling={isTumbling}
+              staggerIndex={staggerIndex}
               overrideFaceIndex={override?.faceIndex ?? null}
               overrideFace={override?.face ?? null}
               onClick={() => handleTap(d)}
             />
           );
-        })}
+        });
+        })()}
       </Canvas>
     </div>
   );

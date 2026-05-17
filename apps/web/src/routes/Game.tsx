@@ -2211,6 +2211,9 @@ function BattlefieldRow({
 
         const dieCardColor = charCard?.color ?? null;
         const tumblingCharId = isActivating ? cid : null;
+        const tumblingDieIds = (activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice')
+          ? activeFlow.selectedDieIds
+          : null;
 
         // Compute face overrides for focus-pick preview on player dice.
         // Reads the latest flip for each target die from the face-pick history.
@@ -2258,6 +2261,7 @@ function BattlefieldRow({
                   eligibleSymbols={resolvableSymbols}
                   cardColor={dieCardColor}
                   tumblingCharId={tumblingCharId}
+                  tumblingDieIds={tumblingDieIds}
                   {...(Object.keys(faceOverrides).length > 0 ? { faceOverrides } : {})}
                 />
               </Suspense>
