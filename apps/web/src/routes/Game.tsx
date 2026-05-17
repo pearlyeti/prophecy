@@ -2862,7 +2862,7 @@ function ActionBar({
 
   return (
     <>
-      <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-3 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
+      <div className="relative flex shrink-0 items-center gap-2 border-t border-neutral-800 px-3 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
         {/* Left slot: Undo when flow active, or "Discard to reroll" when idle */}
         {activeFlow ? (
           <button
@@ -2882,12 +2882,16 @@ function ActionBar({
           </button>
         ) : null}
 
-        <div className="flex flex-1 items-center justify-center">
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Log icon — pinned to the horizontal center of the bar */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <button
             type="button"
             aria-label="Open activity log"
             onClick={onOpenLog}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300 active:bg-neutral-800"
+            className="pointer-events-auto flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300 active:bg-neutral-800"
           >
             <ScrollText size={16} aria-hidden />
           </button>
