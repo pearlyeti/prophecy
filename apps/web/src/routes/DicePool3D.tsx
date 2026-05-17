@@ -22,16 +22,12 @@ const DIE_RADIUS = 0.04;        // chamfer radius (tuned via /dice-preview)
 const DIE_SPACING = 1.05;       // center-to-center spacing
 const CANVAS_HEIGHT_PX = 96;    // px — tall enough to show value+label at readable size
 
-// Per-face UV transforms — tuned via /dice-preview live tuner. Indexed by
-// face index k (which cube face is on top). Applied to the die's CanvasTexture
-// at render time so text reads upright and centered on every face.
-//
-// Material order: +X=0  -X=1  +Y=2  -Y=3  +Z=4  -Z=5
-const FACE_SPIN_DEG: readonly number[]  = [-180, 0, 90, 90, 90, 90];
-const FACE_OFFSET_X: readonly number[]  = [0.13, 0.135, -0.135, 0.145, 0.135, 0.16];
-const FACE_OFFSET_Y: readonly number[]  = [0.205, -0.09, -0.085, -0.055, -0.08, 0.225];
-const FACE_MIRROR_X: readonly boolean[] = [true, false, false, true, false, false];
-const FACE_MIRROR_Y: readonly boolean[] = [false, false, false, false, false, true];
+// Canvas pre-rotation baked into each slot's texture at draw time.
+// Text is drawn at canvas center (S/2, S/2) and rotated by this angle so it
+// reads upright when FACE_CORRECT_Q[slot] places that slot on top of the die.
+// No runtime UV transforms (offset/mirror/rotation) are applied — this is the
+// single source of truth for face orientation. Material order: +X=0 -X=1 +Y=2 -Y=3 +Z=4 -Z=5
+const CANVAS_ROT_DEG: readonly number[] = [180, 0, 90, 90, 90, 90];
 
 // At rest with no override, the die shows face index 2 (+Y on top by default).
 const DEFAULT_FACE_INDEX = 2;
@@ -184,29 +180,15 @@ function Die3D({
     return base;
   }, [allFaces, die.face, overrideFaceIndex, overrideFace]);
 
-  // One texture per cube face — each shows its own face's content.
+  // One texture per cube face — each shows its own face's content, pre-rotated
+  // by CANVAS_ROT_DEG[slot] so text reads upright when that slot is on top.
   const textures = useMemo(
-    () => effectiveFaces.map((f) =>
-      makeFaceTexture(f.symbol, f.value, f.modifier, baseColor, textColor),
+    () => effectiveFaces.map((f, slot) =>
+      makeFaceTexture(f.symbol, f.value, f.modifier, baseColor, textColor, CANVAS_ROT_DEG[slot]!),
     ),
     [effectiveFaces, baseColor, textColor],
   );
   useEffect(() => () => { textures.forEach((t) => t.dispose()); }, [textures]);
-
-  // Apply per-face UV transform (rotation / offset / mirror) so each face's
-  // content reads upright and centered when THAT face is on top. Tuned via
-  // /dice-preview live tuner; same values were calibrated per face index.
-  useEffect(() => {
-    textures.forEach((tex, slot) => {
-      tex.center.set(0.5, 0.5);
-      tex.offset.set(FACE_OFFSET_X[slot]!, FACE_OFFSET_Y[slot]!);
-      tex.repeat.set(
-        FACE_MIRROR_X[slot] ? -1 : 1,
-        FACE_MIRROR_Y[slot] ? -1 : 1,
-      );
-      tex.rotation = (FACE_SPIN_DEG[slot]! * Math.PI) / 180;
-    });
-  }, [textures]);
 
   const emissiveHex =
     state === 'selected-resolve' ? '#064e3b' :

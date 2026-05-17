@@ -1,9 +1,10 @@
 // Shared die face texture generator used by the board dice (DicePool3D).
 // Produces a 512×512 CanvasTexture with the die's value and symbol on the card base color.
 //
-// Text is drawn UPRIGHT in normal canvas orientation. The RoundedBoxGeometry UV
-// rotation is already compensated by the _O = Ry(-π/2) term in FACE_CORRECT_Q
-// (DicePool3D.tsx) — do NOT add canvas rotation here or the corrections double up.
+// Text is drawn at canvas center (S/2, S/2). canvasRotDeg pre-rotates the
+// drawing so each cube face's content reads upright when its slot is on top.
+// The rotation is baked into pixels — zero runtime UV transforms are needed.
+// DicePool3D.CANVAS_ROT_DEG[slot] is the single source of truth for orientation.
 
 import * as THREE from 'three';
 
@@ -73,13 +74,14 @@ export function makeFaceTexture(
   modifier: boolean,
   baseColor: string,
   textColor: string,
+  canvasRotDeg = 0,
 ): THREE.CanvasTexture {
   const S = 512;
   const c = document.createElement('canvas');
   c.width = S; c.height = S;
   const ctx = c.getContext('2d')!;
 
-  // Background
+  // Background — drawn before rotation so the fill always covers the full canvas.
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, S, S);
   const grad = ctx.createRadialGradient(S * 0.35, S * 0.3, 0, S * 0.5, S * 0.5, S * 0.7);
@@ -88,17 +90,23 @@ export function makeFaceTexture(
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, S, S);
 
+  // Rotate canvas around center so text reads upright on this slot's face.
+  if (canvasRotDeg !== 0) {
+    ctx.save();
+    ctx.translate(S / 2, S / 2);
+    ctx.rotate((canvasRotDeg * Math.PI) / 180);
+    ctx.translate(-S / 2, -S / 2);
+  }
+
   ctx.fillStyle = textColor;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // CTR: visual center of the flat face in canvas_y. Slightly above S/2 because
-  // the RoundedBoxGeometry UV maps the flat region upward in canvas space.
-  const CTR   = Math.round(S * 0.45);
-  const GAP   = Math.round(S * 0.04);
-  const V_MAX = Math.round(S * 0.35); // max value font size
-  const L_MAX = Math.round(S * 0.15); // max label font size (tuned via /dice-preview)
-  const maxW  = Math.round(S * 0.70); // max text width
+  const CTR  = S / 2;                   // true canvas center
+  const GAP  = Math.round(S * 0.04);
+  const V_MAX = Math.round(S * 0.35);   // max value font size
+  const L_MAX = Math.round(S * 0.22);   // max label font size
+  const maxW  = Math.round(S * 0.70);   // max text width
 
   if (symbol === 'blank') {
     // intentionally empty
@@ -115,7 +123,6 @@ export function makeFaceTexture(
       const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
       const lSize = fittedSize(ctx, label,    maxW, L_MAX, '600');
 
-      // Center the pair at CTR: value above, label below, GAP between.
       const yValue = CTR - Math.round((GAP + lSize) / 2);
       const yLabel = CTR + Math.round((GAP + vSize) / 2);
 
@@ -134,6 +141,8 @@ export function makeFaceTexture(
       ctx.fillText(label, S / 2, CTR);
     }
   }
+
+  if (canvasRotDeg !== 0) ctx.restore();
 
   const texture = new THREE.CanvasTexture(c);
   texture.anisotropy = 4;

@@ -38,6 +38,9 @@ const COLORS = [
   { key: 'gray',   ...CARD_COLORS['gray']! },
 ];
 
+// CANVAS_ROT_DEG from DicePool3D: slot 2 (+Y, the top face at rest) = 90°.
+// The preview grid shows each face at 0° (upright) since these are individual
+// texture canvases, not die faces viewed from a camera.
 function FaceCanvas({ spec, bg, text }: { spec: FaceSpec; bg: string; text: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -212,13 +215,13 @@ type Settings = {
 };
 
 const DEFAULTS: Settings = {
-  // Mirrors current main: dieFaceTexture.ts post-#88
-  ctrFrac: 0.45,
+  // Mirrors dieFaceTexture.ts
+  ctrFrac: 0.50,  // true canvas center (S/2)
   vMaxFrac: 0.35,
   lMaxFrac: 0.22,
   gapFrac: 0.04,
   maxWFrac: 0.70,
-  // Mirrors current main: DicePool3D _O = Ry(-π/2)
+  // Mirrors DicePool3D: _O = Ry(-π/2); no per-face UV transforms (baked into canvas)
   oAxis: 'Y',
   oAngleDeg: -90,
   faceSpinDeg: [0, 0, 0, 0, 0, 0],
@@ -226,12 +229,12 @@ const DEFAULTS: Settings = {
   faceOffsetY: [0, 0, 0, 0, 0, 0],
   faceMirrorX: [false, false, false, false, false, false],
   faceMirrorY: [false, false, false, false, false, false],
-  // Mirrors current main: DicePool3D camera + geometry
+  // Mirrors DicePool3D camera + geometry
   camY: 2.5,
   camZ: 0.9,
   camFov: 40,
   dieSize: 0.8,
-  dieRadius: 0.16,
+  dieRadius: 0.04,
 };
 
 function CameraLookAt({ camY, camZ, camFov }: { camY: number; camZ: number; camFov: number }) {
