@@ -58,16 +58,25 @@
   "abilities": [
     {
       "kind": "triggered",
-      "triggerEvent": { "kind": "afterActivateSupport", "ownOnly": true },
+      "triggerEvent": {
+        "kind": "afterActivateSupport",
+        "ownOnly": true
+      },
       "optional": true,
-      "effects": [
+      "steps": [
         {
-          "op": "dealDamage",
-          "amount": 1,
-          "damageType": "melee",
-          "target": { "kind": "opponentCharacter" },
-          "unblockable": false,
-          "optional": false
+          "effects": [
+            {
+              "op": "dealDamage",
+              "amount": 1,
+              "damageType": "melee",
+              "target": {
+                "kind": "opponentCharacter"
+              },
+              "unblockable": false,
+              "optional": false
+            }
+          ]
         }
       ]
     }

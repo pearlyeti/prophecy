@@ -311,13 +311,33 @@ export type Effect =
   | StubEffect<'new'>;
 
 // ────────────────────────────────────────────────────────────────────
+// EffectStep — the unit of "then" gating (ENGINE-ST1)
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * A step groups one or more effects that share a single "fully resolved"
+ * status (AND of their individual statuses). Setting `then: true` on a step
+ * gates it on the previous step fully resolving — this is the "Then" keyword
+ * from the rules reference.
+ *
+ * Examples:
+ *   { effects: [dealDamage] }                     — a simple single-effect step
+ *   { effects: [removeDie, loseResources] }        — implicit AND step
+ *   { effects: [addShields], then: true }          — only runs if previous step resolved
+ */
+export type EffectStep = {
+  readonly effects: readonly Effect[];
+  readonly then?: boolean;
+};
+
+// ────────────────────────────────────────────────────────────────────
 // Ability — discriminated on `kind`
 // ────────────────────────────────────────────────────────────────────
 
 export type ImmediateAbility = {
   kind: 'immediate';
   playCondition?: PlayCondition;
-  effects: readonly Effect[];
+  steps: readonly EffectStep[];
   cardDisposition?: CardDisposition;
 };
 
@@ -325,7 +345,7 @@ export type TriggeredAbility = {
   kind: 'triggered';
   triggerEvent: TriggerEvent;
   playCondition?: PlayCondition;
-  effects: readonly Effect[];
+  steps: readonly EffectStep[];
   optional?: boolean;
 };
 
@@ -333,7 +353,7 @@ export type ActionAbility = {
   kind: 'action';
   costs?: readonly ActionCost[];
   playCondition?: PlayCondition;
-  effects: readonly Effect[];
+  steps: readonly EffectStep[];
   optional?: boolean;
 };
 
@@ -341,13 +361,13 @@ export type PowerActionAbility = {
   kind: 'powerAction';
   costs?: readonly ActionCost[];
   playCondition?: PlayCondition;
-  effects: readonly Effect[];
+  steps: readonly EffectStep[];
   optional?: boolean;
 };
 
 export type SpecialAbility = {
   kind: 'special';
-  effects: readonly Effect[];
+  steps: readonly EffectStep[];
   optional?: boolean;
 };
 
@@ -359,7 +379,7 @@ export type PassiveAbility = {
 
 export type ClaimAbility = {
   kind: 'claim';
-  effects: readonly Effect[];
+  steps: readonly EffectStep[];
   optional?: boolean;
 };
 

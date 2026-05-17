@@ -1,4 +1,4 @@
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { endTurn } from '../state/turn.js';
 import type { GameState } from '../state/types.js';
@@ -50,7 +50,7 @@ export function applyClaim(state: GameState, playerId: string): ApplyResult {
     for (const ability of abilities) {
       if (ability.kind !== 'claim') continue;
       const ctx = { playerId, characterTargets: [] as string[], sourceCharacterId: battlefieldId };
-      const result = applyEffects(claimedState, ctx, ability.effects);
+      const result = applySteps(claimedState, ctx, ability.steps);
       claimedState = result.state;
       events.push(...result.events);
     }

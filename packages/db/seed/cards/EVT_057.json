@@ -18,11 +18,15 @@
   "abilities": [
     {
       "kind": "immediate",
-      "effects": [
+      "steps": [
         {
-          "op": "rollCardDie",
-          "cardId": "CHAR_003",
-          "optional": false
+          "effects": [
+            {
+              "op": "rollCardDie",
+              "cardId": "CHAR_003",
+              "optional": false
+            }
+          ]
         }
       ]
     }

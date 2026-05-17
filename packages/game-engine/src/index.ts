@@ -9,6 +9,7 @@ export type { Action } from './actions/types.js';
 export { IllegalActionError } from './actions/illegal.js';
 export type {
   Ability,
+  EffectStep,
   ImmediateAbility,
   TriggeredAbility,
   ActionAbility,

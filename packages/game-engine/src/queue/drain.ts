@@ -8,7 +8,7 @@
 // because interactive ordering during drain would require pausing the drain
 // loop — deferred to a future card.
 
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import type { DispatchContext } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import type { GameState } from '../state/types.js';
@@ -30,7 +30,7 @@ export function drainQueue(state: GameState): { state: GameState; events: Engine
       sourceCharacterId: entry.sourceCardInstanceId,
     };
 
-    const result = applyEffects(current, ctx, entry.effects);
+    const result = applySteps(current, ctx, entry.steps);
     current = result.state;
     allEvents.push(...result.events);
 

@@ -18,15 +18,19 @@
   "abilities": [
     {
       "kind": "claim",
-      "effects": [
+      "optional": false,
+      "steps": [
         {
-          "op": "loseResources",
-          "amount": 1,
-          "target": "opponent",
-          "optional": false
+          "effects": [
+            {
+              "op": "loseResources",
+              "amount": 1,
+              "target": "opponent",
+              "optional": false
+            }
+          ]
         }
-      ],
-      "optional": false
+      ]
     }
   ],
   "artUrl": null,

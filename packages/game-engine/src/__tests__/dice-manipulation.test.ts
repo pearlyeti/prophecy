@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import type { DispatchContext } from '../abilities/dispatch.js';
 import { newGameInActionPhase } from '../state/new-game.js';
 import type { DieFace, DieInPool, GameState } from '../state/types.js';
@@ -40,8 +40,8 @@ describe('removeDie effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, meleeFace, 'die-1');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'ownPool', count: 1 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'removeDie', from: 'ownPool', count: 1 }] },
     ]);
 
     expect(after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')).toBeUndefined();
@@ -56,8 +56,8 @@ describe('removeDie effect', () => {
       opp, resourceFace, 'opp-res',
     );
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'opponentPool', criteria: { symbol: 'melee' }, count: 1 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'removeDie', from: 'opponentPool', criteria: { symbol: 'melee' }, count: 1 }] },
     ]);
 
     const pool = after.players[opp]!.diceInPool;
@@ -70,8 +70,8 @@ describe('removeDie effect', () => {
     const active = activeId(initial);
     const state = addDie(addDie(initial, active, meleeFace, 'die-a'), active, meleeFace, 'die-b');
 
-    const { events } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'ownPool', criteria: { symbol: 'melee' }, count: 2 },
+    const { events } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'removeDie', from: 'ownPool', criteria: { symbol: 'melee' }, count: 2 }] },
     ]);
 
     const removed = events.filter((e) => e.type === 'die.removed');
@@ -83,8 +83,8 @@ describe('removeDie effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, meleeFace, 'die-1');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'ownPool', criteria: { symbol: 'ranged' }, count: 1 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'removeDie', from: 'ownPool', criteria: { symbol: 'ranged' }, count: 1 }] },
     ]);
 
     expect(after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')).toBeDefined();
@@ -99,8 +99,8 @@ describe('turnDie effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, meleeFace, 'die-1');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'turnDie', from: 'ownPool', toSymbol: 'resource', count: 1 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'turnDie', from: 'ownPool', toSymbol: 'resource', count: 1 }] },
     ]);
 
     const die = after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')!;
@@ -117,8 +117,8 @@ describe('turnDie effect', () => {
       opp, resourceFace, 'opp-res',
     );
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'turnDie', from: 'opponentPool', toSymbol: 'blank', criteria: { symbol: 'melee' }, count: 1 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'turnDie', from: 'opponentPool', toSymbol: 'blank', criteria: { symbol: 'melee' }, count: 1 }] },
     ]);
 
     const pool = after.players[opp]!.diceInPool;
@@ -131,8 +131,8 @@ describe('turnDie effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, meleeFace, 'die-1');
 
-    const { events } = applyEffects(state, ctx(state, active), [
-      { op: 'turnDie', from: 'ownPool', toSymbol: 'resource' },
+    const { events } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'turnDie', from: 'ownPool', toSymbol: 'resource' }] },
     ]);
 
     const turned = events.find((e) => e.type === 'die.turned');
@@ -146,8 +146,8 @@ describe('turnDie effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, meleeFace, 'die-1');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'turnDie', from: 'ownPool', toSymbol: 'blank', criteria: { symbol: 'ranged' } },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'turnDie', from: 'ownPool', toSymbol: 'blank', criteria: { symbol: 'ranged' } }] },
     ]);
 
     expect(after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')!.face.symbol).toBe('melee');
@@ -162,8 +162,8 @@ describe('modifyDieValue effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, meleeFace, 'die-1');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'modifyDieValue', from: 'ownPool', delta: 2 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'modifyDieValue', from: 'ownPool', delta: 2 }] },
     ]);
 
     const die = after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')!;
@@ -176,8 +176,8 @@ describe('modifyDieValue effect', () => {
     const face: DieFace = { symbol: 'melee', value: 1, cost: 0, modifier: false };
     const state = addDie(initial, active, face, 'die-1');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'modifyDieValue', from: 'ownPool', delta: -5 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'modifyDieValue', from: 'ownPool', delta: -5 }] },
     ]);
 
     const die = after.players[active]!.diceInPool.find((d) => d.instanceId === 'die-1')!;
@@ -189,8 +189,8 @@ describe('modifyDieValue effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, meleeFace, 'die-1');
 
-    const { events } = applyEffects(state, ctx(state, active), [
-      { op: 'modifyDieValue', from: 'ownPool', delta: 1 },
+    const { events } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'modifyDieValue', from: 'ownPool', delta: 1 }] },
     ]);
 
     const mod = events.find((e) => e.type === 'die.value-modified');
@@ -204,8 +204,8 @@ describe('modifyDieValue effect', () => {
     const active = activeId(initial);
     const state = addDie(initial, active, blankFace, 'blank-die');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'modifyDieValue', from: 'ownPool', delta: 3 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'modifyDieValue', from: 'ownPool', delta: 3 }] },
     ]);
 
     const die = after.players[active]!.diceInPool.find((d) => d.instanceId === 'blank-die')!;
@@ -218,8 +218,8 @@ describe('modifyDieValue effect', () => {
     const opp = opponentId(initial, active);
     const state = addDie(initial, opp, meleeFace, 'opp-die');
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'modifyDieValue', from: 'opponentPool', delta: -1 },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'modifyDieValue', from: 'opponentPool', delta: -1 }] },
     ]);
 
     const die = after.players[opp]!.diceInPool.find((d) => d.instanceId === 'opp-die')!;

@@ -1831,7 +1831,7 @@ function getCharTargetSide(card: Card | undefined): 'own' | 'opponent' | null {
   if (card.type !== 'event') return null;
   for (const ab of card.abilities) {
     if (ab.kind !== 'immediate') continue;
-    for (const fx of ab.effects) {
+    for (const step of ab.steps) for (const fx of step.effects) {
       const targetKind = (fx as { target?: { kind?: string } }).target?.kind;
       if (targetKind === 'opponentCharacter') return 'opponent';
       if (targetKind === 'ownCharacter') return 'own';

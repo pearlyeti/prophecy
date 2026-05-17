@@ -81,7 +81,7 @@ describe('(a) before-trigger modifies a damage event', () => {
     const beforeAbility: Ability = {
       kind: 'triggered',
       triggerEvent: { kind: 'beforeTakeDamage' },
-      effects: [{ op: 'addShields', amount: 2, target: { kind: 'thisCharacter' } }],
+      steps: [{ effects: [{ op: 'addShields', amount: 2, target: { kind: 'thisCharacter' } }] }],
     };
 
     // Start with no shields so we can track exactly what the trigger adds
@@ -154,7 +154,7 @@ describe('(b) same-player simultaneous after-triggers — player chooses order',
     const trigger: Ability = {
       kind: 'triggered',
       triggerEvent: { kind: 'afterActivateCharacter', ownOnly: true },
-      effects: [{ op: 'gainResources', amount: 1 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }],
     };
 
     let state = withAbility(initial, char0, trigger);
@@ -217,12 +217,12 @@ describe('(c) cross-player simultaneous after-triggers — BC chooses order', ()
     const myTrigger: Ability = {
       kind: 'triggered',
       triggerEvent: { kind: 'afterActivateCharacter', ownOnly: false },
-      effects: [{ op: 'gainResources', amount: 3 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 3 }] }],
     };
     const oppTrigger: Ability = {
       kind: 'triggered',
       triggerEvent: { kind: 'afterActivateCharacter', ownOnly: false },
-      effects: [{ op: 'gainResources', amount: 7 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 7 }] }],
     };
 
     let state = withAbility(initial, myChar, myTrigger);
@@ -308,7 +308,7 @@ describe('(d) after-trigger spawned mid-resolution goes to queue tail', () => {
     const trigger0: Ability = {
       kind: 'triggered',
       triggerEvent: { kind: 'afterActivateCharacter', ownOnly: true },
-      effects: [{ op: 'gainResources', amount: 5 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 5 }] }],
     };
     // char1 has no trigger — single trigger scenario
     let state = withAbility(initial, char0, trigger0);
@@ -349,14 +349,14 @@ describe('(d) after-trigger spawned mid-resolution goes to queue tail', () => {
             id: 'q-0',
             playerId: pid,
             sourceCardInstanceId: 'test-card-0',
-            effects: [{ op: 'gainResources' as const, amount: 10 }],
+            steps: [{ effects: [{ op: 'gainResources' as const, amount: 10 }] }],
             characterTargets: [] as string[],
           },
           {
             id: 'q-1',
             playerId: pid,
             sourceCardInstanceId: 'test-card-1',
-            effects: [{ op: 'gainResources' as const, amount: 20 }],
+            steps: [{ effects: [{ op: 'gainResources' as const, amount: 20 }] }],
             characterTargets: [] as string[],
           },
         ],

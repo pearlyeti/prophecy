@@ -1,4 +1,4 @@
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import { createRng } from '../rng/seeded-rng.js';
 import type { EngineEvent } from '../events.js';
 import type { GameState, PlayerState } from '../state/types.js';
@@ -147,14 +147,14 @@ export function applyResolveSearch(
     },
   ];
 
-  const { remainingEffects, resumePlayerId } = pendingSearch;
+  const { remainingSteps, resumePlayerId } = pendingSearch;
   state = { ...state, pendingSearch: null };
 
-  if (remainingEffects.length > 0) {
-    const { state: s2, events: e2 } = applyEffects(
+  if (remainingSteps.length > 0) {
+    const { state: s2, events: e2 } = applySteps(
       state,
       { playerId: resumePlayerId, characterTargets: [] },
-      remainingEffects,
+      remainingSteps,
     );
     state = s2;
     events.push(...e2);

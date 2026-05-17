@@ -12,6 +12,7 @@ export type {
   ActionCost,
   CardDisposition,
   Effect,
+  EffectStep,
   ImmediateAbility,
   PlayCondition,
   TargetSpec,

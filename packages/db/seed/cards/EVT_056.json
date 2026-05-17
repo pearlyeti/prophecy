@@ -55,10 +55,14 @@
   "abilities": [
     {
       "kind": "immediate",
-      "effects": [
+      "steps": [
         {
-          "op": "rollEventDie",
-          "optional": false
+          "effects": [
+            {
+              "op": "rollEventDie",
+              "optional": false
+            }
+          ]
         }
       ]
     }

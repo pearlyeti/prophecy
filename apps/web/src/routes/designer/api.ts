@@ -2,6 +2,25 @@
 
 import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
 
+// ── Schema migration shim ─────────────────────────────────────────────
+// ENGINE-ST1 replaced `effects: Effect[]` with `steps: EffectStep[]` on
+// every ability kind. If the game-server is still running pre-migration
+// code it returns abilities with `effects` instead of `steps`. Normalize
+// on the way in so the designer never sees `ability.steps === undefined`.
+type RawAbility = { kind: string; effects?: unknown[]; steps?: unknown[]; [k: string]: unknown };
+
+function normalizeCard(card: unknown): Card {
+  const c = card as Record<string, unknown>;
+  const abilities = (Array.isArray(c.abilities) ? c.abilities : []).map((ab: RawAbility) => {
+    if (!ab.steps && Array.isArray(ab.effects)) {
+      const { effects, ...rest } = ab;
+      return { ...rest, steps: effects.map((e) => ({ effects: [e] })) };
+    }
+    return ab;
+  });
+  return { ...c, abilities } as Card;
+}
+
 function serverUrl(): string {
   return (
     import.meta.env.VITE_GAME_SERVER_URL ??
@@ -17,8 +36,8 @@ function authHeaders(): Record<string, string> {
 export async function fetchCards(): Promise<Card[]> {
   const r = await fetch(`${serverUrl()}/designer/cards`);
   if (!r.ok) throw new Error(`GET /designer/cards failed: ${r.status}`);
-  const body = (await r.json()) as { cards: Card[] };
-  return body.cards;
+  const body = (await r.json()) as { cards: unknown[] };
+  return body.cards.map(normalizeCard);
 }
 
 export async function saveCards(cards: readonly Card[]): Promise<void> {
@@ -98,7 +117,8 @@ export interface CommittedCatalog {
 export async function fetchCommitted(): Promise<CommittedCatalog> {
   const r = await fetch(`${serverUrl()}/designer/committed`);
   if (!r.ok) throw new Error(`GET /designer/committed failed: ${r.status}`);
-  return (await r.json()) as CommittedCatalog;
+  const body = (await r.json()) as Omit<CommittedCatalog, 'cards'> & { cards: unknown[] };
+  return { ...body, cards: body.cards.map(normalizeCard) };
 }
 
 // ── GitHub sync ───────────────────────────────────────────────────────
@@ -174,7 +194,7 @@ export async function fetchCardHistory(cardId: string): Promise<CommitSummary[]>
 export async function fetchCardAtSha(cardId: string, sha: string): Promise<Card> {
   const r = await fetch(`${serverUrl()}/designer/cards/${encodeURIComponent(cardId)}/at/${encodeURIComponent(sha)}`);
   if (!r.ok) throw new Error(`GET /designer/cards/${cardId}/at/${sha} failed: ${r.status}`);
-  return (await r.json()) as Card;
+  return normalizeCard(await r.json());
 }
 
 export async function fetchCommitReport(sha: string): Promise<CommitReport> {

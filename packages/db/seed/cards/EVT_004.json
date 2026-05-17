@@ -18,14 +18,18 @@
   "abilities": [
     {
       "kind": "immediate",
-      "effects": [
+      "steps": [
         {
-          "op": "removeShields",
-          "amount": "all",
-          "target": {
-            "kind": "anyCharacter"
-          },
-          "optional": false
+          "effects": [
+            {
+              "op": "removeShields",
+              "amount": "all",
+              "target": {
+                "kind": "anyCharacter"
+              },
+              "optional": false
+            }
+          ]
         }
       ]
     }

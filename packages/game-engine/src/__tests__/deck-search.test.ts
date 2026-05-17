@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { applyAction } from '../reducers/apply-action.js';
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import type { DispatchContext } from '../abilities/dispatch.js';
 import { newGameInActionPhase } from '../state/new-game.js';
 import type { GameState } from '../state/types.js';
@@ -38,8 +38,8 @@ describe('searchDeck effect', () => {
     const deckTop = ['card-a', 'card-b', 'card-c', 'card-d', 'card-e'];
     const state = withDeck(initial, active, deckTop);
 
-    const { state: after, events } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'shuffleIntoDeck' },
+    const { state: after, events } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'shuffleIntoDeck' }] },
     ]);
 
     expect(after.pendingSearch).not.toBeNull();
@@ -61,8 +61,8 @@ describe('searchDeck effect', () => {
     const deckTop = ['opp-a', 'opp-b'];
     const state = withDeck(initial, opp, deckTop);
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'opponentDeck', revealCount: 2, choices: [], defaultDisposition: 'discard' },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'opponentDeck', revealCount: 2, choices: [], defaultDisposition: 'discard' }] },
     ]);
 
     expect(after.pendingSearch).not.toBeNull();
@@ -77,8 +77,8 @@ describe('searchDeck effect', () => {
     const deck = ['x1', 'x2', 'x3'];
     const state = withDeck(initial, active, deck);
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 'all', choices: [], defaultDisposition: 'shuffleIntoDeck' },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 'all', choices: [], defaultDisposition: 'shuffleIntoDeck' }] },
     ]);
 
     expect(after.pendingSearch!.revealedCardIds).toHaveLength(3);
@@ -95,15 +95,15 @@ describe('searchDeck effect', () => {
     };
 
     // Stop after revealing 1 character card — should stop at c2 (index 1)
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      {
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{
         op: 'searchDeck',
         source: 'ownDeck',
         revealCount: 10,
         revealUntil: { type: 'character', count: 1 },
         choices: [],
         defaultDisposition: 'shuffleIntoDeck',
-      },
+      }] },
     ]);
 
     // c1 (no type match) + c2 (character, 1st match = stop)
@@ -118,15 +118,15 @@ describe('searchDeck effect', () => {
 
     // Two effects: searchDeck followed by gainResources. gainResources should not run yet.
     const resourcesBefore = state.players[active]!.resources;
-    const { state: after, events } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'shuffleIntoDeck' },
-      { op: 'gainResources', amount: 5 },
+    const { state: after, events } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'shuffleIntoDeck' }] },
+      { effects: [{ op: 'gainResources', amount: 5 }] },
     ]);
 
     // Suspended — resources unchanged
     expect(after.players[active]!.resources).toBe(resourcesBefore);
-    expect(after.pendingSearch!.remainingEffects).toHaveLength(1);
-    expect(after.pendingSearch!.remainingEffects[0]).toMatchObject({ op: 'gainResources', amount: 5 });
+    expect(after.pendingSearch!.remainingSteps).toHaveLength(1);
+    expect(after.pendingSearch!.remainingSteps[0]).toMatchObject({ effects: [{ op: 'gainResources', amount: 5 }] });
     expect(events.some((e) => e.type === 'deck.searched')).toBe(true);
   });
 });
@@ -141,8 +141,8 @@ describe('resolve-search action', () => {
     let state = withDeck(initial, active, deck);
 
     // Trigger search
-    ({ state } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'shuffleIntoDeck' },
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'shuffleIntoDeck' }] },
     ]));
 
     // Resolve with no selections → all 3 go back to deck via shuffleIntoDeck
@@ -159,14 +159,14 @@ describe('resolve-search action', () => {
     const { active } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['h1', 'h2', 'h3']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      {
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{
         op: 'searchDeck',
         source: 'ownDeck',
         revealCount: 3,
         choices: [{ count: 1, disposition: 'toHand' }],
         defaultDisposition: 'shuffleIntoDeck',
-      },
+      }] },
     ]));
 
     const result = applyAction(state, {
@@ -188,8 +188,8 @@ describe('resolve-search action', () => {
     const { active } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['e1', 'e2']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'discard' },
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'discard' }] },
     ]));
 
     const { events } = applyAction(state, {
@@ -206,8 +206,8 @@ describe('resolve-search action', () => {
     const { active } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['d1', 'd2', 'd3']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'discard' },
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'discard' }] },
     ]));
 
     const result = applyAction(state, { type: 'resolve-search', playerId: active, selections: [] });
@@ -221,8 +221,8 @@ describe('resolve-search action', () => {
     const { active } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['t1', 't2', 't3', 't4']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'toTopOfDeck' },
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'toTopOfDeck' }] },
     ]));
 
     const result = applyAction(state, { type: 'resolve-search', playerId: active, selections: [] });
@@ -238,8 +238,8 @@ describe('resolve-search action', () => {
     const { active } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['b1', 'b2', 'b3', 'b4']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'toBottomOfDeck' },
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 3, choices: [], defaultDisposition: 'toBottomOfDeck' }] },
     ]));
 
     const result = applyAction(state, { type: 'resolve-search', playerId: active, selections: [] });
@@ -256,9 +256,9 @@ describe('resolve-search action', () => {
     let state = withDeck(initial, active, ['rem1', 'rem2']);
 
     // searchDeck then gainResources — resources should apply only after resolve
-    ({ state } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'shuffleIntoDeck' },
-      { op: 'gainResources', amount: 3 },
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'shuffleIntoDeck' }] },
+      { effects: [{ op: 'gainResources', amount: 3 }] },
     ]));
 
     const resourcesBefore = state.players[active]!.resources;
@@ -272,8 +272,8 @@ describe('resolve-search action', () => {
     const { active, opp } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['x1', 'x2']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      { op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'discard' },
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'searchDeck', source: 'ownDeck', revealCount: 2, choices: [], defaultDisposition: 'discard' }] },
     ]));
 
     expect(() =>
@@ -286,14 +286,14 @@ describe('resolve-search action', () => {
     const { active } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['v1', 'v2']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      {
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{
         op: 'searchDeck',
         source: 'ownDeck',
         revealCount: 2,
         choices: [{ count: 1, disposition: 'toHand' }],
         defaultDisposition: 'shuffleIntoDeck',
-      },
+      }] },
     ]));
 
     expect(() =>
@@ -310,14 +310,14 @@ describe('resolve-search action', () => {
     const { active } = activeAndOpp(initial);
     let state = withDeck(initial, active, ['n1', 'n2']);
 
-    ({ state } = applyEffects(state, ctx(state, active), [
-      {
+    ({ state } = applySteps(state, ctx(state, active), [
+      { effects: [{
         op: 'searchDeck',
         source: 'ownDeck',
         revealCount: 2,
         choices: [{ count: 1, disposition: 'toHand' }],
         defaultDisposition: 'shuffleIntoDeck',
-      },
+      }] },
     ]));
 
     expect(() =>

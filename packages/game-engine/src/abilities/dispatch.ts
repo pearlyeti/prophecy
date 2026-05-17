@@ -27,6 +27,7 @@ import type {
   DieCriteria,
   DrawCardsEffect,
   Effect,
+  EffectStep,
   GainResourcesEffect,
   HealDamageEffect,
   LoseResourcesEffect,
@@ -84,6 +85,12 @@ export interface EffectResult {
   readonly events: EngineEvent[];
   /** Number of entries consumed from ctx.characterTargets. */
   readonly targetsConsumed: number;
+  /**
+   * True when the effect fully resolved per the rules-reference definition.
+   * Used by applySteps for "then" gating — a then-step only runs when the
+   * previous step's fullyResolved (AND of all its effects) is true.
+   */
+  readonly fullyResolved: boolean;
 }
 
 /** Apply a single effect, returning the new state and any events emitted. */
@@ -125,35 +132,67 @@ export function applyEffect(
   }
 }
 
-/** Apply an array of effects sequentially, threading state and targets. */
-export function applyEffects(
+/**
+ * Apply an array of EffectSteps sequentially, respecting "then" gating.
+ *
+ * A step with `then: true` only executes when the previous step was fully
+ * resolved (AND of all its effects' fullyResolved flags). This implements
+ * the "Then" keyword from the rules reference.
+ *
+ * If a searchDeck effect suspends mid-step, the remaining effects in that
+ * step (if any) plus all subsequent steps are stashed in pendingSearch.remainingSteps
+ * and execution resumes via resolve-search.
+ */
+export function applySteps(
   state: GameState,
   ctx: DispatchContext,
-  effects: readonly Effect[],
+  steps: readonly EffectStep[],
 ): { state: GameState; events: EngineEvent[] } {
   let current = state;
   const allEvents: EngineEvent[] = [];
   let targetOffset = 0;
+  let prevStepResolved = true;
 
-  for (let i = 0; i < effects.length; i++) {
-    const hadSearch = current.pendingSearch !== null;
-    const result = applyEffect(current, ctx, effects[i]!, targetOffset);
-    current = result.state;
-    allEvents.push(...result.events);
-    targetOffset += result.targetsConsumed;
+  for (let si = 0; si < steps.length; si++) {
+    const step = steps[si]!;
 
-    // If a searchDeck effect just set pendingSearch, stash the remaining
-    // effects into it and stop — execution resumes via resolve-search.
-    if (!hadSearch && current.pendingSearch !== null) {
-      current = {
-        ...current,
-        pendingSearch: {
-          ...current.pendingSearch,
-          remainingEffects: effects.slice(i + 1),
-        },
-      };
-      break;
+    // "Then" gating: skip this step if the previous one didn't fully resolve.
+    if (step.then && !prevStepResolved) {
+      prevStepResolved = false;
+      continue;
     }
+
+    let stepResolved = true;
+    const stepEffects = step.effects;
+
+    for (let ei = 0; ei < stepEffects.length; ei++) {
+      const hadSearch = current.pendingSearch !== null;
+      const result = applyEffect(current, ctx, stepEffects[ei]!, targetOffset);
+      current = result.state;
+      allEvents.push(...result.events);
+      targetOffset += result.targetsConsumed;
+      if (!result.fullyResolved) stepResolved = false;
+
+      // searchDeck suspension: stash remaining effects in this step + all
+      // subsequent steps, then stop — resolve-search resumes execution.
+      if (!hadSearch && current.pendingSearch !== null) {
+        const remainingInStep = stepEffects.slice(ei + 1);
+        const remainingSteps: EffectStep[] = [
+          ...(remainingInStep.length > 0 ? [{ effects: remainingInStep }] : []),
+          ...steps.slice(si + 1),
+        ];
+        current = {
+          ...current,
+          pendingSearch: {
+            ...current.pendingSearch,
+            remainingSteps,
+          },
+        };
+        return { state: current, events: allEvents };
+      }
+    }
+
+    prevStepResolved = stepResolved;
   }
 
   return { state: current, events: allEvents };
@@ -171,7 +210,7 @@ function applyGainResources(
   const events: EngineEvent[] = [];
   const next = adjustResources(state, ctx.playerId, effect.amount);
   events.push({ type: 'resources.gained', payload: { playerId: ctx.playerId, amount: effect.amount } });
-  return { state: next, events, targetsConsumed: 0 };
+  return { state: next, events, targetsConsumed: 0, fullyResolved: true };
 }
 
 function applyLoseResources(
@@ -180,12 +219,14 @@ function applyLoseResources(
   effect: LoseResourcesEffect,
 ): EffectResult {
   const targetId = effect.target === 'self' ? ctx.playerId : (opponentOf(state, ctx.playerId) ?? ctx.playerId);
-  const current = state.players[targetId]?.resources ?? 0;
-  const lost = effect.amount === 'all' ? current : Math.min(current, effect.amount);
+  const available = state.players[targetId]?.resources ?? 0;
+  const lost = effect.amount === 'all' ? available : Math.min(available, effect.amount);
   const events: EngineEvent[] = [];
   const next = adjustResources(state, targetId, -lost);
   events.push({ type: 'resources.lost', payload: { playerId: targetId, amount: lost } });
-  return { state: next, events, targetsConsumed: 0 };
+  // Fully resolved iff we lost the full requested amount (or 'all' which always takes everything).
+  const fullyResolved = effect.amount === 'all' || lost >= effect.amount;
+  return { state: next, events, targetsConsumed: 0, fullyResolved };
 }
 
 function applyDrawCards(
@@ -195,6 +236,8 @@ function applyDrawCards(
 ): EffectResult {
   const events: EngineEvent[] = [];
   let current = state;
+  let totalRequested = 0;
+  let totalDrawn = 0;
 
   const playersToDraw: string[] =
     effect.player === 'eachPlayer'
@@ -208,12 +251,16 @@ function applyDrawCards(
     if (!player) continue;
     const n = effect.toHandSize ? player.handSize - player.hand.length : (effect.amount ?? 1);
     if (n <= 0) continue;
+    totalRequested += n;
     const { state: s, drawn } = drawCards(current, pid, n);
+    totalDrawn += drawn;
     current = s;
     events.push({ type: 'cards.drawn', payload: { playerId: pid, count: drawn } });
   }
 
-  return { state: current, events, targetsConsumed: 0 };
+  // Fully resolved iff all players drew the full requested count.
+  const fullyResolved = totalRequested === 0 || totalDrawn >= totalRequested;
+  return { state: current, events, targetsConsumed: 0, fullyResolved };
 }
 
 function applyDealDamage(
@@ -232,7 +279,9 @@ function applyDealDamage(
     if (current.winnerId !== null) break;
   }
 
-  return { state: current, events, targetsConsumed: targets.consumed };
+  // Fully resolved iff at least one target was available and damage event was emitted.
+  const fullyResolved = targets.consumed > 0 && events.some((e) => e.type === 'damage.dealt');
+  return { state: current, events, targetsConsumed: targets.consumed, fullyResolved };
 }
 
 function applyAddShields(
@@ -247,7 +296,7 @@ function applyAddShields(
   for (const { ownerId, characterId } of targets) {
     current = addShields(current, ownerId, characterId, effect.amount, events);
   }
-  return { state: current, events, targetsConsumed: targets.consumed };
+  return { state: current, events, targetsConsumed: targets.consumed, fullyResolved: targets.consumed > 0 };
 }
 
 function applyRemoveShields(
@@ -262,7 +311,10 @@ function applyRemoveShields(
   for (const { ownerId, characterId } of targets) {
     current = removeShields(current, ownerId, characterId, effect.amount, events);
   }
-  return { state: current, events, targetsConsumed: targets.consumed };
+  const fullyResolved = events.some(
+    (e) => e.type === 'shields.removed' && (e.payload as { amount: number }).amount > 0,
+  );
+  return { state: current, events, targetsConsumed: targets.consumed, fullyResolved };
 }
 
 function applyHealDamage(
@@ -277,7 +329,8 @@ function applyHealDamage(
   for (const { ownerId, characterId } of targets) {
     current = healDamage(current, ownerId, characterId, effect.amount, events);
   }
-  return { state: current, events, targetsConsumed: targets.consumed };
+  const fullyResolved = events.some((e) => e.type === 'damage.healed');
+  return { state: current, events, targetsConsumed: targets.consumed, fullyResolved };
 }
 
 function applyRollEventDie(state: GameState, ctx: DispatchContext): EffectResult {
@@ -314,7 +367,7 @@ function applyRollEventDie(state: GameState, ctx: DispatchContext): EffectResult
     ...state,
     players: { ...state.players, [ctx.playerId]: { ...player, diceInPool: [...player.diceInPool, newDie] } },
   };
-  return { state: nextState, events: [], targetsConsumed: 0 };
+  return { state: nextState, events: [], targetsConsumed: 0, fullyResolved: true };
 }
 
 function applyRollCardDie(state: GameState, ctx: DispatchContext, effect: RollCardDieEffect): EffectResult {
@@ -343,7 +396,7 @@ function applyRollCardDie(state: GameState, ctx: DispatchContext, effect: RollCa
     ...state,
     players: { ...state.players, [ctx.playerId]: { ...player, diceInPool: [...player.diceInPool, newDie] } },
   };
-  return { state: nextState, events: [], targetsConsumed: 0 };
+  return { state: nextState, events: [], targetsConsumed: 0, fullyResolved: true };
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -446,7 +499,7 @@ function applyRemoveDie(state: GameState, ctx: DispatchContext, effect: RemoveDi
     ...state,
     players: { ...state.players, [targetPlayerId]: { ...player, diceInPool: remaining } },
   };
-  return { state: next, events, targetsConsumed: 0 };
+  return { state: next, events, targetsConsumed: 0, fullyResolved: removed.length >= count };
 }
 
 function applyTurnDie(state: GameState, ctx: DispatchContext, effect: TurnDieEffect): EffectResult {
@@ -473,7 +526,7 @@ function applyTurnDie(state: GameState, ctx: DispatchContext, effect: TurnDieEff
     ...state,
     players: { ...state.players, [targetPlayerId]: { ...player, diceInPool: newPool } },
   };
-  return { state: next, events, targetsConsumed: 0 };
+  return { state: next, events, targetsConsumed: 0, fullyResolved: turned >= count };
 }
 
 function applyModifyDieValue(state: GameState, ctx: DispatchContext, effect: ModifyDieValueEffect): EffectResult {
@@ -501,7 +554,7 @@ function applyModifyDieValue(state: GameState, ctx: DispatchContext, effect: Mod
     ...state,
     players: { ...state.players, [targetPlayerId]: { ...player, diceInPool: newPool } },
   };
-  return { state: next, events, targetsConsumed: 0 };
+  return { state: next, events, targetsConsumed: 0, fullyResolved: modified >= count };
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -549,7 +602,7 @@ function applySearchDeck(state: GameState, ctx: DispatchContext, effect: SearchD
       source: effect.source,
       choices: effect.choices,
       defaultDisposition: effect.defaultDisposition,
-      remainingEffects: [], // populated by applyEffects after this returns
+      remainingSteps: [], // populated by applySteps after this returns
       resumePlayerId: ctx.playerId,
     } satisfies PendingSearch,
   };
@@ -559,7 +612,7 @@ function applySearchDeck(state: GameState, ctx: DispatchContext, effect: SearchD
     { type: 'cards.revealed', payload: { playerId: ctx.playerId, cardIds: revealed } },
   ];
 
-  return { state: nextState, events, targetsConsumed: 0 };
+  return { state: nextState, events, targetsConsumed: 0, fullyResolved: true };
 }
 
 // ────────────────────────────────────────────────────────────────────

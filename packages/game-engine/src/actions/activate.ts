@@ -1,4 +1,4 @@
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
@@ -91,7 +91,7 @@ export function performCharacterActivation(
       characterTargets: [],
       sourceCharacterId: candidate.sourceCardInstanceId,
     };
-    const result = applyEffects(working, ctx, candidate.ability.effects);
+    const result = applySteps(working, ctx, candidate.ability.steps);
     working = result.state;
     allEvents.push(...result.events);
   }
