@@ -91,11 +91,23 @@ export const FACE_CORRECT_Q: readonly THREE.Quaternion[] = [
 
 const DEFAULT_REST_Q = FACE_CORRECT_Q[DEFAULT_FACE_INDEX]!;
 
-// Aims the camera at the dice origin after mount. r3f positions the camera
-// from props but doesn't auto-aim it.
-function CameraLookAt() {
-  const { camera } = useThree();
-  useEffect(() => { camera.lookAt(0, 0, 0); }, [camera]);
+const TAN_HALF_FOV = Math.tan((CAM_FOV * Math.PI / 180) / 2);
+const BASE_DIST    = Math.sqrt(CAM_POS[1] ** 2 + CAM_POS[2] ** 2);
+
+// Positions and aims the camera so all dice fit horizontally with a margin.
+// Pulls the camera back proportionally when the dice span is wider than the
+// frustum at the current canvas aspect ratio.
+function CameraRig({ diceCount }: { diceCount: number }) {
+  const { camera, size } = useThree();
+  useEffect(() => {
+    const aspect   = size.width / size.height;
+    const halfSpan = ((diceCount - 1) / 2) * DIE_SPACING + DIE_SIZE / 2;
+    const needed   = halfSpan * 1.25; // 25% breathing room
+    const available = BASE_DIST * TAN_HALF_FOV * aspect;
+    const scale    = Math.max(1, needed / available);
+    camera.position.set(CAM_POS[0], CAM_POS[1] * scale, CAM_POS[2] * scale);
+    camera.lookAt(0, 0, 0);
+  }, [camera, size, diceCount]);
   return null;
 }
 
@@ -423,7 +435,7 @@ export default function DicePool3D({
         gl={{ alpha: true, antialias: true }}
         dpr={Math.min(window.devicePixelRatio, 2)}
       >
-        <CameraLookAt />
+        <CameraRig diceCount={dice.length} />
         <ambientLight intensity={0.5} />
         <directionalLight position={[0, 5, 2]} intensity={0.9} castShadow={false} />
 
