@@ -39,7 +39,7 @@ const FACE_PLANE_OFFSET = DIE_SIZE / 2 + 0.001;
 // At rest with no override the die shows face index 2 (+Y on top).
 const DEFAULT_FACE_INDEX = 2;
 
-const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
+const CAM_POS: [number, number, number] = [0, 2.5, 0];
 const CAM_ZOOM = 50; // px / world-unit; matches previous apparent die size at centre
 
 // ── Face plane layout ────────────────────────────────────────────────────────
@@ -65,9 +65,9 @@ const FACE_LAYOUT: readonly { pos: [number, number, number]; rot: [number, numbe
 // ── Orientation ──────────────────────────────────────────────────────────────
 //
 // FACE_CORRECT_Q[k]: rotation applied to the whole die so slot k is on top
-// with its text upright for the camera. The camera at (0, 2.5, 0.9) looking
-// at origin has screen-up projected onto the world-XZ plane (the top face's
-// plane) in the -Z direction. So for each face k we need:
+// with its text upright for the camera. The camera at (0, 2.5, 0) looks
+// straight down; with up=(0,0,-1) screen-up projects onto the world-XZ plane
+// in the -Z direction. So for each face k we need:
 //   • face k's outward normal → +Y (world)
 //   • face k's local "up"     → -Z (world)
 // FACE_CORRECT_Q[2] is identity because slot 2's normal is already +Y and
@@ -101,6 +101,7 @@ function CameraRig({ diceCount }: { diceCount: number }) {
     const zoom = Math.min(CAM_ZOOM, (size.width / 2) / needed);
     (camera as THREE.OrthographicCamera).zoom = zoom;
     camera.position.set(...CAM_POS);
+    camera.up.set(0, 0, -1); // required: view direction is -Y, so up must be non-parallel
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
   }, [camera, size, diceCount]);
