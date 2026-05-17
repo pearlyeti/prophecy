@@ -61,17 +61,17 @@ export function DiceEditor({
           key={idx}
           className="rounded border border-neutral-800 bg-neutral-900/60 p-2"
         >
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-neutral-500">
+          <div className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
             Face {idx + 1}
           </div>
           <div className="space-y-2">
-            <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+            <Label className="flex flex-col gap-0.5 text-xs text-muted-foreground">
               <span>Symbol</span>
               <Select
                 value={face.symbol}
                 onValueChange={(v) => updateFace(idx, { symbol: v as DieSymbol })}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -82,7 +82,7 @@ export function DiceEditor({
               </Select>
             </Label>
             <div className="flex gap-2">
-              <Label className="flex flex-1 flex-col gap-0.5 text-[11px] text-muted-foreground">
+              <Label className="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
                 <span>Value</span>
                 <Input
                   type="number"
@@ -91,10 +91,10 @@ export function DiceEditor({
                   value={face.value}
                   disabled={face.symbol === 'special' || face.symbol === 'blank'}
                   onChange={(e) => updateFace(idx, { value: Number(e.target.value) })}
-                  className="h-9 text-xs"
+                  className="h-9 text-sm"
                 />
               </Label>
-              <Label className="flex flex-1 flex-col gap-0.5 text-[11px] text-muted-foreground">
+              <Label className="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
                 <span>Cost</span>
                 <Input
                   type="number"
@@ -102,11 +102,11 @@ export function DiceEditor({
                   max={8}
                   value={face.cost}
                   onChange={(e) => updateFace(idx, { cost: Number(e.target.value) })}
-                  className="h-9 text-xs"
+                  className="h-9 text-sm"
                 />
               </Label>
             </div>
-            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Switch
                 checked={face.modifier}
                 disabled={face.symbol === 'modifier'}

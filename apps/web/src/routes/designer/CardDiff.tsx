@@ -49,13 +49,13 @@ export function CardDiff({ before, after }: { before: Card; after: Card }) {
   if (bDice !== aDice) rows.push({ label: 'Die faces', before: bDice, after: aDice });
 
   if (rows.length === 0) {
-    return <p className="text-xs text-neutral-500">Identical to current version.</p>;
+    return <p className="text-xs text-muted-foreground">Identical to current version.</p>;
   }
 
   return (
     <table className="w-full text-xs border-collapse">
       <thead>
-        <tr className="text-neutral-500 text-left">
+        <tr className="text-muted-foreground text-left">
           <th className="pb-1 pr-3 font-medium">Field</th>
           <th className="pb-1 pr-3 font-medium">Historical</th>
           <th className="pb-1 font-medium">Current</th>
@@ -64,7 +64,7 @@ export function CardDiff({ before, after }: { before: Card; after: Card }) {
       <tbody>
         {rows.map((row) => (
           <tr key={row.label} className="border-t border-neutral-800">
-            <td className="py-1 pr-3 text-neutral-400 whitespace-nowrap">{row.label}</td>
+            <td className="py-1 pr-3 text-muted-foreground whitespace-nowrap">{row.label}</td>
             <td className="py-1 pr-3 text-red-400 line-through whitespace-pre-wrap break-words max-w-[160px]">
               {row.before}
             </td>
