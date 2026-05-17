@@ -246,6 +246,63 @@ character-targeting plays.
 
 ---
 
+#### WEB-25 — Design token layer
+
+**Why now.** Game-mechanic colors are split between `dieFaceTexture.ts` (card color hex values) and `Game.tsx` (`LOG_CHIP_COLORS` die-symbol Tailwind classes). All UI feedback colors — the emerald valid ring, red invalid ring, amber pending/reroll state, sky opponent-preview tint, red/blue target rings — are raw inline Tailwind strings scattered across 190+ class assignments. There's no way to see all the color choices at once, and changing a semantic color (e.g., "what color means pending?") requires grepping the whole file. WEB-24 adds yet more color states (the commit-preview amber overlay) — this should land first so WEB-24 can use named tokens.
+
+**Scope.**
+- New file `apps/web/src/lib/tokens.ts`. Three exports:
+  - `CARD_COLOR_HEX: Record<CardColor, { bg: string; text: string }>` — the four card colors (red/blue/yellow/gray) as hex, moved from `dieFaceTexture.ts` which will import from here.
+  - `DIE_SYMBOL_CLS: Record<DieSymbol, string>` — Tailwind class strings per die symbol (melee/ranged/shield/resource/focus/disrupt/discard/modifier), moved from `LOG_CHIP_COLORS` in `Game.tsx`.
+  - `RING: Record<RingState, string>` — named ring/highlight Tailwind strings covering every distinct feedback state the board uses: `valid`, `hoverValid`, `invalid`, `hoverInvalid`, `targetDamage`, `targetShield`, `activateEligible`, `reroll`, `opponentPreview`, `pendingPreview` (new, for WEB-24's amber commit state).
+- `apps/web/src/lib/dieFaceTexture.ts`: import `CARD_COLOR_HEX` from tokens; remove the local definition.
+- `apps/web/src/routes/Game.tsx`: import `DIE_SYMBOL_CLS` and `RING` from tokens; replace all inline color strings for ring states and die symbol chips with token references. No visual change.
+- No new colors introduced — this is a rename/centralize pass only.
+
+**Context to load.**
+- `apps/web/src/lib/dieFaceTexture.ts` (lines 7–13 — CARD_COLORS definition)
+- `apps/web/src/routes/Game.tsx` (lines 610–619 LOG_CHIP_COLORS; grep for `ring-emerald`, `ring-red`, `amber-`, `sky-500`, `border-emerald`, `border-red`, `border-amber` to find all ring/highlight inline strings)
+- `apps/web/src/lib/tokens.ts` (new file)
+
+**Out of scope.** Changing any colors. CSS custom properties or Tailwind theme extension (not needed until there's a design-system requirement). Faction colors (no UI uses them yet).
+
+**Done when.**
+- [ ] Typecheck clean.
+- [ ] `tokens.ts` exports `CARD_COLOR_HEX`, `DIE_SYMBOL_CLS`, and `RING`. All three are fully typed (no `string` widening).
+- [ ] `dieFaceTexture.ts` imports `CARD_COLOR_HEX` from tokens; no local color definition.
+- [ ] `Game.tsx` `LOG_CHIP_COLORS` replaced by `DIE_SYMBOL_CLS` import. All inline ring/highlight strings replaced by `RING.*` references.
+- [ ] Visual diff: none. Game board looks identical before and after.
+
+---
+
+#### WEB-26 — UI layer inventory + simplification plan
+
+**Why now.** The game client has grown organically: there are now three near-identical bottom-bar components, three overlay patterns with the same backdrop markup copy-pasted, two fixed action bars that can be on screen at the same time, and two separate 3D canvas instances per match. There's no written reference for what renders where, at what z-index, or why. Before adding more UI (WEB-24 commit preview, WEB-20 pagination, future flows), we need a clear inventory and a deliberate simplification plan agreed with the human.
+
+**Scope.**
+- **Phase 1 — Audit (Claude alone):** Write a "UI layer reference" section in `README.md` under the existing "Live match experience" heading. Document the current state as-found:
+  - Layout regions: BattleZone, AvatarBar, OpponentZone/PlayerZone, BattlefieldRow, SupportStrip, InlineHandStrip, ActionBar, EventLog — with their file:line and their role.
+  - Z-index stack: z-20 (ability badges), z-30 (fixed bottom bars), z-40 (lighter backdrops), z-50 (hand/detail backdrops), z-100 (DragArtifact portal) — with what renders at each level.
+  - Overlay catalog: SetupPanel, ActionPanel/ActionOverlay/ConfirmOverlay, HandOverlay, CardDetailOverlay, UpgradeDetailOverlay, FacePickerPanel — pattern, trigger, and dismissal for each.
+  - Bottom-bar catalog: ActionBar, SelectionActionBar (resolve variant), SelectionActionBar (reroll variant) — noting that all three are `fixed inset-x-0 bottom-0 z-30` with near-identical markup.
+  - Canvas/3D: two `<Canvas>` instances (one per zone), camera setup, relation to DiceStack fallback.
+- **Phase 2 — Proposals (Claude alone):** Append a "Simplification candidates" section to the same README block, listing specific proposals with rationale and rough LOE. At minimum evaluate: (a) unify the three bottom-bar variants into one `ActionBar` with mode prop; (b) extract a shared `ModalSheet` wrapper for the three copy-paste overlay patterns; (c) consolidate two 3D canvases into one full-board canvas; (d) rationalize the ActionPanel vs. ActionBar duplication.
+- **Phase 3 — Human review (blocking):** Present the doc to the user; get explicit sign-off on which proposals to pursue. Each approved proposal becomes a separate follow-up WEB card sized for one session.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` (entire file — this is the inventory source)
+- `README.md` (Live match experience section — insertion target)
+
+**Out of scope.** Implementing any simplification in this card. Auditing the designer or admin routes.
+
+**Done when.**
+- [ ] `README.md` "UI layer reference" section written and committed.
+- [ ] "Simplification candidates" section written with at least the four proposals above.
+- [ ] Human has reviewed and commented on which proposals to pursue (GitHub Issue comments or chat).
+- [ ] Follow-up implementation cards filed for each approved proposal.
+
+---
+
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
