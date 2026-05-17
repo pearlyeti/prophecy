@@ -1945,7 +1945,6 @@ function BattleZone({
           game={game}
           playerId={playerId}
           catalogById={catalogById}
-          previewFlow={opponentPreview}
           dragCharTargetSide={dragCharTargetSide}
           dragOverCharId={dragOverCharId}
           onDetailTap={(charId) => setDetailId({ ownerId: playerId, charId })}
@@ -2110,6 +2109,39 @@ const SUPPORT_COL_WIDTH = 70; // ~75% of character column
 
 type ZoneSide = 'player' | 'opponent';
 
+/** Build face-override map from a face-pick history (shared by player and opponent rendering). */
+function buildFacePickOverrides(
+  history: readonly FacePickEvent[],
+  dice: readonly DieInPool[],
+  playerState: any,
+): Record<string, { faceIndex: number; face: DieFace }> {
+  const overrides: Record<string, { faceIndex: number; face: DieFace }> = {};
+  for (const event of history) {
+    if (event.kind !== 'flip') continue;
+    const poolDie = dice.find((d) => d.instanceId === event.targetDieId);
+    if (!poolDie?.ownerInstanceId) continue;
+    const ownerChar = playerState.characters?.[poolDie.ownerInstanceId];
+    const dieSpec = ownerChar?.dice?.find((d: any) => d.instanceId === event.targetDieId);
+    if (!dieSpec) continue;
+    overrides[event.targetDieId] = { faceIndex: event.faceIndex, face: dieSpec.faces[event.faceIndex] };
+  }
+  return overrides;
+}
+
+/** Build placeholder DieInPool entries from a character's spec dice (face 0, not yet rolled). */
+function makeSpecDicePreview(
+  charDice: readonly { instanceId: string; cardId: string; faces: readonly DieFace[] }[],
+  ownerId: string,
+): DieInPool[] {
+  return charDice.map((sd) => ({
+    instanceId: sd.instanceId,
+    cardId: sd.cardId,
+    faceIndex: 0,
+    face: sd.faces[0],
+    ownerInstanceId: ownerId,
+  }));
+}
+
 function BattlefieldRow({
   rowIds,
   playerState,
@@ -2175,35 +2207,17 @@ function BattlefieldRow({
         // spec dice as tumbling placeholders so the animation starts immediately
         // on tap. They share the same instanceIds as the real dice, so Die3D
         // preserves its tumble refs when the server's rolled dice replace them.
-        const activationPreviewDice: DieInPool[] = isActivating && dice.length === 0
-          ? char.dice.map((sd) => ({
-              instanceId: sd.instanceId,
-              cardId: sd.cardId,
-              faceIndex: 0,
-              face: sd.faces[0],
-              ownerInstanceId: cid,
-            }))
-          : [];
+        const activationPreviewDice = isActivating && dice.length === 0
+          ? makeSpecDicePreview(char.dice, cid) : [];
         const displayDice = dice.length > 0 ? dice : activationPreviewDice;
 
-        // For opponent side: placeholder dice so the 3-D Canvas exists before
-        // game.state arrives, mirroring the activationPreviewDice pattern.
-        // tumblingPoolDieIds is set from game.events (before game.state), so
-        // we can match against spec die IDs to detect which char is activating.
-        const charDieIds = char.dice.map((d) => d.instanceId);
+        // For opponent side: tumblingPoolDieIds (set from game.events, before game.state)
+        // lets us detect which char is activating and show placeholder dice so the R3F
+        // Canvas exists when the tumble starts — mirroring activationPreviewDice above.
         const isOpponentActivatingThisChar =
-          side === 'opponent' && charDieIds.some((id) => tumblingPoolDieIds.includes(id));
-        const opponentPreviewDice: DieInPool[] =
-          isOpponentActivatingThisChar && dice.length === 0
-            ? char.dice.map((sd) => ({
-                instanceId: sd.instanceId,
-                cardId: sd.cardId,
-                faceIndex: 0,
-                face: sd.faces[0],
-                ownerInstanceId: cid,
-              }))
-            : [];
-        const opponentDisplayDice = dice.length > 0 ? dice : opponentPreviewDice;
+          side === 'opponent' && char.dice.some((d) => tumblingPoolDieIds.includes(d.instanceId));
+        const opponentDisplayDice = dice.length > 0 ? dice
+          : isOpponentActivatingThisChar ? makeSpecDicePreview(char.dice, cid) : [];
 
         // Resolve flow targeting
         const inResolveFlow = activeFlow?.kind === 'resolve';
@@ -2251,15 +2265,7 @@ function BattlefieldRow({
             previewRerollDieIds = previewFlow.selectedDieIds;
           }
           if (previewFlow.kind === 'face-pick' && side === 'opponent') {
-            for (const event of previewFlow.history) {
-              if (event.kind !== 'flip') continue;
-              const poolDie = dice.find((d) => d.instanceId === event.targetDieId);
-              if (!poolDie?.ownerInstanceId) continue;
-              const ownerChar = (playerState as any).characters?.[poolDie.ownerInstanceId];
-              const dieSpec = ownerChar?.dice?.find((d: any) => d.instanceId === event.targetDieId);
-              if (!dieSpec) continue;
-              opponentFaceOverrides[event.targetDieId] = { faceIndex: event.faceIndex, face: dieSpec.faces[event.faceIndex] };
-            }
+            Object.assign(opponentFaceOverrides, buildFacePickOverrides(previewFlow.history, dice, playerState));
             if (previewFlow.pickingForDieId && dice.some(d => d.instanceId === previewFlow.pickingForDieId)) {
               previewRerollDieIds = [previewFlow.pickingForDieId];
             }
@@ -2267,7 +2273,8 @@ function BattlefieldRow({
           if (previewFlow.kind === 'cardAction' && side === 'opponent' && previewFlow.cardId === cid) {
             previewCardAction = true;
           }
-          // Show pending counter badge from opponent's committed resolve groups targeting this char.
+          // Player's own committed group takes priority; show opponent's preview only when
+          // the player has no group of their own targeting this character.
           if (!pendingCounter && previewFlow.kind === 'resolve') {
             const group = previewFlow.pendingTargets.find(t => t.targetCharacterId === cid);
             if (group) {
@@ -2323,20 +2330,9 @@ function BattlefieldRow({
           ? activeFlow.selectedDieIds
           : null;
 
-        // Compute face overrides for focus-pick preview on player dice.
-        // Reads the latest flip for each target die from the face-pick history.
-        const faceOverrides: Record<string, { faceIndex: number; face: import('@prophecy/game-engine').DieFace }> = {};
-        if (side === 'player' && activeFlow?.kind === 'face-pick') {
-          for (const event of activeFlow.history) {
-            if (event.kind !== 'flip') continue;
-            const poolDie = dice.find((d) => d.instanceId === event.targetDieId);
-            if (!poolDie?.ownerInstanceId) continue;
-            const ownerChar = (playerState as any).characters?.[poolDie.ownerInstanceId];
-            const dieSpec = ownerChar?.dice?.find((d: any) => d.instanceId === event.targetDieId);
-            if (!dieSpec) continue;
-            faceOverrides[event.targetDieId] = { faceIndex: event.faceIndex, face: dieSpec.faces[event.faceIndex] };
-          }
-        }
+        const faceOverrides = (side === 'player' && activeFlow?.kind === 'face-pick')
+          ? buildFacePickOverrides(activeFlow.history, dice, playerState)
+          : {};
 
         // Drag-targeting ring: show validity feedback when dragging a char-targeted card.
         let dragRing: 'drag-valid' | 'drag-invalid' | 'drag-hover-valid' | 'drag-hover-invalid' | undefined;
@@ -2530,7 +2526,6 @@ function PlayerZone({
   game,
   playerId,
   catalogById,
-  previewFlow,
   dragCharTargetSide,
   dragOverCharId,
   onDetailTap,
@@ -2539,7 +2534,6 @@ function PlayerZone({
   game: GameState;
   playerId: string;
   catalogById: Map<string, Card>;
-  previewFlow?: ActiveFlow | null;
   dragCharTargetSide: 'own' | 'opponent' | null;
   dragOverCharId: string | null;
   onDetailTap: (charId: string) => void;
@@ -2590,7 +2584,6 @@ function PlayerZone({
           resolvableSymbols={resolvableSymbols}
           actionableIds={actionableIds}
           powerActionableIds={powerActionableIds}
-          previewFlow={previewFlow ?? null}
           dragCharTargetSide={dragCharTargetSide}
           dragOverCharId={dragOverCharId}
           onDetailTap={onDetailTap}
