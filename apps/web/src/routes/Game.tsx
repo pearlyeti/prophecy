@@ -2156,6 +2156,7 @@ function BattlefieldRow({
 }) {
   const activeFlow = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
+  const tumblingActivatedCardId = useApp((s) => s.tumblingActivatedCardId);
 
   return (
     <div className="flex shrink-0 flex-row items-end justify-center gap-4 px-3">
@@ -2392,6 +2393,7 @@ function BattlefieldRow({
                   diceInteractive={false}
                   selectionMode={selectionMode}
                   cardColor={dieCardColor}
+                  tumblingCharId={tumblingActivatedCardId === cid ? cid : null}
                   previewSelectedDieIds={previewSelectedDieIds}
                   previewSpentDieIds={previewSpentDieIds}
                   previewRerollDieIds={previewRerollDieIds}
