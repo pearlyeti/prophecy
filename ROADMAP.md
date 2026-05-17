@@ -340,6 +340,33 @@ character-targeting plays.
 
 ---
 
+#### WEB-28 — Move activity log to left-side modal
+
+**Why now.** The `EventLog` `<details>` strip at the bottom of `BattleZone` always occupies vertical space (summary bar) even when collapsed. On phone-portrait layouts that real estate is critical. A log icon on the center divider gives full access without a permanent footprint.
+
+**Scope.**
+- `apps/web/src/routes/Game.tsx`:
+  - Remove `<EventLog>` from its slot at the bottom of `BattleZone` (line 1930).
+  - Make the center divider wrapper `relative` (currently `shrink-0 px-4 py-3`).
+  - Add a log icon `<button>` absolutely positioned at `left-2 top-1/2 -translate-y-1/2` — inside the padding zone so it never overlaps the `h-px` line. Icon: a scroll or list icon (heroicons `ClipboardDocumentListIcon` or equivalent already in the icon set; fall back to a simple `☰` text glyph if no suitable icon is available). Tap target ≥ 44 × 44px.
+  - Wire button to a new `logOpen` boolean state in `BattleZone` (default `false`).
+  - Add `ActivityLogModal`: a full-screen or bottom-sheet overlay (reuse the same backdrop + rounded-top-sheet pattern used by `CardDetailOverlay`). Contains the `<ol>` from `EventLog` with no `max-h-48` cap — scroll within the modal. Close button in the header; tap-outside dismisses.
+  - `EventLog` internal component: keep `buildLogEntries` / `<ol>` rendering logic but strip the `<details>` wrapper — the modal provides its own chrome.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx` — `BattleZone` (lines 1844–1941), center divider (lines 1896–1899), `EventLog` (lines 932–967), `CardDetailOverlay` (for the overlay pattern)
+
+**Out of scope.** Redesigning log content, pagination, filtering, engine or protocol changes.
+
+**Done when.**
+- [ ] Typecheck clean. Lint clean.
+- [ ] No persistent `EventLog` strip at the bottom of `BattleZone`.
+- [ ] Center divider has a tappable log icon (≥ 44 × 44 px) on its left side that does not clip or overlap the divider line.
+- [ ] Tapping the icon opens the activity log modal; all entries render; the list is scrollable; close button and tap-outside both dismiss.
+- [ ] Manual smoke: dev server running, phone-portrait viewport (360 px wide) — no height regression at the bottom of the board.
+
+---
+
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
