@@ -12,7 +12,9 @@ import type {
   Ability,
   ActionCost,
   CardDisposition,
+  ChooseEffect,
   Effect,
+  EffectStep,
   PlayCondition,
   RollCardDieEffect,
   RollEventDieEffect,
@@ -286,6 +288,22 @@ const searchDeckEffect = z.object({
   optional: z.boolean().default(false),
 });
 
+// ENGINE-CH1: choose op (modal "or" / "Choose N of M").
+// branches.steps forward-references effectStepSchema (defined below). The
+// z.lazy() defers evaluation to parse time when the module is fully loaded.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const chooseEffect = z.object({
+  op: z.literal('choose'),
+  count: z.number().int().min(1),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  branches: z.array(z.object({
+    label: z.string().optional(),
+    // Forward ref: effectStepSchema is defined below; z.lazy defers the call.
+    steps: z.lazy(() => z.array(effectStepSchema)) as z.ZodType<readonly EffectStep[]>,
+  })).default([]),
+  optional: z.boolean().default(false),
+});
+
 // Stub helper: op name + optional flag + any additional fields.
 function stub(op: string) {
   return z.object({ op: z.literal(op), optional: z.boolean().default(false) }).passthrough();
@@ -340,7 +358,7 @@ export const effectSchema: z.ZodType<Effect> = z.discriminatedUnion('op', [
   stub('placeDamageOnCard'),
   stub('placeResourceOnCard'),
   stub('returnDefeatedCharacter'),
-  stub('choice'),
+  chooseEffect,
   newOpEffect,
 ] as const) as z.ZodType<Effect>;
 
@@ -359,6 +377,7 @@ export const KNOWN_OPS = [
   'turnDie',
   'modifyDieValue',
   'searchDeck',
+  'choose',
 ] as const;
 export type KnownOp = (typeof KNOWN_OPS)[number];
 

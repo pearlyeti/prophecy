@@ -237,6 +237,7 @@ export function newGame(input: NewGameInput): GameState {
     cardKeywords: cardKeywords ?? {},
     cardMeta: cardMeta ?? {},
     pendingGuardian: null,
+    pendingChoice: null,
     pendingSearch: null,
     queue: emptyQueue,
     pendingTriggers: null,

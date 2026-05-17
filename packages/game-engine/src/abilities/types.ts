@@ -264,6 +264,16 @@ export type SearchDeckEffect = {
   optional?: boolean;
 };
 
+// ENGINE-CH1: modal choice op.
+// ChooseEffect.branches reference EffectStep (defined below) — TypeScript
+// handles the mutual recursion because type aliases are fully hoisted.
+export type ChooseEffect = {
+  op: 'choose';
+  count: number;
+  branches: readonly { readonly label?: string; readonly steps: readonly EffectStep[] }[];
+  optional?: boolean;
+};
+
 // Stub ops: schema-defined, dispatcher throws NotImplementedError.
 // Index signature lets card authors add fields before the op ships.
 type StubEffect<Op extends string> = { op: Op; optional?: boolean; [k: string]: unknown };
@@ -282,6 +292,7 @@ export type Effect =
   | TurnDieEffect
   | ModifyDieValueEffect
   | SearchDeckEffect
+  | ChooseEffect
   | StubEffect<'rerollDice'>
   | StubEffect<'resolveDie'>
   | StubEffect<'resolveWithoutRemoving'>
@@ -307,7 +318,6 @@ export type Effect =
   | StubEffect<'placeDamageOnCard'>
   | StubEffect<'placeResourceOnCard'>
   | StubEffect<'returnDefeatedCharacter'>
-  | StubEffect<'choice'>
   | StubEffect<'new'>;
 
 // ────────────────────────────────────────────────────────────────────

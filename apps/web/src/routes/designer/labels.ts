@@ -44,6 +44,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
   placeDamageOnCard: 'Place damage on a card',
   placeResourceOnCard: 'Place a resource on a card',
   returnDefeatedCharacter: 'Return a defeated character',
+  choose: 'Choose...',
   // Target kinds — possessive for opponent
   opponentCharacter: "Opponent's character",
 };

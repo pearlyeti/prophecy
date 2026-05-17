@@ -85,4 +85,14 @@ export type Action =
       type: 'resolve-search';
       playerId: string;
       selections: readonly { readonly choiceIndex: number; readonly cardIds: readonly string[] }[];
+    }
+  | {
+      /**
+       * Resolve a pending choose effect. `picks` is an ordered list of
+       * branch indices (0-based). The engine runs the chosen branches in
+       * the given order, then resumes any remainingSteps.
+       */
+      type: 'resolve-choice';
+      playerId: string;
+      picks: readonly number[];
     };

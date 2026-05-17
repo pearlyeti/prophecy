@@ -19,10 +19,11 @@ import {
   ownerOf,
   removeShields,
 } from '../state/combat.js';
-import type { DieFace, GameState, DieInPool, PendingSearch } from '../state/types.js';
+import type { DieFace, GameState, DieInPool, PendingSearch, PendingChoice } from '../state/types.js';
 import type {
   AddShieldsEffect,
   CardCriteria,
+  ChooseEffect,
   DealDamageEffect,
   DieCriteria,
   DrawCardsEffect,
@@ -127,6 +128,8 @@ export function applyEffect(
       return applyModifyDieValue(state, ctx, effect);
     case 'searchDeck':
       return applySearchDeck(state, ctx, effect);
+    case 'choose':
+      return applyChoose(state, ctx, effect);
     default:
       throw new NotImplementedError(effect.op);
   }
@@ -167,6 +170,7 @@ export function applySteps(
 
     for (let ei = 0; ei < stepEffects.length; ei++) {
       const hadSearch = current.pendingSearch !== null;
+      const hadChoice = current.pendingChoice !== null;
       const result = applyEffect(current, ctx, stepEffects[ei]!, targetOffset);
       current = result.state;
       allEvents.push(...result.events);
@@ -185,6 +189,23 @@ export function applySteps(
           ...current,
           pendingSearch: {
             ...current.pendingSearch,
+            remainingSteps,
+          },
+        };
+        return { state: current, events: allEvents };
+      }
+
+      // choose suspension: same pattern as searchDeck.
+      if (!hadChoice && current.pendingChoice !== null) {
+        const remainingInStep = stepEffects.slice(ei + 1);
+        const remainingSteps: EffectStep[] = [
+          ...(remainingInStep.length > 0 ? [{ effects: remainingInStep }] : []),
+          ...steps.slice(si + 1),
+        ];
+        current = {
+          ...current,
+          pendingChoice: {
+            ...current.pendingChoice,
             remainingSteps,
           },
         };
@@ -613,6 +634,24 @@ function applySearchDeck(state: GameState, ctx: DispatchContext, effect: SearchD
   ];
 
   return { state: nextState, events, targetsConsumed: 0, fullyResolved: true };
+}
+
+// ────────────────────────────────────────────────────────────────────
+// ENGINE-CH1: modal choice
+// ────────────────────────────────────────────────────────────────────
+
+function applyChoose(state: GameState, ctx: DispatchContext, effect: ChooseEffect): EffectResult {
+  const nextState: GameState = {
+    ...state,
+    pendingChoice: {
+      playerId: ctx.playerId,
+      count: effect.count,
+      branches: effect.branches,
+      remainingSteps: [], // populated by applySteps after this returns
+      resumePlayerId: ctx.playerId,
+    } satisfies PendingChoice,
+  };
+  return { state: nextState, events: [], targetsConsumed: 0, fullyResolved: true };
 }
 
 // ────────────────────────────────────────────────────────────────────

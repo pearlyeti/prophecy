@@ -20,4 +20,6 @@ export type {
   SearchDeckEffect,
   SearchDisposition,
   SearchChoice,
+  ChooseEffect,
+  PendingChoice,
 } from '@prophecy/game-engine';

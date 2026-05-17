@@ -1,4 +1,5 @@
 import { applyActivate } from '../actions/activate.js';
+import { applyResolveChoice } from '../actions/resolve-choice.js';
 import { applyResolveSearch } from '../actions/resolve-search.js';
 import { applyGuardianIntercept } from '../actions/guardian-intercept.js';
 import { applyOrderTriggersAction } from '../actions/order-triggers.js';
@@ -80,5 +81,7 @@ export function applyAction(state: GameState, action: Action, options?: ApplyOpt
       return applyOrderTriggersAction(state, action.playerId, action.order);
     case 'resolve-search':
       return applyResolveSearch(state, action.playerId, action.selections);
+    case 'resolve-choice':
+      return applyResolveChoice(state, action.playerId, action.picks);
   }
 }

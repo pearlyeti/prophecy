@@ -1,5 +1,6 @@
 // Core type definitions for the rules engine.
 import type { Ability, EffectStep, SearchChoice, SearchDisposition } from '../abilities/types.js';
+
 import type { Queue, PendingTriggers } from '../queue/types.js';
 // These mirror the abstract game system in docs/rules-reference.md.
 // Implementation comes incrementally; this file exists so dependent
@@ -199,6 +200,18 @@ export interface SetupContext {
 }
 
 /**
+ * Mid-action pause state set while a choose effect is waiting for the player
+ * to pick branches. All other actions are blocked until resolve-choice is submitted.
+ */
+export interface PendingChoice {
+  readonly playerId: string;
+  readonly count: number;
+  readonly branches: readonly { readonly label?: string; readonly steps: readonly EffectStep[] }[];
+  readonly remainingSteps: readonly EffectStep[];
+  readonly resumePlayerId: string;
+}
+
+/**
  * Mid-action pause state set while a searchDeck effect is waiting for the
  * player to select cards from the revealed set. All other actions are blocked
  * for the waiting player until resolve-search is submitted.
@@ -321,6 +334,12 @@ export interface GameState {
     readonly activatingCharacterId: string;
     readonly activatingPlayerId: string;
   } | null;
+  /**
+   * Non-null while a choose effect is waiting for the player's branch picks.
+   * While set, only `resolve-choice` (+ concede) is legal for the waiting
+   * player. The opponent may only concede.
+   */
+  readonly pendingChoice: PendingChoice | null;
   /**
    * Non-null while a searchDeck effect is waiting for the player's picks.
    * While set, only `resolve-search` (+ concede) is legal for the waiting

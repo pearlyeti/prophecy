@@ -36,6 +36,7 @@ export type {
   SearchDeckEffect,
   SearchDisposition,
   SearchChoice,
+  ChooseEffect,
   TargetSpec,
   PlayCondition,
   TriggerEvent,

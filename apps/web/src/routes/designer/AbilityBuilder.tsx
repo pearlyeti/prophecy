@@ -8,6 +8,7 @@ import type {
   ActionCost,
   CardCriteria,
   CardDisposition,
+  ChooseEffect,
   DieCriteria,
   Effect,
   EffectStep,
@@ -49,7 +50,7 @@ const STUB_OPS = [
   'revealTopCard', 'playCard', 'returnToHand', 'takeBattlefieldControl',
   'claimBattlefield', 'endActionPhase', 'takeAdditionalActions', 'forceActivate',
   'grantKeyword', 'setAsideDie', 'placeDamageOnCard',
-  'placeResourceOnCard', 'returnDefeatedCharacter', 'choice',
+  'placeResourceOnCard', 'returnDefeatedCharacter',
 ] as const;
 
 type KnownOp = (typeof KNOWN_OPS)[number];
@@ -114,6 +115,15 @@ function defaultEffect(op: OpKind): Effect {
       revealCount: 5,
       choices: [],
       defaultDisposition: 'shuffleIntoDeck',
+      optional: false,
+    };
+    case 'choose': return {
+      op: 'choose',
+      count: 1,
+      branches: [
+        { label: 'Option A', steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }] },
+        { label: 'Option B', steps: [{ effects: [{ op: 'drawCards', player: 'self', amount: 1 }] }] },
+      ],
       optional: false,
     };
     case 'new': return { op: 'new', workingName: '', notes: '' };
@@ -974,6 +984,64 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               onChange({ ...e, choices } as Effect);
             }} className="rounded bg-neutral-700 px-2 py-1 text-xs hover:bg-neutral-600">
               + Add choice
+            </button>
+          </div>
+        </div>
+      );
+    }
+    case 'choose': {
+      const e = effect as ChooseEffect;
+      const addBranch = () =>
+        onChange({
+          ...e,
+          branches: [
+            ...e.branches,
+            { label: `Option ${String.fromCharCode(65 + e.branches.length)}`, steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }] },
+          ],
+        } as Effect);
+      const removeBranch = (bi: number) =>
+        onChange({ ...e, branches: e.branches.filter((_, i) => i !== bi) } as Effect);
+      const updateBranchLabel = (bi: number, lbl: string) => {
+        const branches = e.branches.map((b, i) => i === bi ? { ...b, label: lbl || undefined } : b);
+        onChange({ ...e, branches } as Effect);
+      };
+      const updateBranchSteps = (bi: number, steps: EffectStep[]) => {
+        const branches = e.branches.map((b, i) => i === bi ? { ...b, steps } : b);
+        onChange({ ...e, branches } as Effect);
+      };
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <NumberField label="Choose (count)" value={e.count} min={1} max={e.branches.length || 1}
+              onChange={(count) => onChange({ ...e, count } as Effect)} />
+            <span className="self-end text-xs text-muted-foreground">of {e.branches.length} branch(es)</span>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Branches</p>
+            {e.branches.map((branch, bi) => (
+              <div key={bi} className="rounded border border-neutral-700 bg-neutral-900/40 p-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-mono">Branch {bi + 1}</span>
+                  <TextField label="" value={branch.label ?? ''}
+                    onChange={(v) => updateBranchLabel(bi, v)} />
+                  {e.branches.length > 1 && (
+                    <button type="button" onClick={() => removeBranch(bi)}
+                      className="self-end rounded bg-red-900/40 px-2 py-1 text-xs text-destructive hover:bg-red-800/60">
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div className="ml-2">
+                  <StepsList
+                    steps={branch.steps as EffectStep[]}
+                    onChange={(steps) => updateBranchSteps(bi, steps)}
+                  />
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={addBranch}
+              className="rounded bg-neutral-700 px-2 py-1 text-xs hover:bg-neutral-600">
+              + Add branch
             </button>
           </div>
         </div>

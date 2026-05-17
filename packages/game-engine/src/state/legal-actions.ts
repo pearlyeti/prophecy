@@ -80,6 +80,11 @@ export interface LegalActions {
    * While true, only resolve-search (+ concede) is legal.
    */
   readonly canResolveSearch: boolean;
+  /**
+   * True when a choose effect is waiting for this player to pick branches.
+   * While true, only resolve-choice (+ concede) is legal.
+   */
+  readonly canResolveChoice: boolean;
 }
 
 /** Returns true if all costs of an action/powerAction ability can currently be paid. */
@@ -117,6 +122,14 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
 
   const player = state.players[playerId];
   if (!player) return EMPTY;
+
+  // ---- Pending choice ----
+  // While a choose effect is waiting, only resolve-choice is legal
+  // for the choosing player. The opponent may only concede.
+  if (state.pendingChoice) {
+    const isChoosing = state.pendingChoice.playerId === playerId;
+    return { ...EMPTY, canConcede: true, canResolveChoice: isChoosing };
+  }
 
   // ---- Pending search ----
   // While a searchDeck effect is waiting, only resolve-search is legal
@@ -246,6 +259,7 @@ export function getLegalActions(state: GameState, playerId: string): LegalAction
     guardianInterceptableDieIds: [],
     canSkipGuardian: false,
     canResolveSearch: false,
+    canResolveChoice: false,
   };
 }
 
@@ -266,4 +280,5 @@ const EMPTY: LegalActions = {
   guardianInterceptableDieIds: [],
   canSkipGuardian: false,
   canResolveSearch: false,
+  canResolveChoice: false,
 };
