@@ -4,12 +4,6 @@
 
 import * as THREE from 'three';
 
-export const CARD_COLORS: Record<string, { bg: string; text: string }> = {
-  red:    { bg: '#ef4444', text: '#ffffff' },
-  blue:   { bg: '#3b82f6', text: '#ffffff' },
-  yellow: { bg: '#facc15', text: '#1c1917' },
-  gray:   { bg: '#9ca3af', text: '#1c1917' },
-};
 export const FALLBACK_COLOR = { bg: '#a8a29e', text: '#1c1917' };
 
 // Short abbreviations — used in the face-picker UI buttons (very small text).

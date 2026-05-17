@@ -20,9 +20,11 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import type { DieFace, DieInPool, DieSymbol } from '@prophecy/game-engine';
+import type { Color } from '@prophecy/protocol';
 import type { FacePickEvent } from '../store.js';
 import { useApp, type SelectionMode } from '../store.js';
-import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture } from '../lib/dieFaceTexture.js';
+import { FALLBACK_COLOR, makeFaceTexture } from '../lib/dieFaceTexture.js';
+import { CARD_COLOR_HEX } from '../lib/tokens.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -444,7 +446,7 @@ export default function DicePool3D({
     }
   };
 
-  const { bg: baseColor, text: textColor } = CARD_COLORS[cardColor ?? ''] ?? FALLBACK_COLOR;
+  const { bg: baseColor, text: textColor } = (cardColor != null ? CARD_COLOR_HEX[cardColor as Color] : undefined) ?? FALLBACK_COLOR;
 
   const xStart = -((dice.length - 1) * DIE_SPACING) / 2;
 

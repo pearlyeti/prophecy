@@ -13,7 +13,8 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Suspense, lazy, useEffect, useRef } from 'react';
 import type { DieFace, DieInPool, DieSymbol } from '@prophecy/game-engine';
 
-import { CARD_COLORS, makeFaceTexture } from '../lib/dieFaceTexture.js';
+import { makeFaceTexture } from '../lib/dieFaceTexture.js';
+import { CARD_COLOR_HEX } from '../lib/tokens.js';
 
 // Lazy: keeps DicePool3D (+ three.js, r3f, drei) out of the main bundle so
 // Game.tsx's own lazy import of DicePool3D actually code-splits.
@@ -38,10 +39,10 @@ const FACES: FaceSpec[] = [
 ];
 
 const COLORS = [
-  { key: 'red',    ...CARD_COLORS['red']! },
-  { key: 'blue',   ...CARD_COLORS['blue']! },
-  { key: 'yellow', ...CARD_COLORS['yellow']! },
-  { key: 'gray',   ...CARD_COLORS['gray']! },
+  { key: 'red',    ...CARD_COLOR_HEX['red'] },
+  { key: 'blue',   ...CARD_COLOR_HEX['blue'] },
+  { key: 'yellow', ...CARD_COLOR_HEX['yellow'] },
+  { key: 'gray',   ...CARD_COLOR_HEX['gray'] },
 ];
 
 function FaceCanvas({ spec, bg, text }: { spec: FaceSpec; bg: string; text: string }) {
@@ -126,7 +127,7 @@ function VerificationRow({ bg, text }: { bg: string; text: string }) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function DicePreview() {
-  const { bg, text } = CARD_COLORS['blue']!;
+  const { bg, text } = CARD_COLOR_HEX['blue'];
   return (
     <div style={{ background: '#111', minHeight: '100vh', padding: 32, fontFamily: 'sans-serif', color: '#eee' }}>
       <h1 style={{ marginBottom: 8, fontSize: 20 }}>Die face preview</h1>

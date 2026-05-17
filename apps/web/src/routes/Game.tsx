@@ -8,7 +8,8 @@ import { createPortal } from 'react-dom';
 const DicePool3D = lazy(() => import('./DicePool3D.js'));
 
 import { fetchCards } from './designer/api.js';
-import { CARD_COLORS, FALLBACK_COLOR, symLabel } from '../lib/dieFaceTexture.js';
+import { symLabel } from '../lib/dieFaceTexture.js';
+import { DIE_SYMBOL_CLS, RING } from '../lib/tokens.js';
 import type { FacePickEvent } from '../store.js';
 
 import { getSocket } from '../lib/socket.js';
@@ -608,19 +609,9 @@ function EndedBanner({ game, playerId }: { game: GameState; playerId: string }) 
 
 // ─── Activity log ────────────────────────────────────────────────────────────
 
-const LOG_CHIP_COLORS: Record<string, string> = {
-  melee:    'bg-red-900 text-red-200',
-  ranged:   'bg-orange-900 text-orange-200',
-  shield:   'bg-blue-900 text-blue-200',
-  resource: 'bg-green-900 text-green-200',
-  disrupt:  'bg-purple-900 text-purple-200',
-  focus:    'bg-yellow-900 text-yellow-100',
-  discard:  'bg-neutral-700 text-neutral-300',
-  modifier: 'bg-neutral-700 text-neutral-300',
-};
 
 function DieChip({ symbol, value, modifier }: { symbol: string; value: number; modifier: boolean }) {
-  const cls = LOG_CHIP_COLORS[symbol] ?? 'bg-neutral-700 text-neutral-300';
+  const cls = DIE_SYMBOL_CLS[symbol] ?? 'bg-neutral-700 text-neutral-300';
   const label = symbol.charAt(0).toUpperCase() + symbol.slice(1);
   return (
     <span className={`inline-flex items-baseline rounded px-1 py-0.5 font-mono text-[10px] leading-none ${cls}`}>
@@ -2685,7 +2676,7 @@ function InlineHandStrip({
                   pickingCardForReroll
                     ? 'border-amber-600'
                     : pickingDiceForReroll && isSelectedForDiscard
-                      ? 'border-amber-500 ring-1 ring-amber-500/50'
+                      ? RING.reroll
                       : pickingDiceForReroll
                         ? 'border-neutral-800 opacity-30'
                         : eligible
@@ -3048,23 +3039,23 @@ function CharacterCard({
         onClick={onTap}
         className={`absolute inset-0 overflow-hidden rounded-xl border text-left transition-transform ${
           targetRing === 'damage'
-            ? 'border-red-500 ring-2 ring-red-500/60'
+            ? RING.targetDamage
             : targetRing === 'shield'
-              ? 'border-blue-500 ring-2 ring-blue-500/60'
+              ? RING.targetShield
               : dragRing === 'drag-hover-valid'
-                ? 'border-emerald-400 ring-2 ring-emerald-400/80 scale-105'
+                ? RING.hoverValid
                 : dragRing === 'drag-valid'
                   ? 'border-emerald-500/60 ring-1 ring-emerald-500/40'
                   : dragRing === 'drag-hover-invalid'
-                    ? 'border-red-400 ring-2 ring-red-400/80'
+                    ? RING.hoverInvalid
                     : dragRing === 'drag-invalid'
-                      ? 'border-neutral-700 opacity-40'
+                      ? RING.invalid
                       : eligible
-                        ? 'border-emerald-500 ring-2 ring-emerald-500/60'
+                        ? RING.valid
                         : previewActivate
-                          ? 'border-sky-500/50 ring-1 ring-sky-500/30'
+                          ? RING.opponentPreview
                           : previewCardAction
-                            ? 'border-amber-500/50 ring-1 ring-amber-500/30'
+                            ? RING.pendingPreview
                             : char.exhausted
                             ? 'border-neutral-600 opacity-70'
                             : pendingExhaust
@@ -3157,7 +3148,7 @@ function CharacterCard({
                 style={{ width: 28, height: 28 }}
                 className={`pointer-events-auto relative flex-shrink-0 overflow-hidden rounded-full border-2 transition-colors ${
                   b.eligible
-                    ? 'border-emerald-500 ring-1 ring-emerald-500/60'
+                    ? RING.activateEligible
                     : 'border-neutral-600 opacity-50'
                 }`}
                 aria-label={b.kind === 'powerAction' ? 'Power Action ability' : 'Action ability'}
@@ -3221,9 +3212,9 @@ function SupportCard({
         onClick={onTap}
         className={`absolute inset-0 overflow-hidden rounded-xl border text-left transition-transform ${
           eligible
-            ? 'border-emerald-500 ring-2 ring-emerald-500/60'
+            ? RING.valid
             : previewCardAction
-              ? 'border-amber-500/50 ring-1 ring-amber-500/30'
+              ? RING.pendingPreview
               : support.exhausted
                 ? 'border-neutral-600 opacity-70'
                 : activating
@@ -3263,7 +3254,7 @@ function SupportCard({
                 onClick={(e) => { e.stopPropagation(); if (b.eligible) onAbilityBadgeTap?.(b.abilityIndex, b.kind); }}
                 style={{ width: 22, height: 22 }}
                 className={`pointer-events-auto relative flex-shrink-0 overflow-hidden rounded-full border-2 transition-colors ${
-                  b.eligible ? 'border-emerald-500 ring-1 ring-emerald-500/60' : 'border-neutral-600 opacity-50'
+                  b.eligible ? RING.activateEligible : 'border-neutral-600 opacity-50'
                 }`}
                 aria-label={b.kind === 'powerAction' ? 'Power Action ability' : 'Action ability'}
               >
