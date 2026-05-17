@@ -1,6 +1,9 @@
 import type { AttributeCatalog, Card, Deck } from '@prophecy/protocol';
-import { useEffect, useMemo, useRef, useState } from 'react';
-
+import { useEffect, useMemo, useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { CommitSelection, PendingChanges } from './api.js';
 import { commitChanges, fetchPending, saveAttributes, saveCards, saveDecks } from './api.js';
 
@@ -86,12 +89,7 @@ export function ChangesTab({
   const totalPending = allKeys.length;
   const totalSelected = selected.size;
 
-  const selectAllRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = totalSelected > 0 && totalSelected < totalPending;
-    }
-  }, [totalSelected, totalPending]);
+  const selectAllIndeterminate = totalSelected > 0 && totalSelected < totalPending;
 
   const toggleKey = (key: string) => {
     setSelected((prev) => {
@@ -256,15 +254,13 @@ export function ChangesTab({
           <>
             {/* Select all */}
             <div className="flex items-center gap-3">
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-400">
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  checked={selected.size === allKeys.length && allKeys.length > 0}
-                  onChange={toggleAll}
+              <Label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={selectAllIndeterminate ? 'indeterminate' : selected.size === allKeys.length && allKeys.length > 0}
+                  onCheckedChange={toggleAll}
                 />
                 {selected.size === allKeys.length ? 'Deselect all' : 'Select all'}
-              </label>
+              </Label>
               {totalSelected > 0 && (
                 <span className="text-xs text-neutral-500">{totalSelected} selected</span>
               )}
@@ -490,8 +486,8 @@ function CommitModal({
 
         {/* Commit message */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-neutral-400">Commit message</label>
-          <textarea
+          <Label className="text-xs font-medium text-muted-foreground">Commit message</Label>
+          <Textarea
             rows={3}
             autoFocus
             value={message}
@@ -499,7 +495,6 @@ function CommitModal({
             onChange={(e) => setMessage(e.target.value)}
             disabled={busy}
             placeholder="Describe what changed…"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-600 disabled:opacity-50"
           />
         </div>
 
@@ -548,14 +543,14 @@ function ChangeItem({
 
   return (
     <li>
-      <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700">
-        <input type="checkbox" checked={checked} onChange={onToggle} className="shrink-0" />
+      <Label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 hover:border-neutral-700">
+        <Checkbox checked={checked} onCheckedChange={onToggle} className="shrink-0" />
         <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${badgeCls}`}>
           {badge}
         </span>
         <span className="flex-1 text-sm text-neutral-200">{name}</span>
         {subtext && <span className="font-mono text-[10px] text-neutral-500">{subtext}</span>}
-      </label>
+      </Label>
     </li>
   );
 }

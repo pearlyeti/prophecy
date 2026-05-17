@@ -190,6 +190,8 @@ Prophecy targets desktop, tablet, and phone. Desktop is the early test target, b
 
 When you design a new UI affordance, ask "how does a finger do this?" before "how does a mouse do this?" If the touch path is clunky, the design is wrong — fix it before shipping.
 
+**Exception — card designer (`apps/web/src/routes/designer/`).** The designer is an internal authoring tool used only on desktop. Touch paths, 44 × 44 tap targets, and mobile breakpoints are explicitly **not** required there. Hover affordances, compact controls, and desktop-only layouts are all fine in designer code.
+
 See [Input model in README](README.md#input-model) for breakpoints and the live-match phone layout sketch.
 
 ## v1.0.0 scope — 1v1 only

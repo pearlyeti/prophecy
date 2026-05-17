@@ -11,6 +11,11 @@ const monorepoRoot = fileURLToPath(new URL('../../', import.meta.url));
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   envDir: monorepoRoot,
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   server: {
     port: 5173,
     host: true,

@@ -19,6 +19,11 @@ import type {
   TriggerEvent,
 } from '@prophecy/protocol';
 import { CARD_TYPES, COLORS, DIE_SYMBOLS, KNOWN_OPS } from '@prophecy/protocol';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { label } from './labels';
 
 // ────────────────────────────────────────────────────────────────────
@@ -240,11 +245,13 @@ function TriggeredEditor({ ability, onChange }: {
         value={ability.playCondition}
         onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
-      <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-        <input type="checkbox" checked={ability.optional ?? false}
-          onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
+      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <Switch
+          checked={ability.optional ?? false}
+          onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
+        />
         <span>Optional (player may skip)</span>
-      </label>
+      </Label>
       <StepsList
         steps={ability.steps}
         onChange={(next) => onChange({ ...ability, steps: next })}
@@ -269,11 +276,13 @@ function ActionEditor({ ability, onChange }: {
         value={ability.playCondition}
         onChange={(c) => onChange({ ...ability, playCondition: c } as any)}
       />
-      <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-        <input type="checkbox" checked={ability.optional ?? false}
-          onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
+      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <Switch
+          checked={ability.optional ?? false}
+          onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
+        />
         <span>Optional (player may skip)</span>
-      </label>
+      </Label>
       <StepsList
         steps={ability.steps}
         onChange={(next) => onChange({ ...ability, steps: next })}
@@ -288,11 +297,13 @@ function SpecialEditor({ ability, onChange }: {
 }) {
   return (
     <div className="space-y-3">
-      <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-        <input type="checkbox" checked={ability.optional ?? false}
-          onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
+      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <Switch
+          checked={ability.optional ?? false}
+          onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
+        />
         <span>Optional (player may skip)</span>
-      </label>
+      </Label>
       <StepsList
         steps={ability.steps}
         onChange={(next) => onChange({ ...ability, steps: next })}
@@ -320,11 +331,13 @@ function ClaimEditor({ ability, onChange }: {
 }) {
   return (
     <div className="space-y-3">
-      <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-        <input type="checkbox" checked={ability.optional ?? false}
-          onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
+      <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <Switch
+          checked={ability.optional ?? false}
+          onCheckedChange={(v) => onChange({ ...ability, optional: v === true })}
+        />
         <span>Optional (player may skip)</span>
-      </label>
+      </Label>
       <StepsList
         steps={ability.steps}
         onChange={(next) => onChange({ ...ability, steps: next })}
@@ -423,24 +436,29 @@ function TriggerEventEditor({ value, onChange }: {
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <label className="flex flex-col text-[11px] text-neutral-400">
-        <select
-          value={value.kind}
-          onChange={(e) => onChange(defaultTrigger(e.target.value as TriggerEvent['kind']))}
-          className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
-        >
-          <optgroup label="Wired — engine fires these">
+      <Select
+        value={value.kind}
+        onValueChange={(v) => onChange(defaultTrigger(v as TriggerEvent['kind']))}
+      >
+        <SelectTrigger className="h-9 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectLabel>Wired — engine fires these</SelectLabel>
             {TRIGGER_KINDS_WIRED.map((k) => (
-              <option key={k} value={k}>{label(k)}</option>
+              <SelectItem key={k} value={k}>{label(k)}</SelectItem>
             ))}
-          </optgroup>
-          <optgroup label="Schema-only — not yet wired, won't fire">
+          </SelectGroup>
+          <SelectSeparator />
+          <SelectGroup>
+            <SelectLabel>Schema-only — not yet wired, won&apos;t fire</SelectLabel>
             {TRIGGER_KINDS_STUB.map((k) => (
-              <option key={k} value={k}>{label(k)}</option>
+              <SelectItem key={k} value={k}>{label(k)}</SelectItem>
             ))}
-          </optgroup>
-        </select>
-      </label>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
       <TriggerEventFields value={value} onChange={onChange} />
     </div>
   );
@@ -466,11 +484,13 @@ function TriggerEventFields({ value, onChange }: {
     case 'afterActivateCharacter':
     case 'afterActivateSupport':
       return (
-        <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-          <input type="checkbox" checked={value.ownOnly ?? true}
-            onChange={(e) => onChange({ ...value, ownOnly: e.target.checked })} />
+        <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Switch
+            checked={value.ownOnly ?? true}
+            onCheckedChange={(v) => onChange({ ...value, ownOnly: v === true })}
+          />
           <span>Own cards only</span>
-        </label>
+        </Label>
       );
     case 'afterPlayCard':
       return (
@@ -608,11 +628,10 @@ function StepsList({ steps, onChange }: {
       {steps.map((step, si) => (
         <div key={si} className="space-y-1">
           {si > 0 && (
-            <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-              <input
-                type="checkbox"
+            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Switch
                 checked={step.then ?? false}
-                onChange={(e) => updateStep(si, e.target.checked ? { ...step, then: true } : { effects: step.effects })}
+                onCheckedChange={(v) => updateStep(si, v === true ? { ...step, then: true } : { effects: step.effects })}
               />
               <span className="font-mono">Then ↳</span>
               {step.then && (
@@ -620,7 +639,7 @@ function StepsList({ steps, onChange }: {
                   gates on previous step
                 </span>
               )}
-            </label>
+            </Label>
           )}
           <div className={`rounded border p-2 space-y-2 ${step.then ? 'border-blue-800 bg-blue-950/20 ml-4' : 'border-neutral-800 bg-neutral-900/60'}`}>
             <div className="flex items-center justify-between">
@@ -639,32 +658,41 @@ function StepsList({ steps, onChange }: {
             {step.effects.map((fx, ei) => (
               <div key={ei} className="rounded border border-neutral-800 bg-neutral-900/60 p-2 space-y-2">
                 <div className="flex items-center gap-2">
-                  <select
+                  <Select
                     value={fx.op}
-                    onChange={(e) => replaceEffect(si, ei, defaultEffect(e.target.value as OpKind))}
-                    className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                    onValueChange={(v) => replaceEffect(si, ei, defaultEffect(v as OpKind))}
                   >
-                    <optgroup label="Implemented">
-                      {KNOWN_OPS.map((o) => (
-                        <option key={o} value={o}>{label(o)}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Stub — schema defined, not yet dispatched">
-                      {STUB_OPS.map((o) => (
-                        <option key={o} value={o}>{label(o)}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Placeholder">
-                      <option value="new">(new) — op not yet in schema</option>
-                    </optgroup>
-                  </select>
-                  <label className="flex items-center gap-1 text-[11px] text-neutral-400 ml-auto">
-                    <input type="checkbox"
+                    <SelectTrigger className="h-9 flex-1 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Implemented</SelectLabel>
+                        {KNOWN_OPS.map((o) => (
+                          <SelectItem key={o} value={o}>{label(o)}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>Stub — schema defined, not yet dispatched</SelectLabel>
+                        {STUB_OPS.map((o) => (
+                          <SelectItem key={o} value={o}>{label(o)}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>Placeholder</SelectLabel>
+                        <SelectItem value="new">(new) — op not yet in schema</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-auto">
+                    <Switch
                       checked={'optional' in fx ? (fx.optional ?? false) : false}
-                      onChange={(e) => replaceEffect(si, ei, { ...fx, optional: e.target.checked } as Effect)}
+                      onCheckedChange={(v) => replaceEffect(si, ei, { ...fx, optional: v === true } as Effect)}
                     />
                     <span>Optional</span>
-                  </label>
+                  </Label>
                   <button type="button" onClick={() => removeEffectFromStep(si, ei)}
                     className="min-h-[28px] rounded border border-neutral-800 px-2 text-xs text-neutral-500 hover:border-red-700 hover:text-red-300">
                     ✕
@@ -705,11 +733,13 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
           <SelectField label="Target" value={effect.target}
             options={[{ value: 'opponent', label: 'Opponent' }, { value: 'self', label: 'Self' }]}
             onChange={(v) => onChange({ ...effect, target: v as 'opponent' | 'self' })} />
-          <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-            <input type="checkbox" checked={effect.amount === 'all'}
-              onChange={(e) => onChange({ ...effect, amount: e.target.checked ? 'all' : 1 })} />
+          <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Switch
+              checked={effect.amount === 'all'}
+              onCheckedChange={(v) => onChange({ ...effect, amount: v === true ? 'all' : 1 })}
+            />
             <span>All resources</span>
-          </label>
+          </Label>
           {effect.amount !== 'all' && (
             <NumberField label="Amount" value={effect.amount as number} min={1} max={99}
               onChange={(amount) => onChange({ ...effect, amount })} />
@@ -722,11 +752,13 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
           <SelectField label="Player" value={effect.player ?? 'self'}
             options={[{ value: 'self', label: 'Self' }, { value: 'eachPlayer', label: 'Each player' }, { value: 'opponent', label: 'Opponent' }]}
             onChange={(v) => onChange({ ...effect, player: v as typeof effect.player })} />
-          <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-            <input type="checkbox" checked={effect.toHandSize ?? false}
-              onChange={(e) => onChange({ ...effect, toHandSize: e.target.checked, amount: e.target.checked ? null : 1 })} />
+          <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Switch
+              checked={effect.toHandSize ?? false}
+              onCheckedChange={(v) => onChange({ ...effect, toHandSize: v === true, amount: v === true ? null : 1 })}
+            />
             <span>To hand size</span>
-          </label>
+          </Label>
           {!effect.toHandSize && (
             <NumberField label="Amount" value={effect.amount ?? 1} min={1} max={20}
               onChange={(amount) => onChange({ ...effect, amount })} />
@@ -750,11 +782,13 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               options={['opponentCharacter', 'ownCharacter', 'anyCharacter', 'eachOpponentCharacter', 'eachCharacter']}
               onChange={(t) => onChange({ ...effect, target: t })}
             />
-            <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-              <input type="checkbox" checked={effect.unblockable ?? false}
-                onChange={(e) => onChange({ ...effect, unblockable: e.target.checked })} />
+            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Switch
+                checked={effect.unblockable ?? false}
+                onCheckedChange={(v) => onChange({ ...effect, unblockable: v === true })}
+              />
               <span>Unblockable</span>
-            </label>
+            </Label>
           </div>
           <CardCriteriaEditor value={effect.criteria} onChange={(c) => onChange(patchEffect(effect, { criteria: c }))} />
         </div>
@@ -783,11 +817,13 @@ function EffectFields({ effect, onChange }: { effect: Effect; onChange: (next: E
               options={['anyCharacter', 'opponentCharacter', 'ownCharacter', 'eachOpponentCharacter', 'eachCharacter']}
               onChange={(t) => onChange({ ...effect, target: t })}
             />
-            <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-              <input type="checkbox" checked={effect.amount === 'all'}
-                onChange={(e) => onChange({ ...effect, amount: e.target.checked ? 'all' : 1 })} />
+            <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Switch
+                checked={effect.amount === 'all'}
+                onCheckedChange={(v) => onChange({ ...effect, amount: v === true ? 'all' : 1 })}
+              />
               <span>All shields</span>
-            </label>
+            </Label>
             {effect.amount !== 'all' && (
               <NumberField label="Amount" value={effect.amount as number} min={1} max={3}
                 onChange={(amount) => onChange({ ...effect, amount })} />
@@ -992,52 +1028,72 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function SelectField({ label, value, options, onChange }: {
+function SelectField({ label: fieldLabel, value, options, onChange }: {
   label?: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="flex flex-col text-[11px] text-neutral-400">
-      {label && <span>{label}</span>}
-      <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs">
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-    </label>
+    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+      {fieldLabel && <span>{fieldLabel}</span>}
+      <Select
+        value={value === '' ? '__none__' : value}
+        onValueChange={(v) => onChange(v === '__none__' ? '' : v)}
+      >
+        <SelectTrigger className="h-9 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value || '__none__'} value={o.value || '__none__'}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Label>
   );
 }
 
-function NumberField({ label, value, min, max, onChange }: {
+function NumberField({ label: fieldLabel, value, min, max, onChange }: {
   label: string; value: number; min: number; max: number; onChange: (n: number) => void;
 }) {
   return (
-    <label className="flex flex-col text-[11px] text-neutral-400">
-      <span>{label}</span>
-      <input type="number" min={min} max={max} value={value}
+    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+      <span>{fieldLabel}</span>
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="min-h-[36px] w-24 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs" />
-    </label>
+        className="h-9 w-24 text-xs"
+      />
+    </Label>
   );
 }
 
-function TextField({ label, value, onChange, multiline = false }: {
+function TextField({ label: fieldLabel, value, onChange, multiline = false }: {
   label: string; value: string; onChange: (s: string) => void; multiline?: boolean;
 }) {
   return (
-    <label className="flex flex-col text-[11px] text-neutral-400">
-      <span>{label}</span>
+    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+      <span>{fieldLabel}</span>
       {multiline ? (
-        <textarea value={value} rows={2} onChange={(e) => onChange(e.target.value)}
-          className="min-h-[60px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs" />
+        <Textarea
+          value={value}
+          rows={2}
+          onChange={(e) => onChange(e.target.value)}
+          className="text-xs"
+        />
       ) : (
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
-          className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs" />
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 text-xs"
+        />
       )}
-    </label>
+    </Label>
   );
 }
 
@@ -1045,27 +1101,32 @@ function TextField({ label, value, onChange, multiline = false }: {
 function BoolField({ label, value, onChange }: {
   label: string; value: boolean | undefined; onChange: (v: boolean | undefined) => void;
 }) {
-  const strVal = value === undefined ? '' : value ? 'true' : 'false';
+  const strVal = value === undefined ? '__none__' : value ? 'true' : 'false';
   return (
     <SelectField label={label} value={strVal}
-      options={[{ value: '', label: '—' }, { value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]}
-      onChange={(v) => onChange(v === '' ? undefined : v === 'true')} />
+      options={[{ value: '__none__', label: '—' }, { value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]}
+      onChange={(v) => onChange(v === '__none__' ? undefined : v === 'true')} />
   );
 }
 
 // Optional numeric field: shows "—" when undefined, or the number value.
-function OptNumberField({ label, value, min, max, onChange }: {
+function OptNumberField({ label: fieldLabel, value, min, max, onChange }: {
   label: string; value: number | undefined; min: number; max: number;
   onChange: (n: number | undefined) => void;
 }) {
   return (
-    <label className="flex flex-col text-[11px] text-neutral-400">
-      <span>{label}</span>
-      <input type="number" min={min} max={max} placeholder="—"
+    <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+      <span>{fieldLabel}</span>
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        placeholder="—"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-        className="min-h-[36px] w-20 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs" />
-    </label>
+        className="h-9 w-20 text-xs"
+      />
+    </Label>
   );
 }
 

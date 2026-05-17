@@ -6,7 +6,11 @@
 
 import { FACTIONS, type Card, type Deck, type DeckCard } from '@prophecy/protocol';
 import { useMemo, useState } from 'react';
-
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { saveDecks } from './api.js';
 
 function newDeck(): Deck {
@@ -171,84 +175,90 @@ export function DecksTab({
             className="space-y-4"
           >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <label className="flex flex-col text-[11px] text-neutral-400">
+              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Id</span>
-                <input
+                <Input
                   type="text"
                   value={draft.id}
                   onChange={(e) => updateDraft({ id: e.target.value })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  className="h-9 text-xs"
                   disabled={selectedId !== null}
                 />
-              </label>
-              <label className="flex flex-col text-[11px] text-neutral-400 sm:col-span-2">
+              </Label>
+              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground sm:col-span-2">
                 <span>Name</span>
-                <input
+                <Input
                   type="text"
                   value={draft.name}
                   onChange={(e) => updateDraft({ name: e.target.value })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  className="h-9 text-xs"
                 />
-              </label>
-              <label className="flex flex-col text-[11px] text-neutral-400">
+              </Label>
+              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Faction</span>
-                <select
+                <Select
                   value={draft.faction}
-                  onChange={(e) => updateDraft({ faction: e.target.value as Deck['faction'] })}
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  onValueChange={(v) => updateDraft({ faction: v as Deck['faction'] })}
                 >
-                  {FACTIONS.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col text-[11px] text-neutral-400">
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FACTIONS.map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Label>
+              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Battlefield</span>
-                <select
-                  value={draft.battlefieldCardId ?? ''}
-                  onChange={(e) =>
-                    updateDraft({ battlefieldCardId: e.target.value || null })
-                  }
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                <Select
+                  value={draft.battlefieldCardId ?? '__none__'}
+                  onValueChange={(v) => updateDraft({ battlefieldCardId: v === '__none__' ? null : v })}
                 >
-                  <option value="">(none)</option>
-                  {battlefieldOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.id})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col text-[11px] text-neutral-400">
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="(none)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">(none)</SelectItem>
+                    {battlefieldOptions.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} ({c.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Label>
+              <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                 <span>Plot</span>
-                <select
-                  value={draft.plotCardId ?? ''}
-                  onChange={(e) =>
-                    updateDraft({ plotCardId: e.target.value || null })
-                  }
-                  className="min-h-[36px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                <Select
+                  value={draft.plotCardId ?? '__none__'}
+                  onValueChange={(v) => updateDraft({ plotCardId: v === '__none__' ? null : v })}
                 >
-                  <option value="">(none)</option>
-                  {plotOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.id})
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="(none)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">(none)</SelectItem>
+                    {plotOptions.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} ({c.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Label>
             </div>
 
-            <label className="flex flex-col text-[11px] text-neutral-400">
+            <Label className="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
               <span>Description</span>
-              <textarea
+              <Textarea
                 value={draft.description}
                 rows={2}
                 onChange={(e) => updateDraft({ description: e.target.value })}
-                className="min-h-[60px] w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                className="text-xs"
               />
-            </label>
+            </Label>
 
             <div>
               <div className="mb-2 flex items-center justify-between">
@@ -279,33 +289,36 @@ export function DecksTab({
                     key={idx}
                     className="flex flex-wrap items-center gap-2 rounded border border-neutral-800 bg-neutral-900/60 p-2"
                   >
-                    <select
+                    <Select
                       value={ch.cardId}
-                      onChange={(e) => {
+                      onValueChange={(v) => {
                         const next = draft.characters.slice();
-                        next[idx] = { ...ch, cardId: e.target.value };
+                        next[idx] = { ...ch, cardId: v };
                         updateDraft({ characters: next });
                       }}
-                      className="min-h-[36px] min-w-[200px] flex-1 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                     >
-                      {characterOptions.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({c.id})
-                        </option>
-                      ))}
-                    </select>
-                    <label className="flex items-center gap-1 text-[11px] text-neutral-400">
-                      <input
-                        type="checkbox"
+                      <SelectTrigger className="h-9 min-w-[200px] flex-1 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {characterOptions.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} ({c.id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Switch
                         checked={ch.elite}
-                        onChange={(e) => {
+                        onCheckedChange={(v) => {
                           const next = draft.characters.slice();
-                          next[idx] = { ...ch, elite: e.target.checked };
+                          next[idx] = { ...ch, elite: v === true };
                           updateDraft({ characters: next });
                         }}
                       />
                       <span>Elite</span>
-                    </label>
+                    </Label>
                     <button
                       type="button"
                       onClick={() =>
@@ -348,24 +361,28 @@ export function DecksTab({
                     key={idx}
                     className="flex flex-wrap items-center gap-2 rounded border border-neutral-800 bg-neutral-900/60 p-2"
                   >
-                    <select
+                    <Select
                       value={entry.cardId}
-                      onChange={(e) => {
+                      onValueChange={(v) => {
                         const next = draft.cards.slice();
-                        next[idx] = { ...entry, cardId: e.target.value };
+                        next[idx] = { ...entry, cardId: v };
                         updateDraft({ cards: next });
                       }}
-                      className="min-h-[36px] min-w-[200px] flex-1 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
                     >
-                      {deckCardOptions.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({c.id}) · {c.type} · cost {c.cost ?? '—'}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="flex items-center gap-1 text-[11px] text-neutral-400">
+                      <SelectTrigger className="h-9 min-w-[200px] flex-1 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {deckCardOptions.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} ({c.id}) · {c.type} · cost {c.cost ?? '—'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                       <span>count</span>
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         max={10}
@@ -376,9 +393,9 @@ export function DecksTab({
                           next[idx] = { ...entry, count };
                           updateDraft({ cards: next });
                         }}
-                        className="min-h-[36px] w-16 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                        className="h-9 w-16 text-xs"
                       />
-                    </label>
+                    </Label>
                     <span className="text-[10px] text-neutral-500">
                       {cardsById.get(entry.cardId)?.color ?? '—'}
                     </span>

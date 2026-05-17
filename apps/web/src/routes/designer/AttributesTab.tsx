@@ -1,6 +1,6 @@
 import type { AttributeCatalog } from '@prophecy/protocol';
 import { useState } from 'react';
-
+import { Input } from '@/components/ui/input';
 import { saveAttributes } from './api.js';
 
 type AttrKey = keyof AttributeCatalog;
@@ -117,12 +117,12 @@ export function AttributesTab({
                   onSubmit={(e) => { e.preventDefault(); void addValue(key); }}
                   className="flex gap-2"
                 >
-                  <input
+                  <Input
                     type="text"
                     placeholder={`New ${label.toLowerCase()}…`}
                     value={newValue[key]}
                     onChange={(e) => setNewValue((prev) => ({ ...prev, [key]: e.target.value }))}
-                    className="min-h-[36px] flex-1 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+                    className="flex-1"
                   />
                   <button
                     type="submit"
