@@ -10,6 +10,7 @@ import type {
   CardDisposition,
   DieCriteria,
   Effect,
+  EffectStep,
   ImmediateAbility,
   PlayCondition,
   SearchChoice,
@@ -77,13 +78,13 @@ const COST_KINDS = [
 
 function defaultAbility(kind: AbilityKind): Ability {
   switch (kind) {
-    case 'immediate': return { kind: 'immediate', effects: [] };
-    case 'triggered': return { kind: 'triggered', triggerEvent: { kind: 'afterActivateCharacter' }, effects: [] };
-    case 'action': return { kind: 'action', costs: [{ kind: 'exhaust' }], effects: [] };
-    case 'powerAction': return { kind: 'powerAction', costs: [], effects: [] };
-    case 'special': return { kind: 'special', effects: [] };
+    case 'immediate': return { kind: 'immediate', steps: [] };
+    case 'triggered': return { kind: 'triggered', triggerEvent: { kind: 'afterActivateCharacter' }, steps: [] };
+    case 'action': return { kind: 'action', costs: [{ kind: 'exhaust' }], steps: [] };
+    case 'powerAction': return { kind: 'powerAction', costs: [], steps: [] };
+    case 'special': return { kind: 'special', steps: [] };
     case 'passive': return { kind: 'passive', description: '' };
-    case 'claim': return { kind: 'claim', effects: [] };
+    case 'claim': return { kind: 'claim', steps: [] };
   }
 }
 
@@ -214,9 +215,9 @@ function ImmediateEditor({ ability, onChange }: {
           onChange={(v) => onChange({ ...ability, cardDisposition: v as CardDisposition })}
         />
       </div>
-      <EffectsList
-        effects={ability.effects}
-        onChange={(next) => onChange({ ...ability, effects: next })}
+      <StepsList
+        steps={ability.steps}
+        onChange={(next) => onChange({ ...ability, steps: next })}
       />
     </div>
   );
@@ -243,9 +244,9 @@ function TriggeredEditor({ ability, onChange }: {
           onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
         <span>Optional (player may skip)</span>
       </label>
-      <EffectsList
-        effects={ability.effects}
-        onChange={(next) => onChange({ ...ability, effects: next })}
+      <StepsList
+        steps={ability.steps}
+        onChange={(next) => onChange({ ...ability, steps: next })}
       />
     </div>
   );
@@ -272,9 +273,9 @@ function ActionEditor({ ability, onChange }: {
           onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
         <span>Optional (player may skip)</span>
       </label>
-      <EffectsList
-        effects={ability.effects}
-        onChange={(next) => onChange({ ...ability, effects: next })}
+      <StepsList
+        steps={ability.steps}
+        onChange={(next) => onChange({ ...ability, steps: next })}
       />
     </div>
   );
@@ -291,9 +292,9 @@ function SpecialEditor({ ability, onChange }: {
           onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
         <span>Optional (player may skip)</span>
       </label>
-      <EffectsList
-        effects={ability.effects}
-        onChange={(next) => onChange({ ...ability, effects: next })}
+      <StepsList
+        steps={ability.steps}
+        onChange={(next) => onChange({ ...ability, steps: next })}
       />
     </div>
   );
@@ -323,9 +324,9 @@ function ClaimEditor({ ability, onChange }: {
           onChange={(e) => onChange({ ...ability, optional: e.target.checked })} />
         <span>Optional (player may skip)</span>
       </label>
-      <EffectsList
-        effects={ability.effects}
-        onChange={(next) => onChange({ ...ability, effects: next })}
+      <StepsList
+        steps={ability.steps}
+        onChange={(next) => onChange({ ...ability, steps: next })}
       />
     </div>
   );
@@ -561,66 +562,126 @@ function ActionCostFields({ cost, onChange }: {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Effects list
+// Steps list (replaces flat EffectsList — each step is an AND group)
 // ────────────────────────────────────────────────────────────────────
 
-function EffectsList({ effects, onChange }: {
-  effects: readonly Effect[];
-  onChange: (next: Effect[]) => void;
+function StepsList({ steps, onChange }: {
+  steps: readonly EffectStep[];
+  onChange: (next: EffectStep[]) => void;
 }) {
-  const replace = (idx: number, next: Effect) => {
-    const out = effects.slice();
-    out[idx] = next;
+  const addStep = () =>
+    onChange([...steps, { effects: [defaultEffect('gainResources')] }]);
+
+  const removeStep = (si: number) => onChange(steps.filter((_, i) => i !== si));
+
+  const updateStep = (si: number, next: EffectStep) => {
+    const out = steps.slice();
+    out[si] = next;
     onChange(out);
   };
-  const remove = (idx: number) => onChange(effects.filter((_, i) => i !== idx));
-  const add = () => onChange([...effects, defaultEffect('gainResources')]);
+
+  const addEffectToStep = (si: number) => {
+    const step = steps[si]!;
+    updateStep(si, { ...step, effects: [...step.effects, defaultEffect('gainResources')] });
+  };
+
+  const removeEffectFromStep = (si: number, ei: number) => {
+    const step = steps[si]!;
+    const newEffects = step.effects.filter((_, i) => i !== ei);
+    if (newEffects.length === 0) removeStep(si);
+    else updateStep(si, { ...step, effects: newEffects });
+  };
+
+  const replaceEffect = (si: number, ei: number, next: Effect) => {
+    const step = steps[si]!;
+    const out = step.effects.slice();
+    out[ei] = next;
+    updateStep(si, { ...step, effects: out });
+  };
 
   return (
     <div className="space-y-2">
-      {effects.length === 0 && (
-        <p className="text-[11px] italic text-neutral-500">No effects yet.</p>
+      {steps.length === 0 && (
+        <p className="text-[11px] italic text-neutral-500">No steps yet.</p>
       )}
-      {effects.map((fx, idx) => (
-        <div key={idx} className="rounded border border-neutral-800 bg-neutral-900/60 p-2 space-y-2">
-          <div className="flex items-center gap-2">
-            <select
-              value={fx.op}
-              onChange={(e) => replace(idx, defaultEffect(e.target.value as OpKind))}
-              className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
-            >
-              <optgroup label="Implemented">
-                {KNOWN_OPS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Stub — schema defined, not yet dispatched">
-                {STUB_OPS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Placeholder">
-                <option value="new">(new) — op not yet in schema</option>
-              </optgroup>
-            </select>
-            <label className="flex items-center gap-1 text-[11px] text-neutral-400 ml-auto">
-              <input type="checkbox"
-                checked={'optional' in fx ? (fx.optional ?? false) : false}
-                onChange={(e) => replace(idx, { ...fx, optional: e.target.checked } as Effect)}
+      {steps.map((step, si) => (
+        <div key={si} className="space-y-1">
+          {si > 0 && (
+            <label className="flex items-center gap-1 text-[11px] text-neutral-400">
+              <input
+                type="checkbox"
+                checked={step.then ?? false}
+                onChange={(e) => updateStep(si, { ...step, then: e.target.checked || undefined })}
               />
-              <span>Optional</span>
+              <span className="font-mono">Then ↳</span>
+              {step.then && (
+                <span className="ml-1 rounded bg-blue-900/50 px-1 py-0.5 text-[10px] text-blue-300">
+                  gates on previous step
+                </span>
+              )}
             </label>
-            <button type="button" onClick={() => remove(idx)}
-              className="min-h-[28px] rounded border border-neutral-800 px-2 text-xs text-neutral-500 hover:border-red-700 hover:text-red-300">
-              ✕
+          )}
+          <div className={`rounded border p-2 space-y-2 ${step.then ? 'border-blue-800 bg-blue-950/20 ml-4' : 'border-neutral-800 bg-neutral-900/60'}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-neutral-500">
+                {steps.length > 1
+                  ? `Step ${si + 1}${step.effects.length > 1 ? ' (AND)' : ''}`
+                  : step.effects.length > 1 ? 'Effects (AND)' : 'Effect'}
+              </span>
+              {steps.length > 1 && (
+                <button type="button" onClick={() => removeStep(si)}
+                  className="text-[10px] text-neutral-500 hover:text-red-300">
+                  Remove step
+                </button>
+              )}
+            </div>
+            {step.effects.map((fx, ei) => (
+              <div key={ei} className="rounded border border-neutral-800 bg-neutral-900/60 p-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={fx.op}
+                    onChange={(e) => replaceEffect(si, ei, defaultEffect(e.target.value as OpKind))}
+                    className="min-h-[36px] rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+                  >
+                    <optgroup label="Implemented">
+                      {KNOWN_OPS.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Stub — schema defined, not yet dispatched">
+                      {STUB_OPS.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Placeholder">
+                      <option value="new">(new) — op not yet in schema</option>
+                    </optgroup>
+                  </select>
+                  <label className="flex items-center gap-1 text-[11px] text-neutral-400 ml-auto">
+                    <input type="checkbox"
+                      checked={'optional' in fx ? (fx.optional ?? false) : false}
+                      onChange={(e) => replaceEffect(si, ei, { ...fx, optional: e.target.checked } as Effect)}
+                    />
+                    <span>Optional</span>
+                  </label>
+                  <button type="button" onClick={() => removeEffectFromStep(si, ei)}
+                    className="min-h-[28px] rounded border border-neutral-800 px-2 text-xs text-neutral-500 hover:border-red-700 hover:text-red-300">
+                    ✕
+                  </button>
+                </div>
+                <EffectFields effect={fx} onChange={(next) => replaceEffect(si, ei, next)} />
+              </div>
+            ))}
+            <button type="button" onClick={() => addEffectToStep(si)}
+              className="min-h-[28px] rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-[11px] text-neutral-400 hover:border-neutral-500">
+              + Add effect to step
             </button>
           </div>
-          <EffectFields effect={fx} onChange={(next) => replace(idx, next)} />
         </div>
       ))}
-      <button type="button" onClick={add}
+      <button type="button" onClick={addStep}
         className="min-h-[36px] rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs text-neutral-300 hover:border-neutral-500">
-        + Add effect
+        + Add step
       </button>
     </div>
   );

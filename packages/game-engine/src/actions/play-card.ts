@@ -1,4 +1,4 @@
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import type { CatalogDieEntry } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
@@ -95,7 +95,7 @@ export function applyPlayCard(
     const ctx = { playerId, characterTargets, sourceCharacterId: cardId, ...(catalog !== undefined ? { catalog } : {}) };
     for (const ability of immediateAbilities) {
       if (ability.kind !== 'immediate') continue;
-      const result = applyEffects(working, ctx, ability.effects);
+      const result = applySteps(working, ctx, ability.steps);
       working = result.state;
       events.push(...result.events);
       if (working.winnerId !== null) return { state: working, events };
@@ -145,7 +145,7 @@ export function applyPlayCard(
   };
   for (const ability of immediateAbilities) {
     if (ability.kind !== 'immediate') continue;
-    const result = applyEffects(working, ctx, ability.effects);
+    const result = applySteps(working, ctx, ability.steps);
     working = result.state;
     events.push(...result.events);
     if (working.winnerId !== null) {

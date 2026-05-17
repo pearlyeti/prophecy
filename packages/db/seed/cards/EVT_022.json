@@ -18,16 +18,20 @@
   "abilities": [
     {
       "kind": "immediate",
-      "effects": [
+      "steps": [
         {
-          "op": "dealDamage",
-          "amount": 2,
-          "damageType": "melee",
-          "target": {
-            "kind": "opponentCharacter"
-          },
-          "unblockable": false,
-          "optional": false
+          "effects": [
+            {
+              "op": "dealDamage",
+              "amount": 2,
+              "damageType": "melee",
+              "target": {
+                "kind": "opponentCharacter"
+              },
+              "unblockable": false,
+              "optional": false
+            }
+          ]
         }
       ]
     }

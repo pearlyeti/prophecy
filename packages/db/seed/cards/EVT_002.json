@@ -18,14 +18,18 @@
   "abilities": [
     {
       "kind": "immediate",
-      "effects": [
+      "steps": [
         {
-          "op": "addShields",
-          "amount": 2,
-          "target": {
-            "kind": "ownCharacter"
-          },
-          "optional": false
+          "effects": [
+            {
+              "op": "addShields",
+              "amount": 2,
+              "target": {
+                "kind": "ownCharacter"
+              },
+              "optional": false
+            }
+          ]
         }
       ]
     }

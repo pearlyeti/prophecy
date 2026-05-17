@@ -57,17 +57,21 @@
   "abilities": [
     {
       "kind": "special",
-      "effects": [
+      "optional": false,
+      "steps": [
         {
-          "op": "removeShields",
-          "amount": "all",
-          "target": {
-            "kind": "opponentCharacter"
-          },
-          "optional": false
+          "effects": [
+            {
+              "op": "removeShields",
+              "amount": "all",
+              "target": {
+                "kind": "opponentCharacter"
+              },
+              "optional": false
+            }
+          ]
         }
-      ],
-      "optional": false
+      ]
     }
   ],
   "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_003.webp",

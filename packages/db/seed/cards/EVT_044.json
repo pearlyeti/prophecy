@@ -18,13 +18,17 @@
   "abilities": [
     {
       "kind": "immediate",
-      "effects": [
+      "steps": [
         {
-          "op": "drawCards",
-          "player": "self",
-          "amount": null,
-          "toHandSize": true,
-          "optional": false
+          "effects": [
+            {
+              "op": "drawCards",
+              "player": "self",
+              "amount": null,
+              "toHandSize": true,
+              "optional": false
+            }
+          ]
         }
       ]
     }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import { matchesCardCriteria, matchesDieCriteria } from '../abilities/dispatch.js';
 import type { DispatchContext } from '../abilities/dispatch.js';
 import { newGameInActionPhase } from '../state/new-game.js';
@@ -244,8 +244,8 @@ describe('removeDie with DieCriteria', () => {
     state = addDie(state, opp, makeDie('opp-melee', meleeFace));
     state = addDie(state, opp, makeDie('opp-ranged', rangedFace));
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'opponentPool', criteria: { symbol: 'melee' } },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'removeDie', from: 'opponentPool', criteria: { symbol: 'melee' } }] },
     ]);
 
     const pool = after.players[opp]!.diceInPool;
@@ -259,8 +259,8 @@ describe('removeDie with DieCriteria', () => {
     state = addDie(state, active, makeDie('high', meleeFace)); // value=3
     state = addDie(state, active, makeDie('low', rangedFace));  // value=2
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'removeDie', from: 'ownPool', criteria: { minValue: 3 } },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'removeDie', from: 'ownPool', criteria: { minValue: 3 } }] },
     ]);
 
     const pool = after.players[active]!.diceInPool;
@@ -307,8 +307,8 @@ describe('dealDamage with CardCriteria', () => {
       },
     };
 
-    const { state: after } = applyEffects(state, ctx(state, active), [
-      { op: 'dealDamage', amount: 2, target: { kind: 'eachOpponentCharacter' }, criteria: { exhausted: false } },
+    const { state: after } = applySteps(state, ctx(state, active), [
+      { effects: [{ op: 'dealDamage', amount: 2, target: { kind: 'eachOpponentCharacter' }, criteria: { exhausted: false } }] },
     ]);
 
     // Only non-exhausted char2 should take damage
@@ -325,8 +325,8 @@ describe('dealDamage with CardCriteria', () => {
     state = withMeta(state, char1!, { type: 'character', color: 'red', subtypes: [], isUnique: false });
 
     expect(() =>
-      applyEffects(state, ctx(state, active, [char1!]), [
-        { op: 'dealDamage', amount: 1, target: { kind: 'opponentCharacter' }, criteria: { unique: true } },
+      applySteps(state, ctx(state, active, [char1!]), [
+        { effects: [{ op: 'dealDamage', amount: 1, target: { kind: 'opponentCharacter' }, criteria: { unique: true } }] },
       ])
     ).toThrow();
   });

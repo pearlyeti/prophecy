@@ -29,13 +29,13 @@ function activeCharId(state: GameState): string {
 const gainOneResource: Ability = {
   kind: 'action',
   costs: [{ kind: 'exhaust' }],
-  effects: [{ op: 'gainResources', amount: 1 }],
+  steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }],
 };
 
 const drawOneCard: Ability = {
   kind: 'powerAction',
   costs: [],
-  effects: [{ op: 'drawCards', player: 'self', amount: 1 }],
+  steps: [{ effects: [{ op: 'drawCards', player: 'self', amount: 1 }] }],
 };
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ describe('applyAction({ type: "use-card-action" })', () => {
     const triggered: Ability = {
       kind: 'triggered',
       triggerEvent: { kind: 'afterActivateCharacter' },
-      effects: [{ op: 'gainResources', amount: 1 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }],
     };
     const initial = withCharAbilities(setup(), [triggered]);
     const charId = activeCharId(initial);
@@ -192,7 +192,7 @@ describe('applyAction({ type: "use-card-action" })', () => {
     const expensive: Ability = {
       kind: 'action',
       costs: [{ kind: 'spendResources', amount: 2 }],
-      effects: [{ op: 'gainResources', amount: 5 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 5 }] }],
     };
     const initial = withCharAbilities(setup(), [expensive]);
     const active = initial.activePlayerId!;
@@ -213,7 +213,7 @@ describe('applyAction({ type: "use-card-action" })', () => {
     const tooExpensive: Ability = {
       kind: 'action',
       costs: [{ kind: 'spendResources', amount: 999 }],
-      effects: [],
+      steps: [],
     };
     const initial = withCharAbilities(setup(), [tooExpensive]);
     const charId = activeCharId(initial);

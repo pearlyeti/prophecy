@@ -7,7 +7,7 @@
 //
 // See README "Engine implementation notes" and rules-reference Part 7.
 
-import type { Effect } from '../abilities/types.js';
+import type { EffectStep } from '../abilities/types.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Queue entries
@@ -20,7 +20,7 @@ export interface QueueEntry {
   readonly playerId: string;
   /** Card instance that carries the ability. Used to resolve thisCharacter targets. */
   readonly sourceCardInstanceId: string;
-  readonly effects: readonly Effect[];
+  readonly steps: readonly EffectStep[];
   /** Pre-resolved character targets consumed by effects in order. */
   readonly characterTargets: readonly string[];
 }

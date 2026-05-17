@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyEffect, applyEffects, NotImplementedError } from '../abilities/dispatch.js';
+import { applyEffect, applySteps, NotImplementedError } from '../abilities/dispatch.js';
 import type { DispatchContext } from '../abilities/dispatch.js';
 import { applyAction } from '../reducers/apply-action.js';
 import { newGameInActionPhase } from '../state/new-game.js';
@@ -334,9 +334,9 @@ describe('applyEffects — sequencing', () => {
     const state = makeGame();
     const pid = state.activePlayerId!;
     const before = state.players[pid]!.resources;
-    const { state: after } = applyEffects(state, ctx(state), [
-      { op: 'gainResources', amount: 3 },
-      { op: 'gainResources', amount: 2 },
+    const { state: after } = applySteps(state, ctx(state), [
+      { effects: [{ op: 'gainResources', amount: 3 }] },
+      { effects: [{ op: 'gainResources', amount: 2 }] },
     ]);
     expect(after.players[pid]!.resources).toBe(before + 5);
   });
@@ -354,9 +354,9 @@ describe('applyEffects — sequencing', () => {
       }},
     };
     // Two heal effects targeting the same character; each consumes one target slot
-    const { state: after } = applyEffects(damaged, { playerId: state.activePlayerId!, characterTargets: [charId, charId] }, [
-      { op: 'healDamage', amount: 1, target: { kind: 'ownCharacter' } },
-      { op: 'healDamage', amount: 1, target: { kind: 'ownCharacter' } },
+    const { state: after } = applySteps(damaged, { playerId: state.activePlayerId!, characterTargets: [charId, charId] }, [
+      { effects: [{ op: 'healDamage', amount: 1, target: { kind: 'ownCharacter' } }] },
+      { effects: [{ op: 'healDamage', amount: 1, target: { kind: 'ownCharacter' } }] },
     ]);
     expect(after.players[owner]!.characters[charId]!.damage).toBe(2);
   });
@@ -386,7 +386,7 @@ describe('play-card integration — immediate ability fires', () => {
       cardAbilities: {
         [cardId]: [{
           kind: 'immediate' as const,
-          effects: [{ op: 'dealDamage' as const, amount: 2, target: { kind: 'opponentCharacter' as const } }],
+          steps: [{ effects: [{ op: 'dealDamage' as const, amount: 2, target: { kind: 'opponentCharacter' as const } }] }],
         }],
       },
     };
@@ -415,7 +415,7 @@ describe('play-card integration — immediate ability fires', () => {
       cardAbilities: {
         [cardId]: [{
           kind: 'immediate' as const,
-          effects: [{ op: 'gainResources' as const, amount: 2 }],
+          steps: [{ effects: [{ op: 'gainResources' as const, amount: 2 }] }],
         }],
       },
     };
@@ -431,5 +431,202 @@ describe('play-card integration — immediate ability fires', () => {
 
     const { state: after } = applyAction(base, { type: 'play-card', playerId: pid, cardId });
     expect(after.players[pid]!.discard).toContain(cardId);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// `then` gating — ENGINE-ST1 done-when tests
+// ────────────────────────────────────────────────────────────────────
+
+describe('then-gating: removeShields → dealDamage', () => {
+  function withShields(state: ReturnType<typeof makeGame>, charId: string, shields: number) {
+    const pid = state.playerOrder.find((pid) => state.players[pid]?.characters[charId])!;
+    const p = state.players[pid]!;
+    return {
+      ...state,
+      players: {
+        ...state.players,
+        [pid]: { ...p, characters: { ...p.characters, [charId]: { ...p.characters[charId]!, shields } } },
+      },
+    };
+  }
+
+  it('(a) damage runs when shield is present', () => {
+    const state = makeGame();
+    const pid = state.activePlayerId!;
+    const oppId = state.playerOrder.find((id) => id !== pid)!;
+    const oppChar = state.players[oppId]!.characterOrder[0]!;
+    const base = withShields(state, oppChar, 1);
+
+    // Use eachOpponentCharacter so both steps auto-target the same character
+    // without consuming from a pre-specified characterTargets list.
+    const { state: after } = applySteps(base, ctx(base), [
+      { effects: [{ op: 'removeShields', amount: 1, target: { kind: 'eachOpponentCharacter' } }] },
+      { effects: [{ op: 'dealDamage', amount: 3, target: { kind: 'eachOpponentCharacter' } }], then: true },
+    ]);
+
+    // Shield removed, damage landed
+    expect(after.players[oppId]!.characters[oppChar]!.shields).toBe(0);
+    expect(after.players[oppId]!.characters[oppChar]!.damage).toBeGreaterThan(0);
+  });
+
+  it('(a) damage skipped when no shield to remove', () => {
+    const state = makeGame();
+    const pid = state.activePlayerId!;
+    const oppId = state.playerOrder.find((id) => id !== pid)!;
+    const oppChar = state.players[oppId]!.characterOrder[0]!;
+    const base = withShields(state, oppChar, 0);
+
+    const { state: after } = applySteps(base, ctx(base), [
+      { effects: [{ op: 'removeShields', amount: 1, target: { kind: 'eachOpponentCharacter' } }] },
+      { effects: [{ op: 'dealDamage', amount: 3, target: { kind: 'eachOpponentCharacter' } }], then: true },
+    ]);
+
+    // No shield removed → damage step skipped
+    expect(after.players[oppId]!.characters[oppChar]!.damage).toBe(0);
+  });
+});
+
+describe('then-gating: multi-effect step (AND) gates the then-step', () => {
+  it('(b) both AND effects succeed → then-step runs', () => {
+    const state = makeGame();
+    const pid = state.activePlayerId!;
+    const oppId = state.playerOrder.find((id) => id !== pid)!;
+    const oppChar = state.players[oppId]!.characterOrder[0]!;
+    const ownChar = state.players[pid]!.characterOrder[0]!;
+
+    // Give both characters 1 shield so removeShields succeeds on both
+    let base = state;
+    const addShield = (s: ReturnType<typeof makeGame>, cid: string, owner: string, n: number) => ({
+      ...s,
+      players: {
+        ...s.players,
+        [owner]: {
+          ...s.players[owner]!,
+          characters: {
+            ...s.players[owner]!.characters,
+            [cid]: { ...s.players[owner]!.characters[cid]!, shields: n },
+          },
+        },
+      },
+    });
+    base = addShield(base, oppChar, oppId, 1);
+    base = addShield(base, ownChar, pid, 1);
+
+    const { state: after } = applySteps(base, ctx(base, [oppChar, ownChar]), [
+      {
+        effects: [
+          { op: 'removeShields', amount: 1, target: { kind: 'opponentCharacter' } },
+          { op: 'removeShields', amount: 1, target: { kind: 'ownCharacter' } },
+        ],
+      },
+      { effects: [{ op: 'gainResources', amount: 5 }], then: true },
+    ]);
+
+    // Both shields removed, then-step ran
+    expect(after.players[oppId]!.characters[oppChar]!.shields).toBe(0);
+    expect(after.players[pid]!.characters[ownChar]!.shields).toBe(0);
+    expect(after.players[pid]!.resources).toBe(base.players[pid]!.resources + 5);
+  });
+
+  it('(b) one AND effect fails → then-step skipped', () => {
+    const state = makeGame();
+    const pid = state.activePlayerId!;
+    const oppId = state.playerOrder.find((id) => id !== pid)!;
+    const oppChar = state.players[oppId]!.characterOrder[0]!;
+    const ownChar = state.players[pid]!.characterOrder[0]!;
+
+    // Own char has no shield → removeShields on own char fails
+    let base = state;
+    const zeroShields = (s: ReturnType<typeof makeGame>, cid: string, owner: string) => ({
+      ...s,
+      players: {
+        ...s.players,
+        [owner]: {
+          ...s.players[owner]!,
+          characters: {
+            ...s.players[owner]!.characters,
+            [cid]: { ...s.players[owner]!.characters[cid]!, shields: 0 },
+          },
+        },
+      },
+    });
+    const addOneShield = (s: ReturnType<typeof makeGame>, cid: string, owner: string) => ({
+      ...s,
+      players: {
+        ...s.players,
+        [owner]: {
+          ...s.players[owner]!,
+          characters: {
+            ...s.players[owner]!.characters,
+            [cid]: { ...s.players[owner]!.characters[cid]!, shields: 1 },
+          },
+        },
+      },
+    });
+    base = addOneShield(base, oppChar, oppId); // opp has shield
+    base = zeroShields(base, ownChar, pid);    // own has no shield
+
+    const resourcesBefore = base.players[pid]!.resources;
+
+    const { state: after } = applySteps(base, ctx(base, [oppChar, ownChar]), [
+      {
+        effects: [
+          { op: 'removeShields', amount: 1, target: { kind: 'opponentCharacter' } },
+          { op: 'removeShields', amount: 1, target: { kind: 'ownCharacter' } },
+        ],
+      },
+      { effects: [{ op: 'gainResources', amount: 5 }], then: true },
+    ]);
+
+    // Own shield removal failed → AND step not fully resolved → then-step skipped
+    expect(after.players[pid]!.resources).toBe(resourcesBefore);
+  });
+});
+
+describe('then-gating: per-op fullyResolved', () => {
+  it('gainResources is always fully resolved', () => {
+    const state = makeGame();
+    const pid = state.activePlayerId!;
+    const before = state.players[pid]!.resources;
+
+    const { state: after } = applySteps(state, ctx(state), [
+      { effects: [{ op: 'gainResources', amount: 3 }] },
+      { effects: [{ op: 'gainResources', amount: 2 }], then: true },
+    ]);
+
+    expect(after.players[pid]!.resources).toBe(before + 5);
+  });
+
+  it('drawCards: fully resolved when deck has enough cards', () => {
+    const state = makeGame();
+    const pid = state.activePlayerId!;
+    const before = state.players[pid]!.hand.length;
+
+    const { state: after } = applySteps(state, ctx(state), [
+      { effects: [{ op: 'drawCards', player: 'self', amount: 1 }] },
+      { effects: [{ op: 'gainResources', amount: 3 }], then: true },
+    ]);
+
+    expect(after.players[pid]!.hand.length).toBe(before + 1);
+    expect(after.players[pid]!.resources).toBe(state.players[pid]!.resources + 3);
+  });
+
+  it('drawCards: not fully resolved when deck is empty → then-step skipped', () => {
+    const state = makeGame();
+    const pid = state.activePlayerId!;
+    const emptyDeck = {
+      ...state,
+      players: { ...state.players, [pid]: { ...state.players[pid]!, deck: [] } },
+    };
+    const before = emptyDeck.players[pid]!.resources;
+
+    const { state: after } = applySteps(emptyDeck, ctx(emptyDeck), [
+      { effects: [{ op: 'drawCards', player: 'self', amount: 1 }] },
+      { effects: [{ op: 'gainResources', amount: 5 }], then: true },
+    ]);
+
+    // Drew 0 of 1 requested → not fully resolved → then skipped
+    expect(after.players[pid]!.resources).toBe(before);
   });
 });

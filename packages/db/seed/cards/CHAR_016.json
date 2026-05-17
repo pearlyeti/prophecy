@@ -58,17 +58,21 @@
     {
       "kind": "powerAction",
       "costs": [],
-      "effects": [
+      "optional": false,
+      "steps": [
         {
-          "op": "addShields",
-          "amount": 1,
-          "target": {
-            "kind": "ownCharacter"
-          },
-          "optional": false
+          "effects": [
+            {
+              "op": "addShields",
+              "amount": 1,
+              "target": {
+                "kind": "ownCharacter"
+              },
+              "optional": false
+            }
+          ]
         }
-      ],
-      "optional": false
+      ]
     }
   ],
   "artUrl": "https://pub-6fc240511531465cb3cccabed358395c.r2.dev/card-art/CHAR_016.webp",

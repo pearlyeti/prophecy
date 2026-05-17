@@ -372,13 +372,23 @@ export const CHARACTER_SELECTION_TARGETS: ReadonlySet<TargetSpec['kind']> = new 
 ]);
 
 // ────────────────────────────────────────────────────────────────────
+// ENGINE-ST1: step model
+// ────────────────────────────────────────────────────────────────────
+
+export const effectStepSchema = z.object({
+  effects: z.array(effectSchema).default([]),
+  then: z.boolean().default(false),
+});
+export type EffectStep = z.infer<typeof effectStepSchema>;
+
+// ────────────────────────────────────────────────────────────────────
 // Ability — discriminated on `kind`
 // ────────────────────────────────────────────────────────────────────
 
 const immediateAbility = z.object({
   kind: z.literal('immediate'),
   playCondition: playConditionSchema.optional(),
-  effects: z.array(effectSchema),
+  steps: z.array(effectStepSchema).default([]),
   cardDisposition: cardDispositionSchema.optional(),
 });
 
@@ -386,7 +396,7 @@ const triggeredAbility = z.object({
   kind: z.literal('triggered'),
   triggerEvent: triggerEventSchema,
   playCondition: playConditionSchema.optional(),
-  effects: z.array(effectSchema),
+  steps: z.array(effectStepSchema).default([]),
   optional: z.boolean().default(false),
 });
 
@@ -394,7 +404,7 @@ const actionAbility = z.object({
   kind: z.literal('action'),
   costs: z.array(actionCostSchema).default([]),
   playCondition: playConditionSchema.optional(),
-  effects: z.array(effectSchema),
+  steps: z.array(effectStepSchema).default([]),
   optional: z.boolean().default(false),
 });
 
@@ -402,13 +412,13 @@ const powerActionAbility = z.object({
   kind: z.literal('powerAction'),
   costs: z.array(actionCostSchema).default([]),
   playCondition: playConditionSchema.optional(),
-  effects: z.array(effectSchema),
+  steps: z.array(effectStepSchema).default([]),
   optional: z.boolean().default(false),
 });
 
 const specialAbility = z.object({
   kind: z.literal('special'),
-  effects: z.array(effectSchema),
+  steps: z.array(effectStepSchema).default([]),
   optional: z.boolean().default(false),
 });
 
@@ -420,7 +430,7 @@ const passiveAbility = z
 
 const claimAbility = z.object({
   kind: z.literal('claim'),
-  effects: z.array(effectSchema),
+  steps: z.array(effectStepSchema).default([]),
   optional: z.boolean().default(false),
 });
 

@@ -29,7 +29,7 @@ function oppCharId(state: GameState): string {
 
 describe('getLegalActions: actionableCardIds / powerActionableCardIds', () => {
   it('actionableCardIds contains character with ready action ability', () => {
-    const action: Ability = { kind: 'action', costs: [], effects: [{ op: 'gainResources', amount: 1 }] };
+    const action: Ability = { kind: 'action', costs: [], steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }] };
     const state = withCharAbilities(setup(), [action]);
     const active = state.activePlayerId!;
     const charId = activeCharId(state);
@@ -40,7 +40,7 @@ describe('getLegalActions: actionableCardIds / powerActionableCardIds', () => {
   });
 
   it('powerActionableCardIds contains character with unused power action', () => {
-    const pa: Ability = { kind: 'powerAction', costs: [], effects: [{ op: 'gainResources', amount: 1 }] };
+    const pa: Ability = { kind: 'powerAction', costs: [], steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }] };
     const state = withCharAbilities(setup(), [pa]);
     const active = state.activePlayerId!;
     const charId = activeCharId(state);
@@ -51,7 +51,7 @@ describe('getLegalActions: actionableCardIds / powerActionableCardIds', () => {
   });
 
   it('actionableCardIds excludes character when exhaust cost cannot be met', () => {
-    const action: Ability = { kind: 'action', costs: [{ kind: 'exhaust' }], effects: [] };
+    const action: Ability = { kind: 'action', costs: [{ kind: 'exhaust' }], steps: [] };
     let state = withCharAbilities(setup(), [action]);
     const active = state.activePlayerId!;
     const charId = activeCharId(state);
@@ -76,7 +76,7 @@ describe('getLegalActions: actionableCardIds / powerActionableCardIds', () => {
   });
 
   it('powerActionableCardIds excludes character when power action already used', () => {
-    const pa: Ability = { kind: 'powerAction', costs: [], effects: [{ op: 'gainResources', amount: 1 }] };
+    const pa: Ability = { kind: 'powerAction', costs: [], steps: [{ effects: [{ op: 'gainResources', amount: 1 }] }] };
     const initial = withCharAbilities(setup(), [pa]);
     const active = initial.activePlayerId!;
     const charId = activeCharId(initial);
@@ -98,7 +98,7 @@ describe('getLegalActions: actionableCardIds / powerActionableCardIds', () => {
     const action: Ability = {
       kind: 'action',
       costs: [{ kind: 'spendResources', amount: 10 }],
-      effects: [],
+      steps: [],
     };
     let state = withCharAbilities(setup(), [action]);
     const active = state.activePlayerId!;
@@ -117,8 +117,8 @@ describe('getLegalActions: actionableCardIds / powerActionableCardIds', () => {
   });
 
   it('returns empty arrays for opponent (not their turn)', () => {
-    const action: Ability = { kind: 'action', costs: [], effects: [] };
-    const pa: Ability = { kind: 'powerAction', costs: [], effects: [] };
+    const action: Ability = { kind: 'action', costs: [], steps: [] };
+    const pa: Ability = { kind: 'powerAction', costs: [], steps: [] };
     const state = withCharAbilities(setup(), [action, pa]);
     const opp = state.playerOrder.find((id) => id !== state.activePlayerId)!;
 
@@ -137,7 +137,7 @@ describe('use-card-action: targeted effects via targetCharacterIds', () => {
     const action: Ability = {
       kind: 'action',
       costs: [],
-      effects: [{ op: 'dealDamage', target: { kind: 'opponentCharacter' }, amount: 5 }],
+      steps: [{ effects: [{ op: 'dealDamage', target: { kind: 'opponentCharacter' }, amount: 5 }] }],
     };
     const initial = withCharAbilities(setup(), [action]);
     const active = initial.activePlayerId!;
@@ -162,7 +162,7 @@ describe('use-card-action: targeted effects via targetCharacterIds', () => {
     const action: Ability = {
       kind: 'action',
       costs: [],
-      effects: [{ op: 'addShields', target: { kind: 'ownCharacter' }, amount: 1 }],
+      steps: [{ effects: [{ op: 'addShields', target: { kind: 'ownCharacter' }, amount: 1 }] }],
     };
     const initial = withCharAbilities(setup(), [action]);
     const active = initial.activePlayerId!;

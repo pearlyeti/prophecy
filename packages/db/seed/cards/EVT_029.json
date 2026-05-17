@@ -18,11 +18,15 @@
   "abilities": [
     {
       "kind": "immediate",
-      "effects": [
+      "steps": [
         {
-          "op": "gainResources",
-          "amount": 2,
-          "optional": false
+          "effects": [
+            {
+              "op": "gainResources",
+              "amount": 2,
+              "optional": false
+            }
+          ]
         }
       ]
     }

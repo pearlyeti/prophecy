@@ -68,7 +68,7 @@ describe('rollEventDie op', () => {
 
     const state = withEventInHand(initial, active, 'roll-evt-1', 'EVT_ROLL_TEST', {
       kind: 'immediate',
-      effects: [{ op: 'rollEventDie' }],
+      steps: [{ effects: [{ op: 'rollEventDie' }] }],
     } as Ability);
 
     const { state: out } = applyAction(
@@ -138,7 +138,7 @@ describe('rollCardDie op', () => {
 
     const state = withEventInHand(initial, active, 'call-hound-1', 'EVT_CALL_HOUND', {
       kind: 'immediate',
-      effects: [{ op: 'rollCardDie', cardId: 'CHAR_003' }],
+      steps: [{ effects: [{ op: 'rollCardDie', cardId: 'CHAR_003' }] }],
     } as Ability);
 
     // Add the event to the catalog (no dieFaces needed for rollCardDie events).
@@ -174,7 +174,7 @@ describe('rollCardDie error handling', () => {
 
     const state = withEventInHand(initial, active, 'bad-event-1', 'EVT_BAD', {
       kind: 'immediate',
-      effects: [{ op: 'rollCardDie', cardId: 'DOES_NOT_EXIST' }],
+      steps: [{ effects: [{ op: 'rollCardDie', cardId: 'DOES_NOT_EXIST' }] }],
     } as Ability);
 
     const catalog: CatalogDieEntry[] = [

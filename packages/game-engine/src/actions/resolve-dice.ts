@@ -1,4 +1,4 @@
-import { applyEffects } from '../abilities/dispatch.js';
+import { applySteps } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, collectBeforeTriggers, commitTriggers } from '../queue/scan.js';
@@ -191,7 +191,7 @@ export function applyResolveDice(
             characterTargets: [],
             sourceCharacterId: candidate.sourceCardInstanceId,
           };
-          const r = applyEffects(working, ctx, candidate.ability.effects);
+          const r = applySteps(working, ctx, candidate.ability.steps);
           working = r.state;
           events.push(...r.events);
         }
@@ -282,7 +282,7 @@ export function applyResolveDice(
         const specialAbility = abilities.find((a) => a.kind === 'special');
         if (!specialAbility || specialAbility.kind !== 'special') continue;
         const ctx = { playerId, characterTargets: [] as string[], sourceCharacterId: ownerId };
-        const result = applyEffects(working, ctx, specialAbility.effects);
+        const result = applySteps(working, ctx, specialAbility.steps);
         working = result.state;
         events.push(...result.events);
       }

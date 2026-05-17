@@ -54,7 +54,7 @@ export function collectAfterTriggers(
               id: `q-${state.nextQueueEntryId + results.length}`,
               playerId,
               sourceCardInstanceId: charId,
-              effects: ability.effects,
+              steps: ability.steps,
               characterTargets: [],
             },
           });

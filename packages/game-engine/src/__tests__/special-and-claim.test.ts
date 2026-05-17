@@ -62,7 +62,7 @@ describe('Special ability dispatcher', () => {
 
     const specialAbility: Ability = {
       kind: 'special',
-      effects: [{ op: 'gainResources', amount: 3 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 3 }] }],
     };
     const state = {
       ...withPoolDie(initial, active, SPECIAL_FACE, 'sp-die', charId),
@@ -117,7 +117,7 @@ describe('Claim ability dispatcher', () => {
 
     const claimAbility: Ability = {
       kind: 'claim',
-      effects: [{ op: 'gainResources', amount: 2 }],
+      steps: [{ effects: [{ op: 'gainResources', amount: 2 }] }],
     };
     const state = {
       ...initial,
@@ -138,7 +138,7 @@ describe('Claim ability dispatcher', () => {
 
     const claimAbility: Ability = {
       kind: 'claim',
-      effects: [{ op: 'loseResources', target: 'opponent', amount: 1 }],
+      steps: [{ effects: [{ op: 'loseResources', target: 'opponent', amount: 1 }] }],
     };
     const state = {
       ...initial,
@@ -161,8 +161,8 @@ describe('Claim ability dispatcher', () => {
       cardAbilities: {
         ...initial.cardAbilities,
         [battlefieldId]: [
-          { kind: 'claim' as const, effects: [{ op: 'gainResources' as const, amount: 1 }] },
-          { kind: 'claim' as const, effects: [{ op: 'gainResources' as const, amount: 2 }] },
+          { kind: 'claim' as const, steps: [{ effects: [{ op: 'gainResources' as const, amount: 1 }] }] },
+          { kind: 'claim' as const, steps: [{ effects: [{ op: 'gainResources' as const, amount: 2 }] }] },
         ],
       },
     };

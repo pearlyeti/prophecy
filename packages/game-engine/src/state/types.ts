@@ -1,5 +1,5 @@
 // Core type definitions for the rules engine.
-import type { Ability, Effect, SearchChoice, SearchDisposition } from '../abilities/types.js';
+import type { Ability, EffectStep, SearchChoice, SearchDisposition } from '../abilities/types.js';
 import type { Queue, PendingTriggers } from '../queue/types.js';
 // These mirror the abstract game system in docs/rules-reference.md.
 // Implementation comes incrementally; this file exists so dependent
@@ -211,10 +211,10 @@ export interface PendingSearch {
   readonly choices: readonly SearchChoice[];
   readonly defaultDisposition: SearchDisposition;
   /**
-   * Effects remaining in the ability sequence after the searchDeck op.
+   * Steps remaining in the ability sequence after the searchDeck op.
    * Applied automatically after resolve-search completes.
    */
-  readonly remainingEffects: readonly Effect[];
+  readonly remainingSteps: readonly EffectStep[];
   /** Player running the ability — used to resume remaining effects. */
   readonly resumePlayerId: string;
 }

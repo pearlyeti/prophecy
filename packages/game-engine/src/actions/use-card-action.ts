@@ -1,4 +1,4 @@
-import { applyEffects, NotImplementedError, type DispatchContext } from '../abilities/dispatch.js';
+import { applySteps, NotImplementedError, type DispatchContext } from '../abilities/dispatch.js';
 import type { EngineEvent } from '../events.js';
 import { drainQueue } from '../queue/drain.js';
 import { collectAfterTriggers, commitTriggers } from '../queue/scan.js';
@@ -108,7 +108,7 @@ export function applyUseCardAction(
     characterTargets: targetCharacterIds,
     sourceCharacterId: cardId,
   };
-  const effectResult = applyEffects(working, ctx, ability.effects);
+  const effectResult = applySteps(working, ctx, ability.steps);
   working = effectResult.state;
   allEvents.push(...effectResult.events);
 
