@@ -137,8 +137,22 @@ function SocketBridge() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setOpponentPreview(flow as any);
     };
+    let tumblingTimer: ReturnType<typeof setTimeout> | null = null;
     const onGameEvents: Parameters<typeof socket.on<'game.events'>>[1] = ({ events }) => {
       appendBatch(events);
+      // Trigger tumble for any dice that just rolled in from an activation.
+      const rollEvt = events.find(
+        (e) => e.type === 'character.activated' || e.type === 'support.activated',
+      ) as { payload: { rolledDice: readonly { instanceId: string }[] } } | undefined;
+      if (rollEvt) {
+        const ids = rollEvt.payload.rolledDice.map((d) => d.instanceId);
+        if (tumblingTimer) clearTimeout(tumblingTimer);
+        useApp.getState().setTumblingPoolDieIds(ids);
+        tumblingTimer = setTimeout(() => {
+          tumblingTimer = null;
+          useApp.getState().setTumblingPoolDieIds([]);
+        }, 1500);
+      }
     };
     const onError: Parameters<typeof socket.on<'error'>>[1] = (e) => {
       if (isError(e)) setError(e.message);
@@ -182,6 +196,7 @@ function SocketBridge() {
       socket.off('game.preview', onPreview);
       socket.off('error', onError);
       socket.off('lobby.matchFound', onMatchFound);
+      if (tumblingTimer) clearTimeout(tumblingTimer);
     };
   }, [playerId, setLobby, setGame, appendBatch, setStatus, setError, setOpponentPreview]);
 

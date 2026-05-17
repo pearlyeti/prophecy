@@ -330,7 +330,8 @@ export default function DicePool3D({
   previewSpentDieIds,
   previewRerollDieIds,
 }: DicePool3DProps) {
-  const activeFlow    = useApp((s) => s.activeFlow);
+  const activeFlow           = useApp((s) => s.activeFlow);
+  const tumblingPoolDieIds   = useApp((s) => s.tumblingPoolDieIds);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
   const game = useApp((s) => s.game);
@@ -462,7 +463,8 @@ export default function DicePool3D({
           return dice.map((d, i) => {
           const isTumbling =
             tumblingCharId != null ||
-            (tumblingDieIds?.includes(d.instanceId) ?? false);
+            (tumblingDieIds?.includes(d.instanceId) ?? false) ||
+            tumblingPoolDieIds.includes(d.instanceId);
           const staggerIndex = isTumbling ? tumblingCount++ : 0;
 
           let dieState: DieState = 'default';
