@@ -112,7 +112,6 @@ function VerificationRow({ bg, text }: { bg: string; text: string }) {
               textColor={text}
               state="default"
               isTumbling={false}
-              staggerIndex={0}
               overrideFaceIndex={i}
               overrideFace={null}
               onClick={() => {}}

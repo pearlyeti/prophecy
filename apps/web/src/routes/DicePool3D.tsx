@@ -123,7 +123,7 @@ export function Die3D({
   textColor,
   state,
   isTumbling,
-  staggerIndex,
+  staggerIndex = 0,
   overrideFaceIndex,
   overrideFace,
   onClick,
@@ -140,8 +140,8 @@ export function Die3D({
   textColor: string;
   state: DieState;
   isTumbling: boolean;
-  /** Left-to-right index among tumbling dice — each adds 400 ms to settle delay. */
-  staggerIndex: number;
+  /** Left-to-right index among tumbling dice — each adds 400 ms to settle delay. Defaults to 0. */
+  staggerIndex?: number;
   /** When set, animate the die to show this face index on top. */
   overrideFaceIndex?: number | null;
   /** Face data for the overridden face (for the texture). */
