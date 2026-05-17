@@ -1,6 +1,98 @@
 {
   "decks": [
     {
+      "id": "DECK_A",
+      "name": "Spark of Hope",
+      "description": "Mono-faction Light team mixing Blue and Red. CHAR_017 elite anchors the team for damage and shields; CHAR_016 fills out with ranged dice. Smile curve heavy on 0/1-cost cards with one 4-cost top-end finisher.",
+      "faction": "light",
+      "characters": [
+        {
+          "cardId": "CHAR_017",
+          "elite": true
+        },
+        {
+          "cardId": "CHAR_016",
+          "elite": false
+        },
+        {
+          "cardId": "CHAR_016",
+          "elite": false
+        },
+        {
+          "cardId": "CHAR_016",
+          "elite": false
+        }
+      ],
+      "battlefieldCardId": "BFD_002",
+      "plotCardId": null,
+      "cards": [
+        {
+          "cardId": "UPG_024",
+          "count": 2
+        },
+        {
+          "cardId": "UPG_022",
+          "count": 2
+        },
+        {
+          "cardId": "UPG_030",
+          "count": 2
+        },
+        {
+          "cardId": "UPG_013",
+          "count": 2
+        },
+        {
+          "cardId": "UPG_026",
+          "count": 2
+        },
+        {
+          "cardId": "UPG_014",
+          "count": 1
+        },
+        {
+          "cardId": "UPG_017",
+          "count": 1
+        },
+        {
+          "cardId": "EVT_029",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_032",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_038",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_039",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_026",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_028",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_055",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_044",
+          "count": 2
+        },
+        {
+          "cardId": "EVT_033",
+          "count": 2
+        }
+      ]
+    },
+    {
       "id": "DECK_B",
       "name": "Iron Fist",
       "description": "Mono-faction Shadow team mixing Red and Yellow. CHAR_003 elite as primary striker; CHAR_011 supplies ranged dice and reach. Smile curve weighted toward 0/1/2-cost with two 3-cost upgrades.",
