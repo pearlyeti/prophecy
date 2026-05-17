@@ -196,8 +196,12 @@ type Settings = {
   // Orientation correction _O (composes into every FACE_CORRECT_Q[k])
   oAxis: 'X' | 'Y' | 'Z';
   oAngleDeg: number;
-  // Per-face fine-tune: rotation around +Y (in-plane spin on the top face)
-  faceSpinDeg: [number, number, number, number, number, number];
+  // Per-face fine-tune
+  faceSpinDeg:  [number, number, number, number, number, number]; // top-axis in-plane rotation
+  faceOffsetX:  [number, number, number, number, number, number]; // texture U offset (-0.5..0.5)
+  faceOffsetY:  [number, number, number, number, number, number]; // texture V offset
+  faceMirrorX:  [boolean, boolean, boolean, boolean, boolean, boolean];
+  faceMirrorY:  [boolean, boolean, boolean, boolean, boolean, boolean];
   // Camera
   camY: number;
   camZ: number;
@@ -218,6 +222,10 @@ const DEFAULTS: Settings = {
   oAxis: 'Y',
   oAngleDeg: -90,
   faceSpinDeg: [0, 0, 0, 0, 0, 0],
+  faceOffsetX: [0, 0, 0, 0, 0, 0],
+  faceOffsetY: [0, 0, 0, 0, 0, 0],
+  faceMirrorX: [false, false, false, false, false, false],
+  faceMirrorY: [false, false, false, false, false, false],
   // Mirrors current main: DicePool3D camera + geometry
   camY: 2.5,
   camZ: 0.9,
@@ -235,6 +243,42 @@ function CameraLookAt({ camY, camZ, camFov }: { camY: number; camZ: number; camF
     camera.lookAt(0, 0, 0);
   }, [camera, camY, camZ, camFov]);
   return null;
+}
+
+function TunerDie({
+  index, texture, quaternion, size, radius, position, offX, offY, mirrorX, mirrorY,
+}: {
+  index: number;
+  texture: THREE.CanvasTexture;
+  quaternion: THREE.Quaternion;
+  size: number;
+  radius: number;
+  position: [number, number, number];
+  offX: number;
+  offY: number;
+  mirrorX: boolean;
+  mirrorY: boolean;
+}) {
+  // Apply per-face UV transform. Each die owns its own texture, so mutating
+  // these properties is isolated. Three.js auto-rebuilds the texture matrix.
+  useEffect(() => {
+    texture.center.set(0.5, 0.5);
+    texture.offset.set(offX, offY);
+    texture.repeat.set(mirrorX ? -1 : 1, mirrorY ? -1 : 1);
+  }, [texture, offX, offY, mirrorX, mirrorY]);
+
+  return (
+    <RoundedBox
+      key={index}
+      args={[size, size, size]}
+      radius={radius}
+      smoothness={3}
+      position={position}
+      quaternion={quaternion}
+    >
+      <meshStandardMaterial map={texture} roughness={0.45} metalness={0.05} />
+    </RoundedBox>
+  );
 }
 
 function TunerScene({ settings, textures }: { settings: Settings; textures: THREE.CanvasTexture[] }) {
@@ -258,16 +302,19 @@ function TunerScene({ settings, textures }: { settings: Settings; textures: THRE
       <ambientLight intensity={0.5} />
       <directionalLight position={[0, 5, 2]} intensity={0.9} />
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <RoundedBox
+        <TunerDie
           key={i}
-          args={[settings.dieSize, settings.dieSize, settings.dieSize]}
-          radius={settings.dieRadius}
-          smoothness={3}
-          position={[(i - 2.5) * (settings.dieSize * 1.4), 0, 0]}
+          index={i}
+          texture={textures[i]!}
           quaternion={faceQuats[i]!}
-        >
-          <meshStandardMaterial map={textures[i]!} roughness={0.45} metalness={0.05} />
-        </RoundedBox>
+          size={settings.dieSize}
+          radius={settings.dieRadius}
+          position={[(i - 2.5) * (settings.dieSize * 1.4), 0, 0]}
+          offX={settings.faceOffsetX[i]!}
+          offY={settings.faceOffsetY[i]!}
+          mirrorX={settings.faceMirrorX[i]!}
+          mirrorY={settings.faceMirrorY[i]!}
+        />
       ))}
     </>
   );
@@ -297,12 +344,21 @@ function Slider({
 function LiveTuner({ bg, text }: { bg: string; text: string }) {
   const [s, setS] = useState<Settings>(DEFAULTS);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
-  const setFaceSpin = (i: number, deg: number) =>
+
+  function setFaceNum(key: 'faceSpinDeg' | 'faceOffsetX' | 'faceOffsetY', i: number, v: number) {
     setS((p) => {
-      const next = [...p.faceSpinDeg] as Settings['faceSpinDeg'];
-      next[i] = deg;
-      return { ...p, faceSpinDeg: next };
+      const next = [...p[key]] as Settings['faceSpinDeg'];
+      next[i] = v;
+      return { ...p, [key]: next };
     });
+  }
+  function setFaceBool(key: 'faceMirrorX' | 'faceMirrorY', i: number, v: boolean) {
+    setS((p) => {
+      const next = [...p[key]] as Settings['faceMirrorX'];
+      next[i] = v;
+      return { ...p, [key]: next };
+    });
+  }
 
   // Textures only depend on the canvas params.
   const textures = useMemo(() => {
@@ -397,17 +453,70 @@ function LiveTuner({ bg, text }: { bg: string; text: string }) {
         </div>
 
         <div>
-          <h3 style={{ fontSize: 13, color: '#ccc', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Per-face spin (top-axis rotation, deg)</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <h3 style={{ fontSize: 13, color: '#ccc', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Per-face tune</h3>
+          <p style={{ fontSize: 11, color: '#666', marginBottom: 8, lineHeight: 1.4 }}>
+            <strong>spin</strong>: in-plane rotation around the top-axis.
+            <strong> X / Y</strong>: nudge the texture on the face (UV offset).
+            <strong> mX / mY</strong>: mirror.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Slider
-                key={i}
-                label={`face ${i} spin`}
-                value={s.faceSpinDeg[i]!}
-                min={-180} max={180} step={1}
-                onChange={(v) => setFaceSpin(i, v)}
-                fmt={(v) => `${v.toFixed(0)}°`}
-              />
+              <div key={i} style={{ background: '#181818', borderRadius: 4, padding: '6px 8px' }}>
+                <div style={{ fontSize: 11, color: '#888', marginBottom: 4, fontFamily: 'monospace' }}>face {i}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 56px', columnGap: 6, rowGap: 3, alignItems: 'center', fontSize: 11, fontFamily: 'monospace' }}>
+                  <span style={{ color: '#aaa' }}>spin</span>
+                  <input
+                    type="range" min={-180} max={180} step={1}
+                    value={s.faceSpinDeg[i]!}
+                    onChange={(e) => setFaceNum('faceSpinDeg', i, parseFloat(e.target.value))}
+                  />
+                  <span style={{ textAlign: 'right', color: '#ddd' }}>{s.faceSpinDeg[i]!.toFixed(0)}°</span>
+
+                  <span style={{ color: '#aaa' }}>X</span>
+                  <input
+                    type="range" min={-0.5} max={0.5} step={0.005}
+                    value={s.faceOffsetX[i]!}
+                    onChange={(e) => setFaceNum('faceOffsetX', i, parseFloat(e.target.value))}
+                  />
+                  <span style={{ textAlign: 'right', color: '#ddd' }}>{s.faceOffsetX[i]!.toFixed(3)}</span>
+
+                  <span style={{ color: '#aaa' }}>Y</span>
+                  <input
+                    type="range" min={-0.5} max={0.5} step={0.005}
+                    value={s.faceOffsetY[i]!}
+                    onChange={(e) => setFaceNum('faceOffsetY', i, parseFloat(e.target.value))}
+                  />
+                  <span style={{ textAlign: 'right', color: '#ddd' }}>{s.faceOffsetY[i]!.toFixed(3)}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, fontFamily: 'monospace', color: '#ccc' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={s.faceMirrorX[i]!}
+                      onChange={(e) => setFaceBool('faceMirrorX', i, e.target.checked)}
+                    />
+                    mirror X
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={s.faceMirrorY[i]!}
+                      onChange={(e) => setFaceBool('faceMirrorY', i, e.target.checked)}
+                    />
+                    mirror Y
+                  </label>
+                  <button
+                    onClick={() => {
+                      setFaceNum('faceSpinDeg', i, 0);
+                      setFaceNum('faceOffsetX', i, 0);
+                      setFaceNum('faceOffsetY', i, 0);
+                      setFaceBool('faceMirrorX', i, false);
+                      setFaceBool('faceMirrorY', i, false);
+                    }}
+                    style={{ marginLeft: 'auto', background: '#222', color: '#999', border: '1px solid #333', padding: '2px 8px', fontSize: 10, cursor: 'pointer', borderRadius: 3 }}
+                  >reset face</button>
+                </div>
+              </div>
             ))}
           </div>
 
