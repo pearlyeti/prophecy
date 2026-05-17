@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Draw cards up to your hand size.",
+  "abilityText": "Draw cards up to your hand size.",
   "dieFaces": null,
   "abilities": [
     {

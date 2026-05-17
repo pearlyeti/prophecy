@@ -16,7 +16,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "After this support activates, you may deal 1 damage to an opponent's character.",
+  "abilityText": "After this support activates, you may deal 1 damage to an opponent's character.",
   "dieFaces": [
     {
       "symbol": "melee",

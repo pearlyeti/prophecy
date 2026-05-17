@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Draw 1 card.",
+  "abilityText": "Draw 1 card.",
   "dieFaces": null,
   "abilities": [
     {

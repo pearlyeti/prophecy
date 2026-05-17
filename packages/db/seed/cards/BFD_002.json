@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": true,
   "keywords": [],
-  "displayText": "Claim: Opponent loses 1 resource.",
+  "abilityText": "Claim: Opponent loses 1 resource.",
   "dieFaces": null,
   "abilities": [
     {

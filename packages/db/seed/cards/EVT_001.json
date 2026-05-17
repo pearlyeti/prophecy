@@ -14,7 +14,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Deal 1 melee damage to an exhausted character.",
+  "abilityText": "Deal 1 melee damage to an exhausted character.",
   "dieFaces": null,
   "abilities": [
     {

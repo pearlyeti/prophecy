@@ -1679,8 +1679,8 @@ function HandOverlay({
           </div>
 
           {/* ability text */}
-          {card?.displayText ? (
-            <p className="text-sm leading-relaxed text-neutral-300">{card.displayText}</p>
+          {card?.abilityText ? (
+            <p className="text-sm leading-relaxed text-neutral-300">{card.abilityText}</p>
           ) : (
             <p className="text-sm italic text-neutral-600">No ability text.</p>
           )}
@@ -2603,7 +2603,7 @@ function InlineHandStrip({
                   {/* Expanded: ability text */}
                   {isExpanded && (
                     <p className="mt-0.5 text-[9px] leading-snug text-neutral-400">
-                      {card?.displayText ?? 'No ability text.'}
+                      {card?.abilityText ?? 'No ability text.'}
                     </p>
                   )}
                   {/* Tap to view full card */}
@@ -3558,8 +3558,8 @@ function CardDetailOverlay({
           </dl>
 
           {/* ability text */}
-          {card?.displayText ? (
-            <p className="text-sm leading-relaxed text-neutral-300">{card.displayText}</p>
+          {card?.abilityText ? (
+            <p className="text-sm leading-relaxed text-neutral-300">{card.abilityText}</p>
           ) : (
             <p className="text-sm italic text-neutral-600">No ability text.</p>
           )}
@@ -3615,8 +3615,8 @@ function UpgradeDetailOverlay({
               {card.type}{card.subtypes?.length ? ` · ${card.subtypes.join(', ')}` : ''}
             </span>
           </div>
-          {card.displayText ? (
-            <p className="text-sm leading-relaxed text-neutral-300">{card.displayText}</p>
+          {card.abilityText ? (
+            <p className="text-sm leading-relaxed text-neutral-300">{card.abilityText}</p>
           ) : (
             <p className="text-sm italic text-neutral-600">No ability text.</p>
           )}

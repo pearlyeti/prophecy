@@ -15,7 +15,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Power Action: Give one of your characters 1 shield.",
+  "abilityText": "Power Action: Give one of your characters 1 shield.",
   "dieFaces": [
     {
       "symbol": "ranged",

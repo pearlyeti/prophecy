@@ -223,9 +223,9 @@ function main(): void {
       dieFaces: type === 'character' || type === 'upgrade' || type === 'support'
         ? toDieFaces(src.dice)
         : null,
-      displayText: (src.card_text ?? '').trim(),
+      abilityText: (src.card_text ?? '').trim(),
       // Abilities (AST) are hand-authored — they're how the engine
-      // dispatches behaviour. The printed prose lives in `displayText`
+      // dispatches behaviour. The printed prose lives in `abilityText`
       // above. Wire ability AST for each card as engine resolvers land.
       abilities: [],
     };

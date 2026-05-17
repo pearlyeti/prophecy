@@ -23,7 +23,7 @@ export function CardDiff({ before, after }: { before: Card; after: Card }) {
     ['Elite point value', 'elitePointValue'],
     ['Plot point value', 'plotPointValue'],
     ['Unique', 'isUnique'],
-    ['Display text', 'displayText'],
+    ['Ability text', 'abilityText'],
   ];
 
   for (const [label, key] of scalar) {

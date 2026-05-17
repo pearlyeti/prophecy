@@ -13,7 +13,7 @@
   "plotPointValue": null,
   "isUnique": false,
   "keywords": [],
-  "displayText": "Roll a War Hound die and add it to your pool.",
+  "abilityText": "Roll a War Hound die and add it to your pool.",
   "dieFaces": null,
   "abilities": [
     {

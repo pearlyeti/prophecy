@@ -353,6 +353,28 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  if (req.url === '/designer/ai/parse-abilities' && req.method === 'POST') {
+    if (!checkDesignerAuth(req, res)) return;
+    try {
+      const body = await readJsonBody(req) as Record<string, unknown>;
+      const text = typeof body.text === 'string' ? body.text.trim() : '';
+      if (!text) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'text is required' }));
+        return;
+      }
+      const { parseAbilities } = await import('./designerAi.js');
+      const abilities = await parseAbilities(text);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, abilities }));
+    } catch (e) {
+      const msg = (e as Error).message ?? String(e);
+      res.writeHead(422, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: msg }));
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });

@@ -154,6 +154,7 @@ All rules from [docs/rules-reference.md](docs/rules-reference.md) are implemente
 | Validation | Zod | Runtime + compile-time, shared via `packages/protocol` |
 | Payments | Stripe (+ Stripe Tax) | Cards, Apple/Google Pay, regional pricing, tax, refunds |
 | Email | Resend | Transactional email (receipts, password reset, alerts) |
+| AI (designer) | Anthropic SDK (`@anthropic-ai/sdk`) | Powers the ✨ Parse abilities button in the card designer — translates rules text into structured Ability JSON |
 | Testing | Vitest + Playwright | Fast unit tests, E2E for game flows |
 | Observability | OpenTelemetry + Sentry | Distributed traces + error tracking across services |
 | Containerization | Docker + Docker Compose | Consistent local dev |
@@ -206,7 +207,7 @@ Server-authoritative + event-sourced is the foundation; everything below sits on
 ```
 users                  — accounts, OAuth providers, settings, age band, role, ban tier
 sessions               — auth sessions (better-auth)
-cards                  — full card catalog (id, set, type, faction, color, cost, health, points, display_text)
+cards                  — full card catalog (id, set, type, faction, color, cost, health, points, ability_text)
 card_abilities         — JSONB AST per card; one row per ability (kind, trigger, effect, conditions)
 card_dice              — dice faces for each card (symbol, value, cost, modifier_flag)
 card_collections       — user ↔ card ownership (quantity, foil, alt-art variants)
@@ -234,7 +235,7 @@ audit_log              — admin actions and anti-cheat events (who did what, wh
 
 ### Card abilities are structured, not free text
 
-A card's ability is the most load-bearing piece of game data. We store abilities as a small **AST in JSONB** that the engine can interpret directly, with a separate `display_text` column for the printed card text the player sees.
+A card's ability is the most load-bearing piece of game data. We store abilities as a small **AST in JSONB** that the engine can interpret directly, with a separate `ability_text` column for the printed card text the player sees.
 
 ```jsonc
 // example card_abilities row (illustrative shape only)
@@ -500,7 +501,7 @@ VITE_GAME_SERVER_URL=https://your-railway-url.railway.app VITE_DESIGNER_SECRET=y
 
 `apps/web/src/routes/admin/*` ships a hidden authoring tool at `/admin`:
 
-- **`/admin/cards`** — table of every card; click to edit metadata (name, type, subtype, faction, color, rarity, cost, point / elite-point / health, isUnique, displayText, die faces read-only for now). Abilities use a form-based builder: pick an `op` from a dropdown of the engine-supported ops, fill in its parameters. Cards that need an op the engine doesn't have yet pick `(new)` and write a working name + notes; that effectively tags the catalog with the running TODO list of ops to implement next.
+- **`/admin/cards`** — table of every card; click to edit metadata (name, type, subtype, faction, color, rarity, cost, point / elite-point / health, isUnique, abilityText, die faces read-only for now). Abilities use a form-based builder: pick an `op` from a dropdown of the engine-supported ops, fill in its parameters. Cards that need an op the engine doesn't have yet pick `(new)` and write a working name + notes; that effectively tags the catalog with the running TODO list of ops to implement next.
 - **`/admin/decks`** — table of decks; click to edit name, faction, characters (with elite toggle), battlefield, plot, and the card list (counts). Deck-building rule enforcement (color / faction / 30-card / 2-copy cap) is **not** enforced in the UX — author rules manually for now; a validator lands later.
 
 Persistence is filesystem-direct: `GET /admin/cards`, `PUT /admin/cards`, `GET /admin/decks`, `PUT /admin/decks` on the game-server. Dev-only, no auth in v1.
