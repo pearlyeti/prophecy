@@ -182,7 +182,7 @@ function Die3D({
     texture.rotation = (FACE_SPIN_DEG[effectiveFaceIndex]! * Math.PI) / 180;
   }, [texture, effectiveFaceIndex]);
 
-  const emissive =
+  const emissiveHex =
     state === 'selected-resolve' ? '#064e3b' :
     state === 'selected-reroll'  ? '#451a03' :
     state === 'eligible'         ? '#052e16' :
@@ -192,7 +192,37 @@ function Die3D({
     state === 'selected-reroll'  ? 0.9 :
     state === 'eligible'         ? 0.35 :
     0;
-  const colorMultiplier = state === 'dimmed' ? '#2a2a2a' : '#ffffff';
+  const dimmed = state === 'dimmed';
+
+  // Six-material array: only the slot that ends up on top (= effectiveFaceIndex)
+  // shows the texture. Other slots show plain die color so we don't see ghost
+  // text on the cube's side faces / chamfer.
+  const materials = useMemo(
+    () => Array.from({ length: 6 }, () => new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.05 })),
+    [],
+  );
+  useEffect(() => () => { materials.forEach((m) => m.dispose()); }, [materials]);
+
+  useEffect(() => {
+    for (let slot = 0; slot < 6; slot++) {
+      const m = materials[slot]!;
+      m.emissive.set(emissiveHex);
+      m.emissiveIntensity = emissiveIntensity;
+      if (slot === effectiveFaceIndex) {
+        m.map = texture;
+        m.color.set(dimmed ? '#2a2a2a' : '#ffffff');
+      } else {
+        m.map = null;
+        m.color.set(dimmed ? '#2a2a2a' : baseColor);
+      }
+      m.needsUpdate = true;
+    }
+  }, [materials, effectiveFaceIndex, texture, baseColor, emissiveHex, emissiveIntensity, dimmed]);
+
+  // Apply the material array to the mesh once it's mounted.
+  useEffect(() => {
+    if (meshRef.current) meshRef.current.material = materials;
+  }, [materials]);
 
   return (
     <RoundedBox
@@ -202,17 +232,9 @@ function Die3D({
       smoothness={3}
       position={position}
       // No rotation prop — fully controlled by useFrame to avoid reconciler conflicts.
+      // Material array is set via the useEffect above (one textured slot + 5 plain).
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-    >
-      <meshStandardMaterial
-        map={texture}
-        color={colorMultiplier}
-        emissive={emissive}
-        emissiveIntensity={emissiveIntensity}
-        roughness={0.45}
-        metalness={0.05}
-      />
-    </RoundedBox>
+    />
   );
 }
 
