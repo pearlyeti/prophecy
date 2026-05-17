@@ -303,6 +303,43 @@ character-targeting plays.
 
 ---
 
+#### WEB-27 — Opponent preview gaps (face-pick, cardAction, claim, reroll pick-card, character tilt)
+
+**Why now.** WEB-21 shipped the `game.preview` pipeline but left four `ActiveFlow` kinds unrendered on the opponent's screen, and the character tilt animation snaps instead of animating when an activation preview transitions to committed state. All data is already broadcast and stored in `opponentPreview` — this is a rendering-only pass.
+
+**Scope.**
+- **Character tilt animation fix** (`Game.tsx` ~line 2274): `pendingExhaust` on opponent-zone `CharacterCard` is currently only true from local `activeFlow`. Change to also be true when `previewActivate` is set — `previewActivate` already encodes `opponentPreview?.kind === 'activate' && charId === cid`, so this is a one-word change. The tilt is now present before the committed state arrives, giving the CSS transition a starting point.
+- **`face-pick` flow** (die rendering in `BattlefieldRow`): when `opponentPreview?.kind === 'face-pick'`, build face overrides from `history` and pass to the opponent `DicePool3D`. If `pickingForDieId` is set, include it in `previewRerollDieIds` (amber ring) for the die whose face panel is open.
+- **`cardAction` flow**: when `opponentPreview?.kind === 'cardAction'`, add amber ring on the matching opponent `CharacterCard` or `SupportCard` via a new `previewCardAction` prop.
+- **`claim` flow** (`AvatarBar`): when `opponentPreview?.kind === 'claim'`, apply a pulsing amber ring to the battlefield button so the local player sees the opponent about to claim.
+- **`reroll` pick-card step** (`AvatarBar`): when `opponentPreview?.kind === 'reroll' && step === 'pick-card'`, append `"rerolling…"` in amber to the opponent's resource line in `AvatarBar`.
+
+**Context to load.**
+- `apps/web/src/routes/Game.tsx`
+  - `AvatarBar` (~lines 1944–2047)
+  - `BattlefieldRow` preview block (~lines 2148–2180)
+  - Player-side face override logic (~lines 2215–2228)
+  - `pendingExhaust` prop (~line 2274)
+  - Opponent `DicePool3D` props (~lines 2285–2306)
+  - `CharacterCard` component (~lines 2853–3050)
+  - `SupportCard` and `SupportStrip` components (~lines 3055–3246)
+  - `OpponentZone` (~lines 2336–2409)
+- `apps/web/src/store.ts` (`ActiveFlow` union, lines 30–63)
+
+**Out of scope.** `pendingCharTargetPlay` (WEB-24) — opponent preview for that flow should be wired as part of WEB-24. Engine changes. Protocol changes.
+
+**Done when.**
+- [ ] Typecheck clean.
+- [ ] Manual smoke (two browser windows):
+  - [ ] Player A activates a character → Player B sees the tilt animate (not snap).
+  - [ ] Player A enters face-pick flow and flips a die face → Player B sees the die face update live; undo → B sees it revert.
+  - [ ] Player A enters reroll pick-card step → Player B sees "rerolling…" in A's info bar.
+  - [ ] Player A uses a card action → Player B sees an amber ring on that character/support.
+  - [ ] Player A starts a claim → Player B sees a pulsing amber ring on the battlefield button.
+  - [ ] All five: when A undoes or cancels, the indicator clears on B's screen.
+
+---
+
 #### WEB-9 — Drag-to-play (Pass 2: character targeting)
 **Why now.** Once the engine supports targeted `play-card` (upgrades attaching to characters, events targeting opponent characters), the drag gesture should route to the correct target rather than a generic play zone.
 
@@ -520,6 +557,7 @@ Which `Effect` ops and `Ability` kinds have live dispatcher support. A checked b
 - **2026-05-16 — WEB-22 — Adaptive zone sizing.** `OpponentZone` and `PlayerZone` containers replace `flex-1` with `flexGrow: Math.max(1, characterOrder.length)` (inline style + `shrink basis-0` Tailwind classes). Zones proportionally share vertical space based on live card count; minimum of 1 prevents collapse on empty zones. WEB-21 Done hash backfilled to `224105e`. Typecheck clean. (`eb2fb7f`)
 - **2026-05-16 — Activity log: batch architecture.** Replaced flat `recentEvents: EngineEvent[]` accumulator + peek-ahead index logic with `recentBatches: (EngineEvent[])[]` — one entry per `game.events` socket message (= one player action). `buildLogEntries` now processes each batch with `find`/`filter` by event type: no index math, no boundary detection, no scanning. Adds `support.activated`, `card.action-used`, `"— defeated!"` suffix on lethal hits, and multi-target card damage. (`ee439b2`)
 - **2026-05-16 — Engine bug fix: `newGameFromDecks` missing `cardAbilities`.** `newGameFromDecks` built every card map (`cardCosts`, `cardTypes`, `cardMeta`, etc.) but never populated `cardAbilities`. Every production game started with an empty abilities map, so playing any event card, character power action, or card action had zero effect. Fixed by populating `cardAbilities` for both the character loop and the deck-card loop. Also fixed 40 seed card JSON files where ability text and effect ops were out of sync; added stale-object-storage detection in `corpus.ts` so updated disk files are picked up on redeploy. (`721820a`)
+- **2026-05-17 — WEB-27 — Opponent preview gaps (face-pick, cardAction, claim, reroll pick-card, character tilt).** Rendering-only pass. Character tilt now animates on the opponent's screen by reusing the existing `previewActivate` flag for `pendingExhaust`. `face-pick` flow: opponent dice show live face overrides from `history`; `pickingForDieId` gets an amber ring via `previewRerollDieIds`. `cardAction` flow: new `previewCardAction` prop on `CharacterCard` and `SupportCard` renders an amber ring; `SupportStrip` threads `previewCardActionId` from `OpponentZone`. `claim` flow: `AvatarBar` reads `opponentPreview` and applies a pulsing amber ring to the battlefield button. `reroll` pick-card step: "rerolling…" badge in amber appended to opponent's resource line in `AvatarBar`. Typecheck clean. (`878e822`)
 - **2026-05-16 — WEB-21 — Live opponent action preview.** `game.preview` socket event (debounced 50 ms) broadcasts `ActiveFlow` to opponent on every change while active. Game-server relays fire-and-forget. `opponentPreview` in Zustand; SocketBridge sets/clears it. `BattlefieldRow` renders: green selected / dimmed spent dice on opponent zone (resolve), amber dice on reroll pick, faint sky ring on opponent char being activated, pending counter badges on any targeted character (both zones). `DiceStack` + `DicePool3D` accept preview die-ID props. `CharacterCard` gains `previewActivate`. Typecheck + 175 engine tests green. (`224105e`)
 - **2026-05-15 — WEB-19 — Multi-target damage and shield resolution UI.** `ActiveFlow.resolve` gains `pendingTargets` (committed die groups) replacing `targetCharacterId`. Resolution loop: select dice → tap character to commit group → dice dim as spent → pending counter badge (−N red / +N blue) on target character. Tapping an already-assigned character replaces its group. Commit enabled when `pendingTargets.length > 0 && selectedDieIds.length === 0`. Dispatches `resolve-dice` with `targets` array. DicePool3D and DiceStack both updated. Resource/disrupt unchanged single-group path. Typecheck + 175 engine tests green. (`30e02ca`)
 - **2026-05-15 — WEB-7 — Human-readable activity log.** (`b508409`) Replaced raw JSON event dump with a formatted collapsible activity log in BattleZone. `buildLogEntries` maps all engine events to plain-English strings with bold player/character names and color-coded die chips (`DieChip`). `dice.resolved` is merged with follow-on `damage.dealt` / `shields.placed` / `resources.gained` / `resources.lost` into single entries. `round.begin` renders as a centered divider. Automatic passes, trigger lifecycle, and upkeep noise are suppressed. Log is collapsed by default via `<details>`, scrollable to 30 entries, `aria-live` for screen readers. Typecheck + 168 engine tests green. (`b508409`)
