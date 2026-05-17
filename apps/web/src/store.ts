@@ -60,6 +60,12 @@ export type ActiveFlow =
       readonly step: 'pick-card' | 'pick-dice';
       readonly discardCardId: string | null;
       readonly selectedDieIds: readonly string[];
+    }
+  | {
+      readonly kind: 'pendingCharTargetPlay';
+      readonly cardId: string;
+      readonly targetCharId: string;
+      readonly cardName: string;
     };
 
 export type SelectionMode =

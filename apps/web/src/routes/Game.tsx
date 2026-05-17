@@ -112,12 +112,17 @@ export function Game() {
 
   const dragEnabled = isMyTurn && inActionPhase && selectionMode === null && handMode === null;
   const drag = useDragToPlay(
-    (instanceId, targetCharId) => send({
-      type: 'play-card',
-      playerId,
-      cardId: instanceId,
-      ...(targetCharId ? { characterTargets: [targetCharId] } : {}),
-    }),
+    (instanceId, targetCharId) => {
+      if (targetCharId) {
+        const catalogId = game.cardCatalogIds[instanceId];
+        const card = catalogId ? catalogById.get(catalogId) : undefined;
+        if (!hasImmediateRevealOrRoll(card)) {
+          setActiveFlow({ kind: 'pendingCharTargetPlay', cardId: instanceId, targetCharId, cardName: card?.name ?? '?' });
+          return;
+        }
+      }
+      send({ type: 'play-card', playerId, cardId: instanceId, ...(targetCharId ? { characterTargets: [targetCharId] } : {}) });
+    },
     dragEnabled,
   );
 
@@ -1857,6 +1862,21 @@ function distributeToRows(charIds: readonly string[], maxPerRow = 4): string[][]
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Derive which board side a card requires for a character drop target. */
+/** Returns true if the card's first immediate step contains a deck search or die roll — non-undoable. */
+function hasImmediateRevealOrRoll(card: Card | undefined): boolean {
+  if (!card) return false;
+  for (const ab of card.abilities) {
+    if (ab.kind !== 'immediate') continue;
+    const firstStep = ab.steps[0];
+    if (!firstStep) continue;
+    for (const fx of firstStep.effects) {
+      const op = (fx as { op?: string }).op;
+      if (op === 'searchDeck' || op === 'rollEventDie' || op === 'rollCardDie') return true;
+    }
+  }
+  return false;
+}
+
 function getCharTargetSide(card: Card | undefined): 'own' | 'opponent' | null {
   if (!card) return null;
   if (card.type === 'upgrade') return 'own';
@@ -2236,6 +2256,36 @@ function BattlefieldRow({
           }
         }
 
+        // pendingCharTargetPlay preview — amber badge + ring on the targeted character.
+        let previewBadge: string | undefined;
+        let isPendingPlayTarget = false;
+        if (activeFlow?.kind === 'pendingCharTargetPlay' && cid === activeFlow.targetCharId) {
+          isPendingPlayTarget = true;
+          const playCatalogId = game.cardCatalogIds[activeFlow.cardId];
+          const playCard = playCatalogId ? catalogById.get(playCatalogId) : undefined;
+          const firstStep = playCard?.abilities.find((ab) => ab.kind === 'immediate')?.steps[0];
+          if (firstStep) {
+            for (const fx of firstStep.effects) {
+              const op = (fx as { op?: string }).op;
+              if (op === 'dealDamage') {
+                const amount = (fx as { amount?: number }).amount ?? 0;
+                previewBadge = `−${Math.max(0, amount - char.shields)}`;
+                break;
+              } else if (op === 'addShields') {
+                previewBadge = `+${(fx as { amount?: number }).amount ?? 0} shields`;
+                break;
+              } else if (op === 'removeShields') {
+                const a = (fx as { amount?: number | string }).amount ?? 0;
+                previewBadge = `−${a} shields`;
+                break;
+              } else if (op === 'healDamage') {
+                previewBadge = `+${(fx as { amount?: number }).amount ?? 0} HP`;
+                break;
+              }
+            }
+          }
+        }
+
         // ── Preview highlights from opponent's live flow ──────────────────────
         // Only rendered when the opponent (active player) is broadcasting.
         let previewActivate = false;
@@ -2378,6 +2428,8 @@ function BattlefieldRow({
               {...(dragRing ? { dragRing } : {})}
               {...(abilityBadges.length > 0 ? { abilityBadges } : {})}
               {...(pendingCounter ? { pendingCounter } : {})}
+              {...(previewBadge ? { previewBadge } : {})}
+              {...(isPendingPlayTarget ? { pendingPlayTarget: true } : {})}
               onAbilityBadgeTap={handleAbilityBadgeTap}
               onTap={handleTap}
               onUpgradeTap={onUpgradeTap}
@@ -2781,6 +2833,7 @@ function ActionBar({
         ? `End focus (${activeFlow.budget} left)`
         : 'End focus';
     }
+    if (activeFlow.kind === 'pendingCharTargetPlay') return `Play ${activeFlow.cardName}`;
     return 'Commit';
   })();
 
@@ -2860,6 +2913,11 @@ function ActionBar({
         dieInstanceIds: activeFlow.focuserDieIds,
         focusFlips,
       });
+      setActiveFlow(null);
+      return;
+    }
+    if (activeFlow.kind === 'pendingCharTargetPlay') {
+      send({ type: 'play-card', playerId, cardId: activeFlow.cardId, characterTargets: [activeFlow.targetCharId] });
       setActiveFlow(null);
       return;
     }
@@ -2947,10 +3005,10 @@ function ActionBar({
               (activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice' && !activeFlow.discardCardId)
             }
             className={`min-h-[44px] rounded-xl border px-6 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              activeFlow && activeFlow.kind !== 'reroll'
-                ? 'border-emerald-700 bg-emerald-900 text-emerald-50 hover:bg-emerald-800'
-                : activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice'
-                  ? 'border-amber-700 bg-amber-900 text-amber-50 hover:bg-amber-800'
+              activeFlow?.kind === 'pendingCharTargetPlay' || (activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice')
+                ? 'border-amber-700 bg-amber-900 text-amber-50 hover:bg-amber-800'
+                : activeFlow && activeFlow.kind !== 'reroll'
+                  ? 'border-emerald-700 bg-emerald-900 text-emerald-50 hover:bg-emerald-800'
                   : 'border-neutral-700 bg-neutral-900 text-neutral-100 hover:border-neutral-500'
             } active:opacity-80`}
           >
@@ -2990,6 +3048,8 @@ function CharacterCard({
   targetRing,
   dragRing,
   pendingCounter,
+  previewBadge,
+  pendingPlayTarget = false,
   abilityBadges,
   onAbilityBadgeTap,
   onTap,
@@ -3016,6 +3076,10 @@ function CharacterCard({
   dragRing?: 'drag-valid' | 'drag-invalid' | 'drag-hover-valid' | 'drag-hover-invalid';
   /** Pending value from a committed multi-target resolve group (shown as a counter badge). */
   pendingCounter?: { value: number; kind: 'damage' | 'shield' };
+  /** Amber text badge shown during pendingCharTargetPlay preview (e.g. "−3", "+2 shields"). */
+  previewBadge?: string;
+  /** Amber ring shown while this character is the pending play target. */
+  pendingPlayTarget?: boolean;
   abilityBadges?: Array<{ abilityIndex: number; kind: 'action' | 'powerAction'; eligible: boolean }>;
   onAbilityBadgeTap?: (abilityIndex: number, abilityKind: 'action' | 'powerAction') => void;
   onTap: () => void;
@@ -3054,7 +3118,7 @@ function CharacterCard({
                         ? RING.valid
                         : previewActivate
                           ? RING.opponentPreview
-                          : previewCardAction
+                          : previewCardAction || pendingPlayTarget
                             ? RING.pendingPreview
                             : char.exhausted
                             ? 'border-neutral-600 opacity-70'
@@ -3086,6 +3150,12 @@ function CharacterCard({
             pendingCounter.kind === 'damage' ? 'bg-red-900/90 text-red-200' : 'bg-blue-900/90 text-blue-200'
           }`}>
             {pendingCounter.kind === 'damage' ? '−' : '+'}{pendingCounter.value}
+          </div>
+        )}
+        {/* Amber preview badge — shown during pendingCharTargetPlay (shields-aware net effect). */}
+        {previewBadge && (
+          <div className="absolute right-1 top-1 rounded px-1 py-0.5 text-[9px] font-bold leading-none backdrop-blur-sm bg-amber-900/90 text-amber-200">
+            {previewBadge}
           </div>
         )}
       </button>

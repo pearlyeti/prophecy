@@ -415,6 +415,23 @@ When a player claims the battlefield, if they don't already control it, they tak
 
 If a player takes an illegal action or attempts an action that cannot be completed, the entire action is reversed. No abilities trigger and no effects resolve as a result. Then that player takes an action or passes. Actions that shuffle a deck, reveal cards from a deck, or move cards to or from a deck cannot be reversed.
 
+##### Undoable vs. committed actions
+
+Some actions can be previewed and cancelled before they take effect; others are committed the moment they begin because they reveal hidden information or introduce randomness that cannot be unseen.
+
+**Undoable (can preview and cancel):**
+- Dealing damage, healing damage
+- Adding or removing shields
+- Exhausting a card
+- Changing resources
+- Turning a die face via Focus
+
+**Committed before executing (cannot be undone once begun):**
+- Deck searches and card reveals — once you see which cards are in the deck, that information cannot be forgotten
+- Dice rolls and rerolls — once a die lands on a face, the result stands
+
+The client enforces this boundary. Cards whose first step contains a deck search, event-die roll, or card-die roll are dispatched immediately on drag-drop; all others enter a preview state where the player can inspect the effect and confirm or cancel.
+
 ##### Extra actions
 
 When a player is allowed to take additional actions on their turn, they must immediately take them following the resolution of the current action, or decline to act (this is **not** the same as passing). If they are allowed to take an action outside their turn, they also must take it immediately or decline.
