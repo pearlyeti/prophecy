@@ -88,9 +88,9 @@ export function makeFaceTexture(
 
   const CTR   = S / 2;
   const GAP   = Math.round(S * 0.04);
-  const V_MAX = Math.round(S * 0.35);
-  const L_MAX = Math.round(S * 0.22);
-  const maxW  = Math.round(S * 0.70);
+  const V_MAX = Math.round(S * 0.42);
+  const L_MAX = Math.round(S * 0.26);
+  const maxW  = Math.round(S * 0.78);
 
   if (symbol === 'blank') {
     // intentionally empty
