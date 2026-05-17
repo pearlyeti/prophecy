@@ -117,3 +117,11 @@ When a player plays a card and one or more in-play cost modifiers are eligible (
 ### 2026-05-17 — [ENGINE] Passive abilities use an attached-index, not on-read recomputation
 
 `GameState.activePassives` is keyed by the affected card and recomputed on enter/leave-play, not on every stat read; combat math reads stability and keywords many times per resolution and an index keeps that O(1). Deterministic ordering is fixed at attach time (`attachedAtSeq`, tiebreak `instanceId`) rather than re-derived on every read, which avoids subtle non-determinism when multiple passives modify the same stat.
+
+### 2026-05-17 — [ENGINE] Step model with implicit AND (no explicit container)
+
+Abilities expose `steps: EffectStep[]` where each step is `{ effects: Effect[], then?: boolean }`. AND-grouping ("Discard a card AND remove a shield") is implicit in a step holding multiple effects; we rejected an explicit `AND` wrapper because authors think "I'm adding another effect to this step", not "I'm wrapping things in a container". `then` gates a step on the previous step's `fullyResolved` (AND of its effects' resolution flags) — this handles "Discard AND remove a shield. Then deal 3." gating on **both** prior effects, which a flat then-on-the-last-effect model can't express.
+
+### 2026-05-17 — [ENGINE] `playCondition` (per-ability) and `playRestriction` (per-card) stay distinct fields
+
+ENGINE-PC1 enforces the existing per-ability `playCondition`; ENGINE-PR1 adds a new top-level `playRestriction` on the card itself. They evaluate similar predicates but gate different things — one is whether the ability fires, the other is whether the card can leave hand at all. Whichever lands second factors out a shared predicate-evaluator module; we did not pre-merge them because the call sites differ and a premature merge would muddy which field gates what.
