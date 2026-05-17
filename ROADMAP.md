@@ -12,6 +12,33 @@ Fully specced, claimable cards. Each has a [GitHub Issue](https://github.com/pea
 
 ---
 
+#### DESIGNER-HL1 — Humanize designer labels + Costs helper text
+
+**Why now.** The ability editor shows raw camelCase identifiers everywhere — op names (`removeShields`, `dealDamage`), target kinds (`opponentCharacter`, `eachCharacter`), cost kinds, dispositions, triggers, play conditions. Non-engineers can't scan the form. Pure presentation pass; no schema or engine change.
+
+**Scope.**
+- New file `apps/web/src/routes/designer/labels.ts`: `humanize(camel: string): string` (camelCase → "Camel Case") plus explicit override maps for op kinds, target kinds, action-cost kinds, play-condition kinds, trigger events, card dispositions, and search dispositions. Override cases where humanize alone is wrong (e.g. `opponentHasNoCards` → "Opponent has no cards in hand", `eachOpponentCharacter` → "Each opponent's character").
+- `apps/web/src/routes/designer/AbilityBuilder.tsx`:
+  - `TargetPicker` options: humanized labels, raw `value` preserved.
+  - `StepsList` / `EffectFields` op dropdown optgroups: humanized op names; preserve "Implemented / Stub / Placeholder" grouping.
+  - `ActionCostList`: humanized cost-kind labels. Add one-line italic helper above the list: *"What the player spends to use this ability (e.g. exhaust the card, spend 2 resources). The effects below run only after the cost is paid."*
+  - Play-condition kind selector and trigger-event selector: humanized labels.
+  - Search-disposition and card-disposition dropdowns: humanized labels.
+
+**Context to load.**
+- `apps/web/src/routes/designer/AbilityBuilder.tsx` (entire file)
+- `packages/protocol/src/catalog.ts` (all enum literals: op kinds, target kinds, cost kinds, play-condition kinds, trigger events, dispositions)
+
+**Out of scope.** Schema changes, engine changes, new form fields.
+
+**Done when.**
+- [ ] Typecheck clean. Lint clean.
+- [ ] Open the designer at `/designer`, open a card with at least one of each ability kind (e.g. CHAR_016 powerAction, EVT_001 immediate). No raw camelCase strings visible anywhere in the ability editor.
+- [ ] Hover/read the Costs helper line on an action ability.
+- [ ] Save a card and reload — JSON is identical (presentation-only, no data change).
+
+---
+
 #### ENGINE-CH1 — `choose` op (modal "or" / "Choose N")
 
 **Why now.** Modal abilities ("Give a shield, deal 2 damage, or draw a card") and "Choose N of M" are common in the rules reference. The current `choice` schema entry is a stub: no engine dispatch, no designer form. With ENGINE-ST1 in place, this is the natural next step.
