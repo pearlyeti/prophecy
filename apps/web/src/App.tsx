@@ -146,14 +146,11 @@ function SocketBridge() {
       ) as { type: string; payload: { rolledDice: readonly { instanceId: string }[]; characterId?: string; supportId?: string } } | undefined;
       if (rollEvt) {
         const ids = rollEvt.payload.rolledDice.map((d) => d.instanceId);
-        const cardId = rollEvt.payload.characterId ?? rollEvt.payload.supportId ?? null;
         if (tumblingTimer) clearTimeout(tumblingTimer);
         useApp.getState().setTumblingPoolDieIds(ids);
-        useApp.getState().setTumblingActivatedCardId(cardId);
         tumblingTimer = setTimeout(() => {
           tumblingTimer = null;
           useApp.getState().setTumblingPoolDieIds([]);
-          useApp.getState().setTumblingActivatedCardId(null);
         }, 1500);
       }
     };
