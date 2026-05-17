@@ -10,12 +10,14 @@
 // trpc / socket providers (per PR #80), so its Canvas is isolated.
 
 import { Canvas, useThree } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import type { DieFace, DieInPool, DieSymbol } from '@prophecy/game-engine';
 
 import { CARD_COLORS, makeFaceTexture } from '../lib/dieFaceTexture.js';
-import { Die3D } from './DicePool3D.js';
+
+// Lazy: keeps DicePool3D (+ three.js, r3f, drei) out of the main bundle so
+// Game.tsx's own lazy import of DicePool3D actually code-splits.
+const Die3D = lazy(() => import('./DicePool3D.js').then((m) => ({ default: m.Die3D })));
 
 type FaceSpec = { symbol: string; value: number; modifier: boolean; label: string };
 
@@ -99,21 +101,23 @@ function VerificationRow({ bg, text }: { bg: string; text: string }) {
         <CameraLookAt />
         <ambientLight intensity={0.5} />
         <directionalLight position={[0, 5, 2]} intensity={0.9} />
-        {dice.map((d, i) => (
-          <Die3D
-            key={d.instanceId}
-            die={d}
-            allFaces={VERIFY_FACES}
-            position={[(i - 2.5) * 1.1, 0, 0]}
-            baseColor={bg}
-            textColor={text}
-            state="default"
-            isTumbling={false}
-            overrideFaceIndex={i}
-            overrideFace={null}
-            onClick={() => {}}
-          />
-        ))}
+        <Suspense fallback={null}>
+          {dice.map((d, i) => (
+            <Die3D
+              key={d.instanceId}
+              die={d}
+              allFaces={VERIFY_FACES}
+              position={[(i - 2.5) * 1.1, 0, 0]}
+              baseColor={bg}
+              textColor={text}
+              state="default"
+              isTumbling={false}
+              overrideFaceIndex={i}
+              overrideFace={null}
+              onClick={() => {}}
+            />
+          ))}
+        </Suspense>
       </Canvas>
     </div>
   );

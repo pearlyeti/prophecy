@@ -242,7 +242,7 @@ export function Die3D({
         >
           <planeGeometry args={[FACE_PLANE_SIZE, FACE_PLANE_SIZE]} />
           <meshStandardMaterial
-            map={textures[slot]}
+            map={textures[slot]!}
             color={dimmed ? '#2a2a2a' : '#ffffff'}
             roughness={0.45}
             metalness={0.05}
