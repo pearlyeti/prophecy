@@ -246,7 +246,7 @@ function CameraLookAt({ camY, camZ, camFov }: { camY: number; camZ: number; camF
 }
 
 function TunerDie({
-  index, texture, quaternion, size, radius, position, offX, offY, mirrorX, mirrorY,
+  index, texture, quaternion, size, radius, position, spinDeg, offX, offY, mirrorX, mirrorY,
 }: {
   index: number;
   texture: THREE.CanvasTexture;
@@ -254,6 +254,7 @@ function TunerDie({
   size: number;
   radius: number;
   position: [number, number, number];
+  spinDeg: number;
   offX: number;
   offY: number;
   mirrorX: boolean;
@@ -265,7 +266,8 @@ function TunerDie({
     texture.center.set(0.5, 0.5);
     texture.offset.set(offX, offY);
     texture.repeat.set(mirrorX ? -1 : 1, mirrorY ? -1 : 1);
-  }, [texture, offX, offY, mirrorX, mirrorY]);
+    texture.rotation = (spinDeg * Math.PI) / 180;
+  }, [texture, spinDeg, offX, offY, mirrorX, mirrorY]);
 
   return (
     <RoundedBox
@@ -287,13 +289,13 @@ function TunerScene({ settings, textures }: { settings: Settings; textures: THRE
     [settings.oAxis, settings.oAngleDeg],
   );
 
+  // Per-face spin is now applied via texture.rotation (UV rotation around the
+  // face center), not a geometry rotation — so adjacent faces don't swing into
+  // view when you spin one face's content. The geometry quaternion only does
+  // face-to-top placement + _O correction.
   const faceQuats = useMemo(
-    () =>
-      [0, 1, 2, 3, 4, 5].map((k) => {
-        const spin = _q(_AY, (settings.faceSpinDeg[k]! * Math.PI) / 180);
-        return _c(spin, _c(oQuat, FACE_BASE_Q[k]!));
-      }),
-    [oQuat, settings.faceSpinDeg],
+    () => [0, 1, 2, 3, 4, 5].map((k) => _c(oQuat, FACE_BASE_Q[k]!)),
+    [oQuat],
   );
 
   return (
@@ -310,6 +312,7 @@ function TunerScene({ settings, textures }: { settings: Settings; textures: THRE
           size={settings.dieSize}
           radius={settings.dieRadius}
           position={[(i - 2.5) * (settings.dieSize * 1.4), 0, 0]}
+          spinDeg={settings.faceSpinDeg[i]!}
           offX={settings.faceOffsetX[i]!}
           offY={settings.faceOffsetY[i]!}
           mirrorX={settings.faceMirrorX[i]!}
