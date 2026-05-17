@@ -1,9 +1,6 @@
-// Shared die face texture generator used by the board dice (DicePool3D).
-// Produces a 512×512 CanvasTexture with the die's value and symbol on the card base color.
-//
-// Text is drawn UPRIGHT in normal canvas orientation. The RoundedBoxGeometry UV
-// rotation is already compensated by the _O = Ry(-π/2) term in FACE_CORRECT_Q
-// (DicePool3D.tsx) — do NOT add canvas rotation here or the corrections double up.
+// 512×512 canvas texture for one die face: text drawn upright at the center.
+// No rotation, offset, or mirror knobs — the canvas IS the face image.
+// DicePool3D orients each face by rotating its plane mesh, not the texture.
 
 import * as THREE from 'three';
 
@@ -50,8 +47,6 @@ function faceWord(s: string): string {
   }
 }
 
-// Measures text at startSize and scales down to fit maxWidth; returns the used size.
-// ctx.font is set to the returned size before returning.
 function fittedSize(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -79,7 +74,6 @@ export function makeFaceTexture(
   c.width = S; c.height = S;
   const ctx = c.getContext('2d')!;
 
-  // Background
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, S, S);
   const grad = ctx.createRadialGradient(S * 0.35, S * 0.3, 0, S * 0.5, S * 0.5, S * 0.7);
@@ -92,13 +86,11 @@ export function makeFaceTexture(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // CTR: visual center of the flat face in canvas_y. Slightly above S/2 because
-  // the RoundedBoxGeometry UV maps the flat region upward in canvas space.
-  const CTR   = Math.round(S * 0.45);
+  const CTR   = S / 2;
   const GAP   = Math.round(S * 0.04);
-  const V_MAX = Math.round(S * 0.35); // max value font size
-  const L_MAX = Math.round(S * 0.15); // max label font size (tuned via /dice-preview)
-  const maxW  = Math.round(S * 0.70); // max text width
+  const V_MAX = Math.round(S * 0.35);
+  const L_MAX = Math.round(S * 0.22);
+  const maxW  = Math.round(S * 0.70);
 
   if (symbol === 'blank') {
     // intentionally empty
@@ -115,7 +107,6 @@ export function makeFaceTexture(
       const vSize = fittedSize(ctx, valueStr, maxW, V_MAX, 'bold');
       const lSize = fittedSize(ctx, label,    maxW, L_MAX, '600');
 
-      // Center the pair at CTR: value above, label below, GAP between.
       const yValue = CTR - Math.round((GAP + lSize) / 2);
       const yLabel = CTR + Math.round((GAP + vSize) / 2);
 

@@ -2,96 +2,108 @@
 // Lazy-loaded — the bundle only loads when the game route is visited.
 // Used as a drop-in replacement for the flat DiceStack component.
 //
-// Architecture: one Canvas per player zone (not per die) — a single
-// WebGL context per zone keeps the context count low (browsers cap at ~16).
+// Architecture
+// ────────────
+// Each die is a <group> containing:
+//   • One RoundedBox body (solid color, no texture) for the chamfered cube.
+//   • Six flat plane meshes laid over each face, each with a CanvasTexture
+//     that just shows "value + label" drawn upright. There are no UV transforms
+//     anywhere — the plane's cube-local rotation is what makes text upright
+//     when that face is on top. Derivation is in the FACE_LAYOUT comment below.
+//
+// One Canvas per player zone (not per die) keeps the WebGL context count low
+// (browsers cap at ~16).
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import type { FacePickEvent } from '../store.js';
 import { RoundedBox } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import type { DieFace, DieInPool, DieSymbol } from '@prophecy/game-engine';
+import type { FacePickEvent } from '../store.js';
 import { useApp, type SelectionMode } from '../store.js';
 import { CARD_COLORS, FALLBACK_COLOR, makeFaceTexture } from '../lib/dieFaceTexture.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const DIE_SIZE = 0.8;           // world units
-const DIE_RADIUS = 0.04;        // chamfer radius (tuned via /dice-preview)
-const DIE_SPACING = 1.05;       // center-to-center spacing
-const CANVAS_HEIGHT_PX = 96;    // px — tall enough to show value+label at readable size
+const DIE_SIZE = 0.8;
+const DIE_RADIUS = 0.04;
+const DIE_SPACING = 1.05;
+const CANVAS_HEIGHT_PX = 96;
 
-// Per-face UV transforms — tuned via /dice-preview live tuner. Indexed by
-// face index k (which cube face is on top). Applied to the die's CanvasTexture
-// at render time so text reads upright and centered on every face.
-//
-// Material order: +X=0  -X=1  +Y=2  -Y=3  +Z=4  -Z=5
-const FACE_SPIN_DEG: readonly number[]  = [-180, 0, 90, 90, 90, 90];
-const FACE_OFFSET_X: readonly number[]  = [0.13, 0.135, -0.135, 0.145, 0.135, 0.16];
-const FACE_OFFSET_Y: readonly number[]  = [0.205, -0.09, -0.085, -0.055, -0.08, 0.225];
-const FACE_MIRROR_X: readonly boolean[] = [true, false, false, true, false, false];
-const FACE_MIRROR_Y: readonly boolean[] = [false, false, false, false, false, true];
+// Face overlay planes: sized to fit between the chamfers, pushed just outside
+// the cube body so they don't z-fight.
+const FACE_PLANE_SIZE   = DIE_SIZE - 2 * DIE_RADIUS;
+const FACE_PLANE_OFFSET = DIE_SIZE / 2 + 0.001;
 
-// At rest with no override, the die shows face index 2 (+Y on top by default).
+// At rest with no override the die shows face index 2 (+Y on top).
 const DEFAULT_FACE_INDEX = 2;
 
-// Camera stays centered on X so the die row doesn't shift in screen space.
-// Z=0.9 provides the overhead-with-depth look (bottom-of-screen tilt).
-// The "left" component of the perspective comes from the die's rest rotation below.
 const CAM_POS: [number, number, number] = [0, 2.5, 0.9];
 const CAM_FOV = 40;
 
-// Quaternions that put BoxGeometry material face k on top AND orient the
-// face texture so the value text reads correctly from the overhead camera.
+// ── Face plane layout ────────────────────────────────────────────────────────
 //
-// Two-step per face:
-//   1. Bring the face normal to +Y  (so the die is "face up")
-//   2. Rotate around Y until the UV V+ axis points toward -Z
-//      (the direction that reads upright to a camera at [0, 2.5, 0.9])
+// Slot order (kept for the allFaces array passed in from the engine):
+//   0=+X  1=-X  2=+Y  3=-Y  4=+Z  5=-Z
 //
-// Material order: +X=0  -X=1  +Y=2  -Y=3  +Z=4  -Z=5
-// Prophecy face index k → material slot k (one-to-one).
+// Each plane is rotated from the default plane orientation (normal +Z, up +Y)
+// so its outward normal points along the named axis. Its "local up" — the
+// world direction the texture's top points to in cube space — is picked so
+// the FACE_CORRECT_Q rotation that puts this slot on top is as simple as
+// possible (identity for slot 2, the default).
+
+const FACE_LAYOUT: readonly { pos: [number, number, number]; rot: [number, number, number] }[] = [
+  { pos: [+1,  0,  0], rot: [           0,  Math.PI / 2, 0] }, // 0: +X face, local up +Y
+  { pos: [-1,  0,  0], rot: [           0, -Math.PI / 2, 0] }, // 1: -X face, local up +Y
+  { pos: [ 0, +1,  0], rot: [-Math.PI / 2,            0, 0] }, // 2: +Y face, local up -Z
+  { pos: [ 0, -1,  0], rot: [ Math.PI / 2,            0, 0] }, // 3: -Y face, local up +Z
+  { pos: [ 0,  0, +1], rot: [           0,            0, 0] }, // 4: +Z face, local up +Y
+  { pos: [ 0,  0, -1], rot: [           0,      Math.PI, 0] }, // 5: -Z face, local up +Y
+];
+
+// ── Orientation ──────────────────────────────────────────────────────────────
+//
+// FACE_CORRECT_Q[k]: rotation applied to the whole die so slot k is on top
+// with its text upright for the camera. The camera at (0, 2.5, 0.9) looking
+// at origin has screen-up projected onto the world-XZ plane (the top face's
+// plane) in the -Z direction. So for each face k we need:
+//   • face k's outward normal → +Y (world)
+//   • face k's local "up"     → -Z (world)
+// FACE_CORRECT_Q[2] is identity because slot 2's normal is already +Y and
+// its local up was chosen as -Z; everything else follows mechanically.
+
 const _AX = new THREE.Vector3(1, 0, 0);
 const _AY = new THREE.Vector3(0, 1, 0);
 const _AZ = new THREE.Vector3(0, 0, 1);
-const _q  = (axis: THREE.Vector3, angle: number) => new THREE.Quaternion().setFromAxisAngle(axis, angle);
-// compose(a, b) = apply b first, then a
-const _c  = (a: THREE.Quaternion, b: THREE.Quaternion) => a.clone().multiply(b);
-
-// Empirical UV correction: RoundedBoxGeometry UV axes are rotated ~90° from
-// standard BoxGeometry, so all face-up quaternions need a Ry(-π/2) post-step
-// to orient the text upright from the overhead camera.
-const _O = _q(_AY, -Math.PI / 2); // orientation correction
+const _q = (axis: THREE.Vector3, angle: number) => new THREE.Quaternion().setFromAxisAngle(axis, angle);
+// compose(a, b) = apply b first, then a (Three.js convention)
+const _c = (a: THREE.Quaternion, b: THREE.Quaternion) => a.clone().multiply(b);
 
 export const FACE_CORRECT_Q: readonly THREE.Quaternion[] = [
-  _c(_O, _c(_q(_AY, -Math.PI / 2), _q(_AZ,  Math.PI / 2))), // 0: +X → top
-  _c(_O, _c(_q(_AY,  Math.PI / 2), _q(_AZ, -Math.PI / 2))), // 1: -X → top
-  _c(_O, new THREE.Quaternion()),                             // 2: +Y → top
-  _c(_O, _q(_AX, Math.PI)),                                   // 3: -Y → top
-  _c(_O, _q(_AX, -Math.PI / 2)),                              // 4: +Z → top
-  _c(_O, _c(_q(_AY,  Math.PI),     _q(_AX,  Math.PI / 2))),  // 5: -Z → top
+  _c(_q(_AY, -Math.PI / 2), _q(_AZ,  Math.PI / 2)), // 0: +X → top
+  _c(_q(_AY,  Math.PI / 2), _q(_AZ, -Math.PI / 2)), // 1: -X → top
+  new THREE.Quaternion(),                             // 2: +Y → top (identity)
+  _q(_AX, Math.PI),                                   // 3: -Y → top
+  _q(_AX, -Math.PI / 2),                              // 4: +Z → top
+  _c(_q(_AY,  Math.PI), _q(_AX, Math.PI / 2)),       // 5: -Z → top
 ];
 
-// Default resting orientation: face 2 placed on top via FACE_CORRECT_Q[2].
-// (Per-face UV transforms above are calibrated against this orientation;
-// adding any extra tilt would rotate the text away from upright.)
 const DEFAULT_REST_Q = FACE_CORRECT_Q[DEFAULT_FACE_INDEX]!;
 
-// Points the camera at the dice origin after mount.
-// r3f positions the camera but doesn't auto-aim it for perspective cameras.
+// Aims the camera at the dice origin after mount. r3f positions the camera
+// from props but doesn't auto-aim it.
 function CameraLookAt() {
   const { camera } = useThree();
   useEffect(() => { camera.lookAt(0, 0, 0); }, [camera]);
   return null;
 }
 
-
-// ── Single die mesh ───────────────────────────────────────────────────────────
+// ── Single die ───────────────────────────────────────────────────────────────
 
 type DieState = 'default' | 'eligible' | 'selected-resolve' | 'selected-reroll' | 'dimmed';
 
-function Die3D({
+export function Die3D({
   die,
   allFaces,
   position,
@@ -117,61 +129,58 @@ function Die3D({
   isTumbling: boolean;
   /** When set, animate the die to show this face index on top. */
   overrideFaceIndex?: number | null;
-  /** Face data for the overridden face (for texture). */
+  /** Face data for the overridden face (for the texture). */
   overrideFace?: DieFace | null;
   onClick: () => void;
 }) {
-  const meshRef  = useRef<THREE.Mesh>(null);
-  const animRef  = useRef(false);
-  const targetQ  = useRef(DEFAULT_REST_Q.clone());
+  const groupRef = useRef<THREE.Group>(null);
+  const animRef = useRef(false);
+  const targetQ = useRef(DEFAULT_REST_Q.clone());
   const currentQ = useRef(DEFAULT_REST_Q.clone());
   const prevTumbling = useRef(false);
 
   // Rotate the die so the effective face index is on top.
-  // Default rest = die.faceIndex (the rolled face). Override = overrideFaceIndex.
   const effectiveFaceIndex = overrideFaceIndex ?? die.faceIndex;
   useEffect(() => {
     if (isTumbling) return;
-    targetQ.current.copy(FACE_CORRECT_Q[effectiveFaceIndex] ?? FACE_CORRECT_Q[DEFAULT_FACE_INDEX]!);
+    targetQ.current.copy(FACE_CORRECT_Q[effectiveFaceIndex] ?? DEFAULT_REST_Q);
     animRef.current = true;
   }, [effectiveFaceIndex, isTumbling]);
 
-  // All rotation controlled here — no rotation prop on RoundedBox.
   useFrame((_, dt) => {
-    if (!meshRef.current) return;
+    const g = groupRef.current;
+    if (!g) return;
 
     if (isTumbling) {
       prevTumbling.current = true;
-      meshRef.current.rotation.x += dt * 7.0;
-      meshRef.current.rotation.y += dt * 5.3;
-      meshRef.current.rotation.z += dt * 3.1;
+      g.rotation.x += dt * 7.0;
+      g.rotation.y += dt * 5.3;
+      g.rotation.z += dt * 3.1;
       return;
     }
 
-    // Just finished tumbling — snap back to display orientation.
+    // Just finished tumbling — snap to display orientation.
     if (prevTumbling.current) {
       prevTumbling.current = false;
       currentQ.current.copy(targetQ.current);
-      meshRef.current.quaternion.copy(targetQ.current);
+      g.quaternion.copy(targetQ.current);
       return;
     }
 
-    // Smooth slerp toward target face orientation.
     if (animRef.current) {
       currentQ.current.slerp(targetQ.current, Math.min(1, dt * 7));
-      meshRef.current.quaternion.copy(currentQ.current);
+      g.quaternion.copy(currentQ.current);
       if (currentQ.current.angleTo(targetQ.current) < 0.008) {
         currentQ.current.copy(targetQ.current);
-        meshRef.current.quaternion.copy(targetQ.current);
+        g.quaternion.copy(targetQ.current);
         animRef.current = false;
       }
     }
   });
 
-  // Build the per-slot face array. allFaces is the catalog's 6-face spec; if
-  // missing, fall back to repeating the current rolled face on every slot
-  // (mostly for transient/event dice that aren't in cardDieFaces). The
-  // override slot (if any) is replaced with overrideFace.
+  // Per-slot face content. Catalog spec from allFaces; missing → repeat the
+  // rolled face on every slot (mostly for transient/event dice). The override
+  // slot, if any, gets the overrideFace.
   const effectiveFaces = useMemo<readonly DieFace[]>(() => {
     const base: readonly DieFace[] = allFaces && allFaces.length === 6
       ? allFaces
@@ -184,7 +193,8 @@ function Die3D({
     return base;
   }, [allFaces, die.face, overrideFaceIndex, overrideFace]);
 
-  // One texture per cube face — each shows its own face's content.
+  // One texture per face — drawn upright, no tweaks. The plane orientation
+  // does all the work of making text read upright on the die.
   const textures = useMemo(
     () => effectiveFaces.map((f) =>
       makeFaceTexture(f.symbol, f.value, f.modifier, baseColor, textColor),
@@ -192,21 +202,6 @@ function Die3D({
     [effectiveFaces, baseColor, textColor],
   );
   useEffect(() => () => { textures.forEach((t) => t.dispose()); }, [textures]);
-
-  // Apply per-face UV transform (rotation / offset / mirror) so each face's
-  // content reads upright and centered when THAT face is on top. Tuned via
-  // /dice-preview live tuner; same values were calibrated per face index.
-  useEffect(() => {
-    textures.forEach((tex, slot) => {
-      tex.center.set(0.5, 0.5);
-      tex.offset.set(FACE_OFFSET_X[slot]!, FACE_OFFSET_Y[slot]!);
-      tex.repeat.set(
-        FACE_MIRROR_X[slot] ? -1 : 1,
-        FACE_MIRROR_Y[slot] ? -1 : 1,
-      );
-      tex.rotation = (FACE_SPIN_DEG[slot]! * Math.PI) / 180;
-    });
-  }, [textures]);
 
   const emissiveHex =
     state === 'selected-resolve' ? '#064e3b' :
@@ -220,49 +215,53 @@ function Die3D({
     0;
   const dimmed = state === 'dimmed';
 
-  // Six materials, one per cube face slot, each with its own texture.
-  const materials = useMemo(
-    () => Array.from({ length: 6 }, () => new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.05 })),
-    [],
-  );
-  useEffect(() => () => { materials.forEach((m) => m.dispose()); }, [materials]);
-
-  useEffect(() => {
-    for (let slot = 0; slot < 6; slot++) {
-      const m = materials[slot]!;
-      m.map = textures[slot]!;
-      m.color.set(dimmed ? '#2a2a2a' : '#ffffff');
-      m.emissive.set(emissiveHex);
-      m.emissiveIntensity = emissiveIntensity;
-      m.needsUpdate = true;
-    }
-  }, [materials, textures, dimmed, emissiveHex, emissiveIntensity]);
-
-  useEffect(() => {
-    if (meshRef.current) meshRef.current.material = materials;
-  }, [materials]);
-
   return (
-    <RoundedBox
-      ref={meshRef}
-      args={[DIE_SIZE, DIE_SIZE, DIE_SIZE]}
-      radius={DIE_RADIUS}
-      smoothness={3}
+    <group
+      ref={groupRef}
       position={position}
-      // No rotation prop — fully controlled by useFrame to avoid reconciler conflicts.
-      // Material array is set imperatively via the useEffect above.
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-    />
+    >
+      <RoundedBox args={[DIE_SIZE, DIE_SIZE, DIE_SIZE]} radius={DIE_RADIUS} smoothness={3}>
+        <meshStandardMaterial
+          color={dimmed ? '#2a2a2a' : baseColor}
+          roughness={0.45}
+          metalness={0.05}
+          emissive={emissiveHex}
+          emissiveIntensity={emissiveIntensity}
+        />
+      </RoundedBox>
+      {FACE_LAYOUT.map((face, slot) => (
+        <mesh
+          key={slot}
+          position={[
+            face.pos[0] * FACE_PLANE_OFFSET,
+            face.pos[1] * FACE_PLANE_OFFSET,
+            face.pos[2] * FACE_PLANE_OFFSET,
+          ]}
+          rotation={face.rot}
+        >
+          <planeGeometry args={[FACE_PLANE_SIZE, FACE_PLANE_SIZE]} />
+          <meshStandardMaterial
+            map={textures[slot]}
+            color={dimmed ? '#2a2a2a' : '#ffffff'}
+            roughness={0.45}
+            metalness={0.05}
+            emissive={emissiveHex}
+            emissiveIntensity={emissiveIntensity}
+          />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
-// ── Same canSelectDie / canRerollDie logic as Game.tsx ───────────────────────
+// ── Selection rules (mirror Game.tsx) ────────────────────────────────────────
 
 function canSelectDie3D(d: DieInPool, lockedSymbol: DieSymbol | null): boolean {
   const s = d.face.symbol;
   if (s === 'blank') return false;
   if (s === 'special' || s === 'indirect' || s === 'discard' || s === 'draw') return false;
-  if (s === 'focus') return lockedSymbol === null; // focuser only as first tap
+  if (s === 'focus') return lockedSymbol === null;
   if (lockedSymbol === null) return !d.face.modifier;
   return s === lockedSymbol || s === 'modifier';
 }
@@ -279,20 +278,13 @@ export interface DicePool3DProps {
   selectionMode: SelectionMode | null;
   horizontal?: boolean;
   eligibleSymbols?: readonly string[];
-  /** Card color for die face color. */
   cardColor?: string | null;
-  /**
-   * Character instance id currently in the activate flow.
-   * Dice owned by this character tumble (pre-roll anticipation).
-   */
+  /** Character instance id currently in the activate flow — its dice tumble. */
   tumblingCharId?: string | null;
-  /** Face overrides for focus-pick preview: maps die instanceId → chosen face. */
+  /** Face overrides for focus-pick preview: dieId → chosen face. */
   faceOverrides?: Record<string, { faceIndex: number; face: DieFace }>;
-  /** Preview: opponent's currently selected dice (glow green). */
   previewSelectedDieIds?: readonly string[];
-  /** Preview: opponent's spent dice in pendingTargets (dimmed). */
   previewSpentDieIds?: readonly string[];
-  /** Preview: opponent's reroll-picked dice (amber). */
   previewRerollDieIds?: readonly string[];
 }
 
@@ -311,8 +303,6 @@ export default function DicePool3D({
   const activeFlow    = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
-  // Full 6-face catalog data per die instance — needed so each cube face
-  // can render its own content rather than echoing the current rolled face.
   const cardDieFaces = useApp((s) => s.game?.cardDieFaces);
 
   const inRerollPickDice = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice';
@@ -348,36 +338,24 @@ export default function DicePool3D({
       }
       return;
     }
-    // ── Face-pick flow ────────────────────────────────────────────────────
     if (activeFlow?.kind === 'face-pick') {
       const flow = activeFlow;
       const isFocuser = flow.focuserDieIds.includes(d.instanceId);
 
       if (!isFocuser && flow.budget > 0 && flow.pickingForDieId !== d.instanceId) {
-        // Tap a non-focuser die to open its face picker.
         setActiveFlow({ ...flow, pickingForDieId: d.instanceId });
         return;
       }
-
       if (!isFocuser && flow.pickingForDieId === d.instanceId) {
-        // Tap again to close the picker without selecting.
         setActiveFlow({ ...flow, pickingForDieId: null });
         return;
       }
 
-      // Tap a die that was flipped to a focus face to chain it as a new focuser.
       const lastFlip = [...flow.history].reverse().find(
         (e): e is Extract<FacePickEvent, { kind: 'flip' }> =>
           e.kind === 'flip' && e.targetDieId === d.instanceId,
       );
       const currentFaceIndex = lastFlip ? lastFlip.faceIndex : d.faceIndex;
-      const currentSymbol = d.face.symbol === 'focus' && !lastFlip
-        ? 'focus'
-        : lastFlip && d.ownerInstanceId
-          ? 'unknown' // will be resolved by engine; we check the flipped face value
-          : d.face.symbol;
-
-      // Check if the current effective face is a focus face and this die isn't already a focuser.
       const effectiveFaceIsFocus =
         !isFocuser &&
         lastFlip &&
@@ -404,7 +382,6 @@ export default function DicePool3D({
 
     if (diceInteractive && activeFlow === null && !d.face.modifier) {
       if (!eligibleSymbols?.includes(d.face.symbol)) return;
-      // Focus dice skip the resolve step — go straight to face-pick.
       if (d.face.symbol === 'focus') {
         setActiveFlow({ kind: 'face-pick', focuserDieIds: [d.instanceId], budget: d.face.value, history: [], pickingForDieId: null });
         return;
@@ -415,10 +392,8 @@ export default function DicePool3D({
 
   const { bg: baseColor, text: textColor } = CARD_COLORS[cardColor ?? ''] ?? FALLBACK_COLOR;
 
-  // Horizontal centering: spread dice around origin.
   const xStart = -((dice.length - 1) * DIE_SPACING) / 2;
 
-  // Empty pool — render a spacer that matches DiceStack min-h.
   if (dice.length === 0) {
     return <div style={{ minHeight: 40 }} className="w-full" />;
   }
@@ -432,14 +407,12 @@ export default function DicePool3D({
         dpr={Math.min(window.devicePixelRatio, 2)}
       >
         <CameraLookAt />
-        {/* Lighting: ambient fill + directional from upper-left-front to match camera angle */}
         <ambientLight intensity={0.5} />
         <directionalLight position={[0, 5, 2]} intensity={0.9} castShadow={false} />
 
         {dice.map((d, i) => {
           const isTumbling = tumblingCharId != null && d.ownerInstanceId === tumblingCharId;
 
-          // Determine visual state
           let dieState: DieState = 'default';
           if (inRerollPickDice && activeFlow?.kind === 'reroll') {
             dieState = activeFlow.selectedDieIds.includes(d.instanceId) ? 'selected-reroll'
@@ -467,10 +440,10 @@ export default function DicePool3D({
             const hasBeenFlipped = flow.history.some(
               (e) => e.kind === 'flip' && e.targetDieId === d.instanceId,
             );
-            if (isFocuser) dieState = 'dimmed';                        // focuser is "spent"
-            else if (isPickingTarget) dieState = 'selected-resolve';   // open picker
-            else if (hasBeenFlipped) dieState = 'selected-reroll';     // flipped this focus
-            else if (flow.budget > 0) dieState = 'eligible';           // valid target
+            if (isFocuser) dieState = 'dimmed';
+            else if (isPickingTarget) dieState = 'selected-resolve';
+            else if (hasBeenFlipped) dieState = 'selected-reroll';
+            else if (flow.budget > 0) dieState = 'eligible';
             else dieState = 'dimmed';
           } else if (eligibleSymbols?.includes(d.face.symbol) && !d.face.modifier) {
             dieState = 'eligible';
