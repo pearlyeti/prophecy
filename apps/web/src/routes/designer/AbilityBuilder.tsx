@@ -611,7 +611,7 @@ function StepsList({ steps, onChange }: {
               <input
                 type="checkbox"
                 checked={step.then ?? false}
-                onChange={(e) => updateStep(si, { ...step, then: e.target.checked || undefined })}
+                onChange={(e) => updateStep(si, e.target.checked ? { ...step, then: true } : { effects: step.effects })}
               />
               <span className="font-mono">Then ↳</span>
               {step.then && (

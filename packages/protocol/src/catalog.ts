@@ -377,9 +377,8 @@ export const CHARACTER_SELECTION_TARGETS: ReadonlySet<TargetSpec['kind']> = new 
 
 export const effectStepSchema = z.object({
   effects: z.array(effectSchema).default([]),
-  then: z.boolean().default(false),
+  then: z.boolean().optional(),
 });
-export type EffectStep = z.infer<typeof effectStepSchema>;
 
 // ────────────────────────────────────────────────────────────────────
 // Ability — discriminated on `kind`
