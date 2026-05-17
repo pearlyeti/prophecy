@@ -2,6 +2,7 @@ import { getLegalActions, type DieSymbol, type DieInPool, type DieFace, type Cha
 import type { Action, Card, EngineEvent, GameState, LobbyState } from '@prophecy/protocol';
 import { isError } from '@prophecy/protocol';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ScrollText } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 const DicePool3D = lazy(() => import('./DicePool3D.js'));
@@ -937,32 +938,72 @@ function EventLog({ game, catalogById }: { game: GameState; catalogById: Map<str
     [batches, lobby, game, catalogById],
   );
 
-  if (entries.length === 0) return null;
+  if (entries.length === 0) {
+    return <p className="px-4 py-3 text-xs text-neutral-600">No activity yet.</p>;
+  }
 
   return (
-    <details className="border-t border-neutral-800">
-      <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium uppercase tracking-wider text-neutral-500 hover:text-neutral-400">
-        Activity log ({entries.length})
-      </summary>
-      <ol
-        className="max-h-48 overflow-y-auto px-3 pb-2 text-xs text-neutral-400"
-        aria-label="Activity log"
-        aria-live="polite"
-        aria-atomic="false"
+    <ol
+      className="overflow-y-auto px-3 py-2 text-xs text-neutral-400"
+      aria-label="Activity log"
+      aria-live="polite"
+      aria-atomic="false"
+    >
+      {entries.map((entry) =>
+        entry.kind === 'divider' ? (
+          <li key={entry.key} role="separator" className="my-1 text-center text-[10px] tracking-widest text-neutral-600">
+            — {entry.label} —
+          </li>
+        ) : (
+          <li key={entry.key} className="py-0.5 leading-snug">
+            {entry.node}
+          </li>
+        ),
+      )}
+    </ol>
+  );
+}
+
+function ActivityLogModal({
+  game,
+  catalogById,
+  onClose,
+}: {
+  game: GameState;
+  catalogById: Map<string, Card>;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <button
+        type="button"
+        aria-label="Close activity log"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+      />
+      <div
+        className="relative z-10 flex w-full max-w-sm flex-col overflow-hidden rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:rounded-2xl"
+        style={{ maxHeight: '80dvh' }}
       >
-        {entries.map((entry) =>
-          entry.kind === 'divider' ? (
-            <li key={entry.key} role="separator" className="my-1 text-center text-[10px] tracking-widest text-neutral-600">
-              — {entry.label} —
-            </li>
-          ) : (
-            <li key={entry.key} className="py-0.5 leading-snug">
-              {entry.node}
-            </li>
-          ),
-        )}
-      </ol>
-    </details>
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-4 py-3">
+          <h2 className="text-sm font-semibold text-neutral-100">Activity log</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] min-w-[44px] rounded-md px-3 text-xs uppercase tracking-wider text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
+          >
+            Close
+          </button>
+        </div>
+        <EventLog game={game} catalogById={catalogById} />
+      </div>
+    </div>
   );
 }
 
@@ -1868,6 +1909,7 @@ function BattleZone({
 }) {
   const [detailId, setDetailId] = useState<{ ownerId: string; charId: string } | null>(null);
   const [upgradeDetailId, setUpgradeDetailId] = useState<{ ownerId: string; upgradeId: string } | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
 
   const opponentPreview = useApp((s) => s.opponentPreview);
   const opponentId = game.playerOrder.find((id) => id !== playerId);
@@ -1893,9 +1935,17 @@ function BattleZone({
           onUpgradeTap={(uid) => opponentId && setUpgradeDetailId({ ownerId: opponentId, upgradeId: uid })}
         />
 
-        {/* Center divider — white line with breathing room on both sides */}
-        <div className="shrink-0 px-4 py-3">
+        {/* Center divider — white line with log icon anchored to the left */}
+        <div className="relative shrink-0 px-4 py-3">
           <div className="h-px w-full bg-white" />
+          <button
+            type="button"
+            aria-label="Open activity log"
+            onClick={() => setLogOpen(true)}
+            className="absolute left-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300 active:bg-neutral-800"
+          >
+            <ScrollText size={16} aria-hidden />
+          </button>
         </div>
 
         {/* 3 ── Player zone */}
@@ -1925,9 +1975,6 @@ function BattleZone({
 
         {/* 5 ── Action bar — Undo (future) | Commit */}
         <ActionBar game={game} playerId={playerId} send={send} isMyTurn={isMyTurn} />
-
-        {/* 6 ── Activity log — collapsed by default on mobile */}
-        <EventLog game={game} catalogById={catalogById} />
       </section>
 
       {detailChar && detailId && (
@@ -1935,6 +1982,9 @@ function BattleZone({
       )}
       {upgradeDetailCard && (
         <UpgradeDetailOverlay card={upgradeDetailCard} onClose={() => setUpgradeDetailId(null)} />
+      )}
+      {logOpen && (
+        <ActivityLogModal game={game} catalogById={catalogById} onClose={() => setLogOpen(false)} />
       )}
     </>
   );
