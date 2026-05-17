@@ -303,7 +303,24 @@ export default function DicePool3D({
   const activeFlow    = useApp((s) => s.activeFlow);
   const setActiveFlow = useApp((s) => s.setActiveFlow);
   const toggleSelectedDie = useApp((s) => s.toggleSelectedDie);
-  const cardDieFaces = useApp((s) => s.game?.cardDieFaces);
+  const game = useApp((s) => s.game);
+  const dieInstanceFaces = useMemo(() => {
+    if (!game) return undefined;
+    const map: Record<string, readonly DieFace[]> = {};
+    for (const player of Object.values(game.players)) {
+      for (const char of Object.values(player.characters)) {
+        for (const die of char.dice) {
+          map[die.instanceId] = die.faces;
+        }
+      }
+      for (const support of Object.values(player.supports)) {
+        for (const die of support.dice) {
+          map[die.instanceId] = die.faces;
+        }
+      }
+    }
+    return map;
+  }, [game]);
 
   const inRerollPickDice = activeFlow?.kind === 'reroll' && activeFlow.step === 'pick-dice';
   const inRerollMode     = selectionMode?.kind === 'reroll';
@@ -456,7 +473,7 @@ export default function DicePool3D({
           }
 
           const override = faceOverrides?.[d.instanceId];
-          const allFaces = cardDieFaces?.[d.cardId];
+          const allFaces = dieInstanceFaces?.[d.instanceId];
           return (
             <Die3D
               key={d.instanceId}
